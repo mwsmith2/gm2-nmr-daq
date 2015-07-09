@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="http://code.jquery.com/jquery-1.11.2.min.js"></script>
+<script src="http://code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
+<script src="http://d3js.org/d3.v3.js"></script>
+<script src="https://rawgithub.com/mwsmith2/epoch/master/epoch.min.js"></script>
+
+<link rel="stylesheet" type="text/css" 
+href="https://rawgithub.com/mwsmith2/epoch/master/epoch.min.css">
+
+<head>
+  <title>g-2 Shimming Online Diagnostics</title>
+</head>
+<body>
+  <div style="width:100%;">
+  <h1><center><strong>Online Shimming Diagnostics</strong></center></h1>
+  <script>
+    window.onresize = function(){ location.reload(); };
+
+    var w = Math.max(document.documentElement.clientWidth, 
+                     window.innerWidth || 0);
+    var h = Math.max(document.documentElement.clientHeight, 
+                     window.innerHeight || 0)
+
+    if (w > h) {
+        var size = 0.42 * h;
+    } else {
+        var size = 0.42 * w;
+    }
+
+    // Set up some column formatting for the page.
+    var figs = d3.select('body').select('div').append('div')
+        .attr('id', 'leftcol')
+        .style('float', 'left')
+        .style('width', size / w * 100 + '%')
+        .style('height', '100%');
+
+    var plots = d3.select('body').select('div').append('div')
+        .attr('id', 'rightcol')
+        .style('margin-top', '4%')
+        .style('float', 'right')
+        .style('width', (w - size) / w * 100 + '%')
+        .style('height', 0.9 * h + 'px');
+
+    data = [0, 6, 1, 7, 2, 8, 3, 9, 4, 10, 5, 11];
+
+    plots.selectAll('div').data(data)
+      .enter().append('div')
+        .attr('id', function(d) {
+            if (d < 6) {
+                return 'leftPlot' + d;
+            } else {
+                return 'rightPlot' + d % 6;
+            }
+        })
+        .attr('class', 'epoch')
+        .attr('title', function(d) { return "Ring Section " + d; })
+        .style('float', function(d) {
+            if (d < 6) {
+                return 'left';
+            } else {
+                return 'right';
+            }
+        })
+        .style('width', '48%')
+        .style('height', '13%');
+
+    // Now define some variables used to make our figures.
+    var scale = 0.15 * size;
+
+    var r_platform = scale * 2.5;
+    var r_shim_probes = scale / 8.0;
+    var r_big_shim_probes = 1.6 * r_shim_probes;
+
+    var sec_angle = 2.0 * Math.PI / 12.0;
+    var arc_r_mean = 2.25 * scale;
+    var arc_r_half = 0.25 * scale;
+    var arc_half_angle = sec_angle * 0.45;
+    var mouse_arc_r_half = 2.0 * arc_r_half;
+    var mouse_arc_half_angle = 2.0 * arc_half_angle;
+
+    var r_fixed_probes = scale / 32.0;
+    var r_big_fixed_probes = 1.6 * r_fixed_probes;
+    var phi_yshift = sec_angle / 24.0;
+    var rad_yshift = 1.2 * r_fixed_probes;
+
+    var alpha = 0.1;
+
+    var probes = {
+        'platform': [
+            {'x': 0.0000, 'y': 0.0000, 'r': 0.0, 'phi': 0.0000},
+        ],
+        'platform_probes':[
+            {'x': 0.000, 'y': 0.000, 'r': 0.0, 'phi': 0.000, 'health': 0.0},
+            {'x': 1.000, 'y': 0.000, 'r': 1.0, 'phi': 0.000, 'health': 0.0},
+            {'x': 0.707, 'y': 0.707, 'r': 1.0, 'phi': 0.785, 'health': 1.0},
+            {'x': 0.000, 'y': 1.000, 'r': 1.0, 'phi': 1.570, 'health': 0.0},
+            {'x':-0.707, 'y': 0.707, 'r': 1.0, 'phi': 2.356, 'health': 0.0},
+            {'x':-1.000, 'y': 0.000, 'r': 1.0, 'phi': 3.141, 'health': 0.0},
+            {'x':-0.707, 'y':-0.707, 'r': 1.0, 'phi': 3.926, 'health': 1.0},
+            {'x': 0.000, 'y':-1.000, 'r': 1.0, 'phi': 4.712, 'health': 0.0},
+            {'x': 0.707, 'y':-0.707, 'r': 1.0, 'phi': 5.497, 'health': 1.0},
+            {'x': 2.000, 'y': 0.000, 'r': 2.0, 'phi': 0.000, 'health': 1.0},
+            {'x': 1.847, 'y': 0.765, 'r': 2.0, 'phi': 0.392, 'health': 1.0},
+            {'x': 1.414, 'y': 1.414, 'r': 2.0, 'phi': 0.785, 'health': 1.0},
+            {'x': 0.765, 'y': 1.847, 'r': 2.0, 'phi': 1.178, 'health': 0.0},
+            {'x': 0.000, 'y': 2.000, 'r': 2.0, 'phi': 1.570, 'health': 0.0},
+            {'x':-0.765, 'y': 1.847, 'r': 2.0, 'phi': 1.963, 'health': 1.0},
+            {'x':-1.414, 'y': 1.414, 'r': 2.0, 'phi': 2.356, 'health': 1.0},
+            {'x':-1.847, 'y': 0.765, 'r': 2.0, 'phi': 2.748, 'health': 0.0},
+            {'x':-2.000, 'y': 0.000, 'r': 2.0, 'phi': 3.141, 'health': 1.0},
+            {'x':-1.847, 'y':-0.765, 'r': 2.0, 'phi': 3.534, 'health': 1.0},
+            {'x':-1.414, 'y':-1.414, 'r': 2.0, 'phi': 3.926, 'health': 0.0},
+            {'x':-0.765, 'y':-1.847, 'r': 2.0, 'phi': 4.319, 'health': 0.0},
+            {'x': 0.000, 'y':-2.000, 'r': 2.0, 'phi': 4.712, 'health': 0.0},
+            {'x': 0.765, 'y':-1.847, 'r': 2.0, 'phi': 5.105, 'health': 1.0},
+            {'x': 1.414, 'y':-1.414, 'r': 2.0, 'phi': 5.497, 'health': 0.0},
+            {'x': 1.847, 'y':-0.765, 'r': 2.0, 'phi': 5.890, 'health': 0.0}
+        ],
+        'ring_sections': [
+            {'id': '1', 'rsec': 1,  'ref': 0.5},
+            {'id': '2', 'rsec': 2,  'ref': 1.5},
+            {'id': '3', 'rsec': 3,  'ref': 2.5},
+            {'id': '4', 'rsec': 4,  'ref': 3.5},
+            {'id': '5', 'rsec': 5,  'ref': 4.5},
+            {'id': '6', 'rsec': 6,  'ref': 5.5},
+            {'id': '7', 'rsec': 7,  'ref': 6.5},
+            {'id': '8', 'rsec': 8,  'ref': 7.5},
+            {'id': '9', 'rsec': 9,  'ref': 8.5},
+            {'id': '10','rsec': 10, 'ref': 9.5},
+            {'id': '11','rsec': 11, 'ref': 10.5},
+            {'id': '12','rsec': 12, 'ref': 11.5}
+        ],
+        'layout': {
+            'nphi_max': 3,
+            'nr_max': 3,
+            'ny_max': 2,
+        },
+        'fixed_probes': [
+            {'id': 0, 'rsec': 1, 'nphi': 1, 'nr': 1, 'ny': 1, 'sn': 'UW-100', 
+            'health': 1.0},
+            {'id': 1, 'rsec': 1, 'nphi': 1, 'nr': 1, 'ny': 2, 'sn': 'UW-099', 
+            'health': 0.0},
+            {'id': 2, 'rsec': 1, 'nphi': 1, 'nr': 2, 'ny': 1, 'sn': 'UW-098', 
+            'health': 0.0},
+            {'id': 3, 'rsec': 1, 'nphi': 1, 'nr': 2, 'ny': 2, 'sn': 'UW-097', 
+            'health': 1.0},
+            {'id': 4, 'rsec': 1, 'nphi': 1, 'nr': 3, 'ny': 1, 'sn': 'UW-096', 
+            'health': 0.0},
+            {'id': 5, 'rsec': 1, 'nphi': 1, 'nr': 3, 'ny': 2, 'sn': 'UW-095', 
+            'health': 1.0},
+            {'id': 8, 'rsec': 1, 'nphi': 2, 'nr': 2, 'ny': 1, 'sn': 'UW-092', 
+            'health': 1.0},
+            {'id': 9, 'rsec': 1, 'nphi': 2, 'nr': 2, 'ny': 2, 'sn': 'UW-091', 
+            'health': 1.0},
+            {'id': 10, 'rsec': 1, 'nphi': 2, 'nr': 3, 'ny': 1, 'sn': 'UW-090', 
+            'health': 1.0},
+            {'id': 11, 'rsec': 1, 'nphi': 2, 'nr': 3, 'ny': 2, 'sn': 'UW-089', 
+            'health': 1.0},
+            {'id': 12, 'rsec': 1, 'nphi': 3, 'nr': 1, 'ny': 1, 'sn': 'UW-088', 
+            'health': 1.0},
+            {'id': 13, 'rsec': 1, 'nphi': 3, 'nr': 1, 'ny': 2, 'sn': 'UW-087', 
+            'health': 0.0},
+            {'id': 14, 'rsec': 1, 'nphi': 3, 'nr': 2, 'ny': 1, 'sn': 'UW-086', 
+            'health': 0.0},
+            {'id': 15, 'rsec': 1, 'nphi': 3, 'nr': 2, 'ny': 2, 'sn': 'UW-085', 
+            'health': 0.0},
+            {'id': 16, 'rsec': 1, 'nphi': 3, 'nr': 3, 'ny': 1, 'sn': 'UW-084', 
+            'health': 1.0},
+            {'id': 17, 'rsec': 1, 'nphi': 3, 'nr': 3, 'ny': 2, 'sn': 'UW-083', 
+            'health': 0.0},
+
+            {'id': 18, 'rsec': 4, 'nphi': 1, 'nr': 1, 'ny': 1, 'sn': 'UW-101', 
+            'health': 1.0},
+            {'id': 19, 'rsec': 7, 'nphi': 1, 'nr': 1, 'ny': 1, 'sn': 'UW-102', 
+            'health': 1.0},
+            {'id': 20, 'rsec': 10, 'nphi': 1, 'nr': 1, 'ny': 1, 'sn': 'UW-103', 
+            'health': 0.0}
+        ]
+    };
+
+test_data = {
+        'platform_probes': [
+            {'health': 1.0,  'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 1.0,  'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 0.0, 'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 1.0,  'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 1.0,  'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 0.0, 'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 1.0,  'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 1.0,  'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 0.0, 'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 0.0, 'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 1.0,  'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 1.0,  'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 0.0, 'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 1.0,  'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 1.0,  'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 0.0, 'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 1.0,  'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 0.0, 'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 1.0,  'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 0.0, 'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 1.0,  'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 1.0,  'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 1.0,  'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 0.0, 'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]}, 
+            {'health': 0.0, 'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]}
+        ]
+    }
+    // Create an arc generator
+    var arc = d3.svg.arc()
+                .innerRadius(arc_r_mean - arc_r_half)
+                .outerRadius(arc_r_mean + arc_r_half)
+                .startAngle(function(d) {
+                   return d.ref * sec_angle - arc_half_angle;
+                })
+                .endAngle(function(d) {
+                   return d.ref * sec_angle + arc_half_angle;
+                });
+
+    var mouse_arc = d3.svg.arc()
+                      .innerRadius(arc_r_mean - mouse_arc_r_half)
+                      .outerRadius(arc_r_mean + mouse_arc_r_half)
+                      .startAngle(function(d) {
+                          return d.ref * sec_angle - mouse_arc_half_angle;
+                      })
+                      .endAngle(function(d) {
+                          return d.ref * sec_angle + mouse_arc_half_angle;
+                      });
+
+    // Now setup the drawing area.
+    var svg = d3.select('#leftcol')
+      .append('svg')
+        .attr('width', size)
+        .attr('height', 2 * size);
+    
+    var vis = svg.append('g')
+        .attr('id', 'platform')
+        .attr('transform', 'translate(' + 0.5 * size + ',' +  0.5 * size + ')');
+
+    // Now draw the shimming platform.
+    var shim_platform = vis.selectAll('.shim-platform')
+        .data(probes.platform)
+      .enter().append('circle')
+        .attr('id', 'shim-platform')        
+        .attr('cx', function(d, i) { return d.x * scale; })
+        .attr('cy', function(d, i) { return d.y * scale; })
+        .attr('r', r_platform)
+        .attr('fill', '#bbb')
+        .attr('stroke', '#000');
+
+    // Now the platform probes.
+    var platform_probes = vis.selectAll('.platform-probes')
+        .data(probes.platform_probes)
+      .enter().append('circle', function(d) {return })
+        .attr('id', 'platfrom-probes')
+        .attr('cx', function(d, i) { return d.x * scale; })
+        .attr('cy', function(d, i) { return d.y * scale; })
+        .attr('r', r_shim_probes)
+        .attr('fill', function(d, i) {
+            return healthcolor(d.health);
+        });
+
+    // A new drawing space
+    var vis = svg.append('g')
+        .attr('id', 'ring')
+        .attr('transform', 'translate(' + 0.5 * size + ',' +  1.5 * size + ')');
+
+    // Now draw the ring sections for the fixed probes.
+    var ring_sec_group = vis.selectAll('.ring-sec')
+        .data(probes.ring_sections, function(d) { return d.rsec; })
+      .enter().append('g')
+        .attr('rsec', function(d) { return d.rsec; });
+
+
+    var ring_sec = ring_sec_group.selectAll('.arc')
+        .data(function(d) { return [d]; })
+      .enter()
+        .append('path')
+        .attr('d', arc)
+        .attr('fill', '#bbb')
+        .attr('stroke', '#000');
+      
+    var fixed_probes = ring_sec_group.selectAll('.probe')
+        .data(function(d) { 
+            return arr = probes.fixed_probes.filter(function(d2) {
+                return d2.rsec == d.rsec;
+            });
+        })
+      .enter().append('circle')
+        .attr('phi', function(d) {
+            var phi = sec_angle * (d.rsec - 1 + d.nphi / (probes.layout.nphi_max + 1));
+            if (d.ny == 2) {
+                return phi + phi_yshift;
+            } else {
+                return phi - phi_yshift;
+            }              
+        })
+        .attr('rad', function(d) {
+            var rad = arc_r_mean - arc_r_half;
+            rad += 2 * arc_r_half * d.nr / (probes.layout.nr_max + 1);
+            if (d.ny == 2) {
+                return rad + rad_yshift;
+            } else {
+                return rad - rad_yshift;
+            }
+        })
+        .attr('zm_cx', function(d) {
+            var phi = d3.select(this).attr('phi');
+            var rad = d3.select(this).attr('rad');
+            var dphi = phi - (d.rsec - 0.5) * sec_angle;
+            var drad = rad - arc_r_mean;
+            var ratio = mouse_arc_half_angle / arc_half_angle;
+            var phi = (d.rsec - 0.5) * sec_angle + dphi * ratio;
+            var rad = arc_r_mean + drad * mouse_arc_r_half / arc_r_half;
+            return rad * Math.sin(phi);                    
+        })
+        .attr('zm_cy', function(d) {
+            var phi = d3.select(this).attr('phi');
+            var rad = d3.select(this).attr('rad');
+            var dphi = phi - (d.rsec - 0.5) * sec_angle;
+            var drad = rad - arc_r_mean;
+            var ratio = mouse_arc_half_angle / arc_half_angle;
+            var phi = (d.rsec - 0.5) * sec_angle + dphi * ratio;
+            var rad = arc_r_mean + drad * mouse_arc_r_half / arc_r_half;
+            return -rad * Math.cos(phi); 
+        })
+        .attr('cx', function(d) {
+            var rad = d3.select(this).attr('rad');
+            var phi = d3.select(this).attr('phi');
+            return rad * Math.sin(phi);
+        })
+        .attr('cy', function(d) {
+            var rad = d3.select(this).attr('rad');
+            var phi = d3.select(this).attr('phi');
+            return -rad * Math.cos(phi);
+        })
+        .attr('r', r_fixed_probes)
+        .style('fill', function(d) {
+            return healthcolor(d.health);
+        })
+        .style('pointer-events', 'none');
+
+    // Sort the ring-sec and fixed probes.
+    var ring_all = d3.select('#ring').selectAll('g').sort(ringsort);
+
+    // Now define transitions now that we have all our groups
+    platform_probes.on('mouseenter', function(d) {
+            d3.select(this).transition()
+                .duration(200)
+                .attr('r', r_big_shim_probes);
+        })
+        .on('mouseleave', function(d) {
+            d3.select(this).transition()
+                .duration(200)
+                .attr('r', r_shim_probes);
+        })
+        .on('click', function(d) {
+            var sn = 'UW-099'; //d3.select(this).attr('sn');
+            window.open('probe_display.html?id=' + sn, '_blank').focus();
+        });
+
+    // Define the zoom transition for the ring sections + probes.
+    ring_sec.on('mouseenter', function(d) {
+        ring_all.sort(function(d2) {
+                if (d2.rsec == d.rsec) {
+                    return 1;
+                } else {
+                    return 0;
+                }
+            });
+        ring_sec.filter(function(d2, i) {
+            return d.rsec == d2.rsec; 
+            })  
+            .transition()
+            .duration(400)
+            .each('end', function(d, i) {
+                d3.select(this).attr('zoomed', 1.0);
+            })
+            .attr('d', mouse_arc);
+
+        fixed_probes.filter(function(d2, i) {
+                return d.rsec == d2.rsec
+            })
+            .transition()
+            .duration(400)
+            .each('end', function(d, i) {
+                d3.select(this).attr('zoomed', 1.0);
+            })
+            .attr('cx', function(d2) {
+                return d3.select(this).attr('zm_cx');
+            })
+            .attr('cy', function(d2) {
+                return d3.select(this).attr('zm_cy');
+            })
+            .attr('r', r_big_fixed_probes);
+        })
+        .on('mouseleave', function(d) {
+
+            ring_sec.transition()
+                .duration(200)
+                .each('end', function(d, i) {
+                    d3.select(this).attr('zoomed', false);
+                })
+                .attr('d', arc);
+                
+            fixed_probes.transition()
+                .duration(200)
+                .each('end', function(d, i) {
+                    d3.select(this).attr('zoomed', false);
+                })
+                .attr('cx', function(d2, i) {
+                    var phi = d3.select(this).attr('phi');
+                    var rad = d3.select(this).attr('rad');
+                    return rad * Math.sin(phi);                    
+                })
+                .attr('cy', function(d2, i) {
+                    var phi = d3.select(this).attr('phi');
+                    var rad = d3.select(this).attr('rad');
+                    return -rad * Math.cos(phi); 
+                })
+                .attr('r', r_fixed_probes);
+            }
+        );
+
+    // fixed_probes.on('mouseover', function(d) {
+    //     d3.select('#ring').selectAll('*')
+    //         .sort(function(d2) {
+    //             if (d2.rsec == d.rsec) {
+    //                 return -1;
+    //             } else {
+    //                 return 0;
+    //             }
+    //         }
+    //     );    
+    // });
+
+    setInterval(function(){
+        update_platform_probes();
+        update_fixed_probes();
+        update_freq_plot();
+    }, 1000);
+
+    function update_fixed_probes() {
+        var data = fixed_probes.data();
+        for (var i = 0; i < data.length; ++i) {
+            var val = Math.random() <= 0.9;
+            data[i].health = alpha * val + (1.0 - alpha) * data[i].health;
+        }
+        fixed_probes.data(function(d) {
+                return arr = data.filter(function(d2) {
+                    return d2.rsec == d.rsec;
+                });
+            })
+            .transition('fixed-color')  
+            .duration(200)   
+            .style('fill', function(d, i) {
+                return healthcolor(d.health);
+            });
+    };
+
+    function update_platform_probes() {
+        var data = platform_probes.data();
+        for (var i = 0; i < data.length; ++i) {
+            var val = Math.random() <= 0.9;
+            data[i].health = alpha * val + (1.0 - alpha) * data[i].health;
+        }
+        platform_probes.data(data).transition('platform-color')
+            .duration(200)
+            .style('fill', function(d, i) {
+                return healthcolor(d.health);
+            });
+
+    };
+
+    function ringsort(a, b) {
+        if (a.rsec == b.rsec) {
+            if (a.nphi != null) {
+                return 0;
+            } else {
+                return -1;
+            }
+        } else if (a.rsec < b.rsec) {
+            return 1;
+        } else {
+            return -1;
+        }
+    }; 
+
+    function healthcolor(x) {
+        var r = Math.floor((1.0 - x) * 168);
+        var g = Math.floor(x * 84)
+        var b = Math.floor((1.0 - x) * 42 + x * 168);
+        return d3.rgb(r, g, b);        
+    };
+
+    // Now create the line chart data
+    var lineChartData1 = [
+      { label: 'Series 1', values: [] },
+      { label: 'Series 2', values: [] },
+      { label: 'Series 3', values: [] },
+      { label: 'Series 4', values: [] },
+      { label: 'Series 5', values: [] },
+      { label: 'Series 6', values: [] }
+    ];
+
+    for (var j = 0; j < lineChartData1.length; ++j) {
+        var d = new Date();
+        var val = { 'time': d.getTime() / 1000, 'y': Math.random() + 47.0 };
+        lineChartData1[j].values.push(val);
+        if (lineChartData1[j].values.length > 100) {
+            lineChartData1[j].values.pop();
+        }
+    }
+
+    var charts = [];
+    for (var i = 0; i < data.length; ++i) {
+        if (i < 6) {
+            var name = '#leftPlot' + i%6
+        } else {
+            var name = '#rightPlot' + i%6
+        }
+        charts.push($(name).epoch({
+            type: 'time.line',
+            data: lineChartData1,
+            axes: ['bottom', 'right', 'left'],
+            ticks: {'time': 10, 'right': 5, 'left': 5},
+        }));
+    }
+
+    function update_freq_plot() {
+
+        for (var i = 0; i < charts.length; ++i) {
+            var nextPoint = []
+            var d = new Date();
+            for (var j = 0; j < lineChartData1.length; ++j) {
+                var val = { 'time': d.getTime() / 1000, 'y': Math.random() + 47.0 + j };
+                nextPoint.push(val);
+            };
+            charts[i].push(nextPoint);
+        };
+    };
+
+  </script>
+
+
+
+
+
+</body>

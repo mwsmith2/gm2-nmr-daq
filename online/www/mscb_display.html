@@ -1,0 +1,64 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <meta name="GENERATOR" content="Mozilla/4.5 [en] (X11; U; Linux 2.0.34 i686)
+    [Netscape]">
+    <title>home on gate.hep.anl.gov</title>
+  </head>
+  <body>
+    <h1>
+    <meta http-equiv="refresh" content="5" >
+    <u>Shimming display</u></h1>
+    <form name="form1" method="Get" action="/CS/Test&">
+      <input type=hidden name="redir" value="Shim_Display&">
+      <table border="6" width="640">
+        <tr>
+          <td align="center"><input name="cmd" value="Status" type="submit"></td>
+          <td align="center"><input name="cmd" value="Start" type="submit"></td>
+          <td align="center"><input name="cmd" value="Pause" type="submit"></td>
+          <td align="center"><input name="cmd" value="Stop" type="submit"></td>
+          <td align="center"><input name="cmd" value="ODB" type="submit"></td>
+          <td align="center"><input name="cmd" value="Messages" type="submit"></td>
+        </tr>
+        <tr>
+          <th align="center"> Run state [1=stopped, 2=paused, 3=running] </th>
+          <th align="center"> Current/prev. run # </th>
+          <th align="center"> events recorded: </th>
+          <th align="center"> Event Rate (/s) </th>
+          <th colspan="2" align="center"> Data Rate (kB/s) </th>
+        </tr>
+        <tr>
+        <td align="center"><b> <odb src="/Runinfo/State"> </b></th>
+      <td align="center"><b><odb src="/Runinfo/run number"></b></th>
+    <td align="center"><b><odb src="/Equipment/Environment/Statistics/Events sent"></b></th>
+  <td align="center"><b><odb src="/Equipment/Environment/Statistics/Events per sec."></b></th>
+<td colspan="2" align="center"><b><odb src="/Equipment/Environment/Statistics/kBytes per sec."></b></th>
+</tr>
+<tr>
+<th colspan="6">Temperature readings</th>
+</tr>
+<td colspan="3" align="center">Probe 4</td>
+<td colspan="3" align="center">Probe 5</td>
+</tr>
+<tr>
+<td colspan="3" bgcolor = "black" align="center"><FONT color="red" size = "12" FACE="ds-digital"><odb src="/Equipment/Environment/Variables/Input[0]"></FONT></td>
+<td colspan="3" bgcolor = "black" align="center"><FONT color="green" size = "12" FACE="ds-digital"><odb src="/Equipment/Environment/Variables/Input[1]"></FONT></td>
+</tr>
+</table>
+<img width="750" src="http://localhost:8080/HS/Shimming%20vars/temp_trend.gif" align = "top">
+<table border="6" width="640">
+<th colspan="6">Capacitec readings</th>
+</tr>
+<td colspan="3" align="center">Probe 1</td>
+<td colspan="3" align="center">Probe 2</td>
+</tr>
+<tr>
+<td colspan="3" bgcolor = "black" align="center"><FONT color="white" size = "12" FACE="ds-digital"><odb src="/Equipment/Environment/Variables/Input[8]"></FONT></td>
+<td colspan="3" bgcolor = "black" align="center"><FONT color="#ff0000" size = "12" FACE="ds-digital"><odb src="/Equipment/Environment/Variables/Input[9]"></FONT></td>
+</tr>
+</table>
+<img width="750" src="http://localhost:8080/HS/Shimming%20vars/capacitec_trend.gif" align = "top">
+</body>
+</html>
+</form>

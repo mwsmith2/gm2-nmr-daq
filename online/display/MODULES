@@ -1,0 +1,19 @@
+# file: MODULES
+# Contents: the list of ROOT macros for the online-display
+# Format: TextOnTheButton FullMacroName
+# Use # for comments
+#
+# MODULES
+#
+
+#======================================================
+# temp?
+#======================================================
+Temperatures mscb/temp.C
+Distances mscb/dist.C
+Laser_Tracker fast/ltk.C
+Frequency fast/freq.C
+
+# v1724raw v1724/raw.C
+#temperature mscb/temperature.C
+#======================================================

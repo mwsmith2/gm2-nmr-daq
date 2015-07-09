@@ -1,0 +1,31 @@
+#!/bin/bash
+# Store some useful experiment specific variables that are used by
+# scripts in one place
+
+export EXPT='gm2-nmr'
+export EXPT_IP='nmr-daq'
+export EXPT_DIR='/home/newg2/Applications/gm2-nmr'
+export MSERVER_PORT='7070'
+export MHTTPD_PORT='8080'
+
+export EXT_IP=(
+)
+
+export MIDAS_UTIL=(
+    'mserver'
+    'mhttpd'
+    'mlogger'
+    'mevb'
+)
+
+export EXPT_FE=(
+    'shim_trigger'
+    'shim_platform'
+    'laser_tracker'
+    'mscb_fe'
+)
+
+export EXPT_AN=(
+)
+
+# end script
