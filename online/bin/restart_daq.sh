@@ -1,7 +1,7 @@
 #!/bin/bash
 # The script starts general midas utilites for sis_wfd experiment.
 
-source /home/newg2/Applications/gm2-nmr/common/.expt-env
+source $(dirname $(readlink -f $0))/../../common/.expt-env
 
 source $EXPT_DIR/online/bin/kill_daq.sh
 source $EXPT_DIR/online/bin/start_daq.sh
