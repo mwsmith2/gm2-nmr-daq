@@ -1,0 +1,1354 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>body {
+  width: 45em;
+  border: 1px solid #ddd;
+  outline: 1300px solid #fff;
+  margin: 16px auto;
+}
+
+body .markdown-body
+{
+  padding: 30px;
+}
+
+@font-face {
+  font-family: fontawesome-mini;
+  src: url(data:font/woff;charset=utf-8;base64,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) format('woff');
+}
+
+@font-face {
+  font-family: octicons-anchor;
+  src: url(data:font/woff;charset=utf-8;base64,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) format('woff');
+}
+
+.markdown-body {
+  font-family: sans-serif;
+  -ms-text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+  color: #333333;
+  overflow: hidden;
+  font-family: "Helvetica Neue", Helvetica, "Segoe UI", Arial, freesans, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  word-wrap: break-word;
+}
+
+.markdown-body a {
+  background: transparent;
+}
+
+.markdown-body a:active,
+.markdown-body a:hover {
+  outline: 0;
+}
+
+.markdown-body b,
+.markdown-body strong {
+  font-weight: bold;
+}
+
+.markdown-body mark {
+  background: #ff0;
+  color: #000;
+  font-style: italic;
+  font-weight: bold;
+}
+
+.markdown-body sub,
+.markdown-body sup {
+  font-size: 75%;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+.markdown-body sup {
+  top: -0.5em;
+}
+.markdown-body sub {
+  bottom: -0.25em;
+}
+
+.markdown-body h1 {
+  font-size: 2em;
+  margin: 0.67em 0;
+}
+
+.markdown-body img {
+  border: 0;
+}
+
+.markdown-body hr {
+  -moz-box-sizing: content-box;
+  box-sizing: content-box;
+  height: 0;
+}
+
+.markdown-body pre {
+  overflow: auto;
+}
+
+.markdown-body code,
+.markdown-body kbd,
+.markdown-body pre,
+.markdown-body samp {
+  font-family: monospace, monospace;
+  font-size: 1em;
+}
+
+.markdown-body input {
+  color: inherit;
+  font: inherit;
+  margin: 0;
+}
+
+.markdown-body html input[disabled] {
+  cursor: default;
+}
+
+.markdown-body input {
+  line-height: normal;
+}
+
+.markdown-body input[type="checkbox"] {
+  box-sizing: border-box;
+  padding: 0;
+}
+
+.markdown-body table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+.markdown-body td,
+.markdown-body th {
+  padding: 0;
+}
+
+.markdown-body .codehilitetable {
+  border: 0;
+  border-spacing: 0;
+}
+
+.markdown-body .codehilitetable tr {
+  border: 0;
+}
+
+.markdown-body .codehilitetable pre,
+.markdown-body .codehilitetable div.codehilite {
+  margin: 0;
+}
+
+.markdown-body .linenos,
+.markdown-body .code,
+.markdown-body .codehilitetable td {
+  border: 0;
+  padding: 0;
+}
+
+.markdown-body td:not(.linenos) .linenodiv {
+  padding: 0 !important;
+}
+
+.markdown-body .code {
+  width: 100%;
+}
+
+.markdown-body .linenos div pre,
+.markdown-body .linenodiv pre,
+.markdown-body .linenodiv {
+  border: 0;
+  -webkit-border-radius: 0;
+  -moz-border-radius: 0;
+  border-radius: 0;
+  -webkit-border-top-left-radius: 3px;
+  -webkit-border-bottom-left-radius: 3px;
+  -moz-border-radius-topleft: 3px;
+  -moz-border-radius-bottomleft: 3px;
+  border-top-left-radius: 3px;
+  border-bottom-left-radius: 3px;
+}
+
+.markdown-body .code div pre,
+.markdown-body .code div {
+  border: 0;
+  -webkit-border-radius: 0;
+  -moz-border-radius: 0;
+  border-radius: 0;
+  -webkit-border-top-right-radius: 3px;
+  -webkit-border-bottom-right-radius: 3px;
+  -moz-border-radius-topright: 3px;
+  -moz-border-radius-bottomright: 3px;
+  border-top-right-radius: 3px;
+  border-bottom-right-radius: 3px;
+}
+
+.markdown-body * {
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+}
+
+.markdown-body input {
+  font: 13px Helvetica, arial, freesans, clean, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol";
+  line-height: 1.4;
+}
+
+.markdown-body a {
+  color: #4183c4;
+  text-decoration: none;
+}
+
+.markdown-body a:hover,
+.markdown-body a:focus,
+.markdown-body a:active {
+  text-decoration: underline;
+}
+
+.markdown-body hr {
+  height: 0;
+  margin: 15px 0;
+  overflow: hidden;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid #ddd;
+}
+
+.markdown-body hr:before,
+.markdown-body hr:after {
+  display: table;
+  content: " ";
+}
+
+.markdown-body hr:after {
+  clear: both;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  margin-top: 15px;
+  margin-bottom: 15px;
+  line-height: 1.1;
+}
+
+.markdown-body h1 {
+  font-size: 30px;
+}
+
+.markdown-body h2 {
+  font-size: 21px;
+}
+
+.markdown-body h3 {
+  font-size: 16px;
+}
+
+.markdown-body h4 {
+  font-size: 14px;
+}
+
+.markdown-body h5 {
+  font-size: 12px;
+}
+
+.markdown-body h6 {
+  font-size: 11px;
+}
+
+.markdown-body blockquote {
+  margin: 0;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  padding: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.markdown-body ol ol,
+.markdown-body ul ol {
+  list-style-type: lower-roman;
+}
+
+.markdown-body ul ul ol,
+.markdown-body ul ol ol,
+.markdown-body ol ul ol,
+.markdown-body ol ol ol {
+  list-style-type: lower-alpha;
+}
+
+.markdown-body dd {
+  margin-left: 0;
+}
+
+.markdown-body code,
+.markdown-body pre,
+.markdown-body samp {
+  font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace;
+  font-size: 12px;
+}
+
+.markdown-body pre {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.markdown-body kbd {
+  background-color: #e7e7e7;
+  background-image: -moz-linear-gradient(#fefefe, #e7e7e7);
+  background-image: -webkit-linear-gradient(#fefefe, #e7e7e7);
+  background-image: linear-gradient(#fefefe, #e7e7e7);
+  background-repeat: repeat-x;
+  border-radius: 2px;
+  border: 1px solid #cfcfcf;
+  color: #000;
+  padding: 3px 5px;
+  line-height: 10px;
+  font: 11px Consolas, "Liberation Mono", Menlo, Courier, monospace;
+  display: inline-block;
+}
+
+.markdown-body>*:first-child {
+  margin-top: 0 !important;
+}
+
+.markdown-body>*:last-child {
+  margin-bottom: 0 !important;
+}
+
+.markdown-body .headeranchor-link {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  display: block;
+  padding-right: 6px;
+  padding-left: 30px;
+  margin-left: -30px;
+}
+
+.markdown-body .headeranchor-link:focus {
+  outline: none;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  position: relative;
+  margin-top: 1em;
+  margin-bottom: 16px;
+  font-weight: bold;
+  line-height: 1.4;
+}
+
+.markdown-body h1 .headeranchor,
+.markdown-body h2 .headeranchor,
+.markdown-body h3 .headeranchor,
+.markdown-body h4 .headeranchor,
+.markdown-body h5 .headeranchor,
+.markdown-body h6 .headeranchor {
+  display: none;
+  color: #000;
+  vertical-align: middle;
+}
+
+.markdown-body h1:hover .headeranchor-link,
+.markdown-body h2:hover .headeranchor-link,
+.markdown-body h3:hover .headeranchor-link,
+.markdown-body h4:hover .headeranchor-link,
+.markdown-body h5:hover .headeranchor-link,
+.markdown-body h6:hover .headeranchor-link {
+  height: 1em;
+  padding-left: 8px;
+  margin-left: -30px;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.markdown-body h1:hover .headeranchor-link .headeranchor,
+.markdown-body h2:hover .headeranchor-link .headeranchor,
+.markdown-body h3:hover .headeranchor-link .headeranchor,
+.markdown-body h4:hover .headeranchor-link .headeranchor,
+.markdown-body h5:hover .headeranchor-link .headeranchor,
+.markdown-body h6:hover .headeranchor-link .headeranchor {
+  display: inline-block;
+}
+
+.markdown-body h1 {
+  padding-bottom: 0.3em;
+  font-size: 2.25em;
+  line-height: 1.2;
+  border-bottom: 1px solid #eee;
+}
+
+.markdown-body h2 {
+  padding-bottom: 0.3em;
+  font-size: 1.75em;
+  line-height: 1.225;
+  border-bottom: 1px solid #eee;
+}
+
+.markdown-body h3 {
+  font-size: 1.5em;
+  line-height: 1.43;
+}
+
+.markdown-body h4 {
+  font-size: 1.25em;
+}
+
+.markdown-body h5 {
+  font-size: 1em;
+}
+
+.markdown-body h6 {
+  font-size: 1em;
+  color: #777;
+}
+
+.markdown-body p,
+.markdown-body blockquote,
+.markdown-body ul,
+.markdown-body ol,
+.markdown-body dl,
+.markdown-body table,
+.markdown-body pre,
+.markdown-body .admonition {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.markdown-body hr {
+  height: 4px;
+  padding: 0;
+  margin: 16px 0;
+  background-color: #e7e7e7;
+  border: 0 none;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  padding-left: 2em;
+}
+
+.markdown-body ul ul,
+.markdown-body ul ol,
+.markdown-body ol ol,
+.markdown-body ol ul {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.markdown-body li>p {
+  margin-top: 16px;
+}
+
+.markdown-body dl {
+  padding: 0;
+}
+
+.markdown-body dl dt {
+  padding: 0;
+  margin-top: 16px;
+  font-size: 1em;
+  font-style: italic;
+  font-weight: bold;
+}
+
+.markdown-body dl dd {
+  padding: 0 16px;
+  margin-bottom: 16px;
+}
+
+.markdown-body blockquote {
+  padding: 0 15px;
+  color: #777;
+  border-left: 4px solid #ddd;
+}
+
+.markdown-body blockquote>:first-child {
+  margin-top: 0;
+}
+
+.markdown-body blockquote>:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-body table {
+  display: block;
+  width: 100%;
+  overflow: auto;
+  word-break: normal;
+  word-break: keep-all;
+}
+
+.markdown-body table th {
+  font-weight: bold;
+}
+
+.markdown-body table th,
+.markdown-body table td {
+  padding: 6px 13px;
+  border: 1px solid #ddd;
+}
+
+.markdown-body table tr {
+  background-color: #fff;
+  border-top: 1px solid #ccc;
+}
+
+.markdown-body table tr:nth-child(2n) {
+  background-color: #f8f8f8;
+}
+
+.markdown-body img {
+  max-width: 100%;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+}
+
+.markdown-body code,
+.markdown-body samp {
+  padding: 0;
+  padding-top: 0.2em;
+  padding-bottom: 0.2em;
+  margin: 0;
+  font-size: 85%;
+  background-color: rgba(0,0,0,0.04);
+  border-radius: 3px;
+}
+
+.markdown-body code:before,
+.markdown-body code:after {
+  letter-spacing: -0.2em;
+  content: "\00a0";
+}
+
+.markdown-body pre>code {
+  padding: 0;
+  margin: 0;
+  font-size: 100%;
+  word-break: normal;
+  white-space: pre;
+  background: transparent;
+  border: 0;
+}
+
+.markdown-body .codehilite {
+  margin-bottom: 16px;
+}
+
+.markdown-body .codehilite pre,
+.markdown-body pre {
+  padding: 16px;
+  overflow: auto;
+  font-size: 85%;
+  line-height: 1.45;
+  background-color: #f7f7f7;
+  border-radius: 3px;
+}
+
+.markdown-body .codehilite pre {
+  margin-bottom: 0;
+  word-break: normal;
+}
+
+.markdown-body pre {
+  word-wrap: normal;
+}
+
+.markdown-body pre code {
+  display: inline;
+  max-width: initial;
+  padding: 0;
+  margin: 0;
+  overflow: initial;
+  line-height: inherit;
+  word-wrap: normal;
+  background-color: transparent;
+  border: 0;
+}
+
+.markdown-body pre code:before,
+.markdown-body pre code:after {
+  content: normal;
+}
+
+/* Admonition */
+.markdown-body .admonition {
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+  position: relative;
+  border-radius: 3px;
+  border: 1px solid #e0e0e0;
+  border-left: 6px solid #333;
+  padding: 10px 10px 10px 30px;
+}
+
+.markdown-body .admonition table {
+  color: #333;
+}
+
+.markdown-body .admonition p {
+  padding: 0;
+}
+
+.markdown-body .admonition-title {
+  font-weight: bold;
+  margin: 0;
+}
+
+.markdown-body .admonition>.admonition-title {
+  color: #333;
+}
+
+.markdown-body .attention>.admonition-title {
+  color: #a6d796;
+}
+
+.markdown-body .caution>.admonition-title {
+  color: #d7a796;
+}
+
+.markdown-body .hint>.admonition-title {
+  color: #96c6d7;
+}
+
+.markdown-body .danger>.admonition-title {
+  color: #c25f77;
+}
+
+.markdown-body .question>.admonition-title {
+  color: #96a6d7;
+}
+
+.markdown-body .note>.admonition-title {
+  color: #d7c896;
+}
+
+.markdown-body .admonition:before,
+.markdown-body .attention:before,
+.markdown-body .caution:before,
+.markdown-body .hint:before,
+.markdown-body .danger:before,
+.markdown-body .question:before,
+.markdown-body .note:before {
+  font: normal normal 16px fontawesome-mini;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  line-height: 1.5;
+  color: #333;
+  position: absolute;
+  left: 0;
+  top: 0;
+  padding-top: 10px;
+  padding-left: 10px;
+}
+
+.markdown-body .admonition:before {
+  content: "\f056\00a0";
+  color: 333;
+}
+
+.markdown-body .attention:before {
+  content: "\f058\00a0";
+  color: #a6d796;
+}
+
+.markdown-body .caution:before {
+  content: "\f06a\00a0";
+  color: #d7a796;
+}
+
+.markdown-body .hint:before {
+  content: "\f05a\00a0";
+  color: #96c6d7;
+}
+
+.markdown-body .danger:before {
+  content: "\f057\00a0";
+  color: #c25f77;
+}
+
+.markdown-body .question:before {
+  content: "\f059\00a0";
+  color: #96a6d7;
+}
+
+.markdown-body .note:before {
+  content: "\f040\00a0";
+  color: #d7c896;
+}
+
+.markdown-body .admonition::after {
+  content: normal;
+}
+
+.markdown-body .attention {
+  border-left: 6px solid #a6d796;
+}
+
+.markdown-body .caution {
+  border-left: 6px solid #d7a796;
+}
+
+.markdown-body .hint {
+  border-left: 6px solid #96c6d7;
+}
+
+.markdown-body .danger {
+  border-left: 6px solid #c25f77;
+}
+
+.markdown-body .question {
+  border-left: 6px solid #96a6d7;
+}
+
+.markdown-body .note {
+  border-left: 6px solid #d7c896;
+}
+
+.markdown-body .admonition>*:first-child {
+  margin-top: 0 !important;
+}
+
+.markdown-body .admonition>*:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* progress bar*/
+.markdown-body .progress {
+  display: block;
+  width: 300px;
+  margin: 10px 0;
+  height: 24px;
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+  border-radius: 3px;
+  background-color: #ededed;
+  position: relative;
+  box-shadow: inset -1px 1px 3px rgba(0, 0, 0, .1);
+}
+
+.markdown-body .progress-label {
+  position: absolute;
+  text-align: center;
+  font-weight: bold;
+  width: 100%; margin: 0;
+  line-height: 24px;
+  color: #333;
+  text-shadow: 1px 1px 0 #fefefe, -1px -1px 0 #fefefe, -1px 1px 0 #fefefe, 1px -1px 0 #fefefe, 0 1px 0 #fefefe, 0 -1px 0 #fefefe, 1px 0 0 #fefefe, -1px 0 0 #fefefe, 1px 1px 2px #000;
+  -webkit-font-smoothing: antialiased !important;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.markdown-body .progress-bar {
+  height: 24px;
+  float: left;
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+  border-radius: 3px;
+  background-color: #96c6d7;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), inset 0 -1px 0 rgba(0, 0, 0, .1);
+  background-size: 30px 30px;
+  background-image: -webkit-linear-gradient(
+    135deg, rgba(255, 255, 255, .4) 27%,
+    transparent 27%,
+    transparent 52%, rgba(255, 255, 255, .4) 52%,
+    rgba(255, 255, 255, .4) 77%,
+    transparent 77%, transparent
+  );
+  background-image: -moz-linear-gradient(
+    135deg,
+    rgba(255, 255, 255, .4) 27%, transparent 27%,
+    transparent 52%, rgba(255, 255, 255, .4) 52%,
+    rgba(255, 255, 255, .4) 77%, transparent 77%,
+    transparent
+  );
+  background-image: -ms-linear-gradient(
+    135deg,
+    rgba(255, 255, 255, .4) 27%, transparent 27%,
+    transparent 52%, rgba(255, 255, 255, .4) 52%,
+    rgba(255, 255, 255, .4) 77%, transparent 77%,
+    transparent
+  );
+  background-image: -o-linear-gradient(
+    135deg,
+    rgba(255, 255, 255, .4) 27%, transparent 27%,
+    transparent 52%, rgba(255, 255, 255, .4) 52%,
+    rgba(255, 255, 255, .4) 77%, transparent 77%,
+    transparent
+  );
+  background-image: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, .4) 27%, transparent 27%,
+    transparent 52%, rgba(255, 255, 255, .4) 52%,
+    rgba(255, 255, 255, .4) 77%, transparent 77%,
+    transparent
+  );
+}
+
+.markdown-body .progress-100plus .progress-bar {
+  background-color: #a6d796;
+}
+
+.markdown-body .progress-80plus .progress-bar {
+  background-color: #c6d796;
+}
+
+.markdown-body .progress-60plus .progress-bar {
+  background-color: #d7c896;
+}
+
+.markdown-body .progress-40plus .progress-bar {
+  background-color: #d7a796;
+}
+
+.markdown-body .progress-20plus .progress-bar {
+  background-color: #d796a6;
+}
+
+.markdown-body .progress-0plus .progress-bar {
+  background-color: #c25f77;
+}
+
+.markdown-body .candystripe-animate .progress-bar{
+  -webkit-animation: animate-stripes 3s linear infinite;
+  -moz-animation: animate-stripes 3s linear infinite;
+  animation: animate-stripes 3s linear infinite;
+}
+
+@-webkit-keyframes animate-stripes {
+  0% {
+    background-position: 0 0;
+  }
+
+  100% {
+    background-position: 60px 0;
+  }
+}
+
+@-moz-keyframes animate-stripes {
+  0% {
+    background-position: 0 0;
+  }
+
+  100% {
+    background-position: 60px 0;
+  }
+}
+
+@keyframes animate-stripes {
+  0% {
+    background-position: 0 0;
+  }
+
+  100% {
+    background-position: 60px 0;
+  }
+}
+
+.markdown-body .gloss .progress-bar {
+  box-shadow:
+    inset 0 4px 12px rgba(255, 255, 255, .7),
+    inset 0 -12px 0 rgba(0, 0, 0, .05);
+}
+
+/* Multimarkdown Critic Blocks */
+.markdown-body .critic_mark {
+  background: #ff0;
+}
+
+.markdown-body .critic_delete {
+  color: #c82829;
+  text-decoration: line-through;
+}
+
+.markdown-body .critic_insert {
+  color: #718c00 ;
+  text-decoration: underline;
+}
+
+.markdown-body .critic_comment {
+  color: #8e908c;
+  font-style: italic;
+}
+
+.markdown-body .headeranchor {
+  font: normal normal 16px octicons-anchor;
+  line-height: 1;
+  display: inline-block;
+  text-decoration: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.headeranchor:before {
+  content: '\f05c';
+}
+
+.markdown-body .task-list-item {
+  list-style-type: none;
+}
+
+.markdown-body .task-list-item+.task-list-item {
+  margin-top: 3px;
+}
+
+.markdown-body .task-list-item input {
+  margin: 0 4px 0.25em -20px;
+  vertical-align: middle;
+}
+
+/* Media */
+@media only screen and (min-width: 480px) {
+  .markdown-body {
+    font-size:14px;
+  }
+}
+
+@media only screen and (min-width: 768px) {
+  .markdown-body {
+    font-size:16px;
+  }
+}
+
+@media print {
+  .markdown-body * {
+    background: transparent !important;
+    color: black !important;
+    filter:none !important;
+    -ms-filter: none !important;
+  }
+
+  .markdown-body {
+    font-size:12pt;
+    max-width:100%;
+    outline:none;
+    border: 0;
+  }
+
+  .markdown-body a,
+  .markdown-body a:visited {
+    text-decoration: underline;
+  }
+
+  .markdown-body .headeranchor-link {
+    display: none;
+  }
+
+  .markdown-body a[href]:after {
+    content: " (" attr(href) ")";
+  }
+
+  .markdown-body abbr[title]:after {
+    content: " (" attr(title) ")";
+  }
+
+  .markdown-body .ir a:after,
+  .markdown-body a[href^="javascript:"]:after,
+  .markdown-body a[href^="#"]:after {
+    content: "";
+  }
+
+  .markdown-body pre {
+    white-space: pre;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+
+  .markdown-body pre,
+  .markdown-body blockquote {
+    border: 1px solid #999;
+    padding-right: 1em;
+    page-break-inside: avoid;
+  }
+
+  .markdown-body .progress,
+  .markdown-body .progress-bar {
+    -moz-box-shadow: none;
+    -webkit-box-shadow: none;
+    box-shadow: none;
+  }
+
+  .markdown-body .progress {
+    border: 1px solid #ddd;
+  }
+
+  .markdown-body .progress-bar {
+    height: 22px;
+    border-right: 1px solid #ddd;
+  }
+
+  .markdown-body tr,
+  .markdown-body img {
+    page-break-inside: avoid;
+  }
+
+  .markdown-body img {
+    max-width: 100% !important;
+  }
+
+  .markdown-body p,
+  .markdown-body h2,
+  .markdown-body h3 {
+    orphans: 3;
+    widows: 3;
+  }
+
+  .markdown-body h2,
+  .markdown-body h3 {
+    page-break-after: avoid;
+  }
+}
+</style><title>nmr-daq-docs</title></head><body><article class="markdown-body"><h1 id="the-g-2-nmr-daq"><a name="user-content-the-g-2-nmr-daq" href="#the-g-2-nmr-daq" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>The g-2 NMR-DAQ</h1>
+<p>This document is a draft of a guide to setting up and using the g-2 NMR-DAQ.  It is a work in progress as is the DAQ itself, but it&rsquo;s time to start. </p>
+<h2 id="table-of-contents"><a name="user-content-table-of-contents" href="#table-of-contents" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Table of Contents</h2>
+<ol>
+<li><a href="#quick">Quick Start</a></li>
+<li><a href="#install">Installation</a></li>
+<li><a href="#tutorial">Basic Tutorial</a></li>
+<li><a href="#layout">Experiment Layout</a></li>
+</ol>
+<h2 id="quick-start"><a name="user-content-quick-start" href="#quick-start" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a><a name="quick">Quick Start</a></h2>
+<h4 id="installation"><a name="user-content-installation" href="#installation" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Installation</h4>
+<p>The project has several dependencies that need to be installed first. Linux package manage has most of them.</p>
+<pre><code class="bash">sudo yum install mysql-devel libfftw-devel libarmadillo-devel zeromq-devel boost-devel sqlite-devel unixODBC-devel
+</code></pre>
+
+<h5 id="other-dependencies"><a name="user-content-other-dependencies" href="#other-dependencies" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Other Dependencies</h5>
+<ul>
+<li><a href="https://midas.triumf.ca/MidasWiki/index.php/Main_Page">MIDAS</a><ul>
+<li>use the version controlled Redmine Repository, gm2midas</li>
+<li><code>git clone ssh://p-gm2midas@cdcvs.fnal.gov/cvs/projects/gm2midas</code></li>
+</ul>
+</li>
+<li><a href="https://cdcvs.fnal.gov/redmine/projects/gm2daq/wiki">gm2daq</a><ul>
+<li><code>git clone --recursive ssh://p-gm2daq@cdcvs.fnal.gov/cvs/projects/gm2daq</code></li>
+</ul>
+</li>
+<li><a href="https://root.cern.ch/drupal/">ROOT</a></li>
+<li><a href="https://github.com/mwsmith2/fast-daq-core">Fast-DAQ-Core</a><ul>
+<li><a href="https://github.com/mwsmith2/fid-analysis">FID Analysis</a></li>
+<li><a href="http://www.boost.org/">boost</a></li>
+<li><a href="http://zeromq.org/">ZeroMQ</a></li>
+</ul>
+</li>
+</ul>
+<p>With all those taken care of, go ahead and clone the repository for the DAQ.  There are two projects that are very similar in operation.</p>
+<ul>
+<li><a href="https://github.com/uwmuonlab/gm2-simple-daq">Simple DAQ</a><br />
+<pre><code class="bash">mkdir -P ~/Applications &amp;&amp; cd ~/Applications
+git clone --recursive https://github.com/uwmuonlab/gm2-simple-daq simple-daq
+</code></pre></li>
+<li><a href="https://github.com/uwmuonlab/gm2-nmr-daq">g-2 NMR DAQ</a><br />
+<pre><code class="bash">mkdir -P ~/Applications &amp;&amp; cd ~/Applications
+git clone --recursive https://github.com/uwmuonlab/gm2-nmr-daq gm2-nmr
+</code></pre></li>
+</ul>
+<p>After cloning the repository, copy common/example/expt-env to common/.expt-env and change the appropriate variables.  The most likely one needing to be altered is the EXPT_IP which should be the hostname or url for the machine running mhttpd.  Then you&rsquo;ll probably want to intialize the ODB to a safe size (50 MB) with <code>odbedit -e &lt;expt-name&gt; -s 50000000</code>.  With the ODB initialized, you can take the last step of setting up some of the ODB variables the way we want them.  This is made simpler with mhelper.</p>
+<h5 id="mhelper"><a name="user-content-mhelper" href="#mhelper" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>mhelper</h5>
+<p>This is optional, but it provides a python interface to aspects of MIDAS, the ODB, and the experiment itself. Install the command line utility like so:</p>
+<pre><code class="bash">cd ~/Applications/simple-daq/common/code/mhelper
+sudo python setup.py install
+</code></pre>
+
+<p>With mhelper you can simply point to a json file of a certain format, such as common/examples/add_to_odb.json, and run <code>mhelper &lt;path-to-json&gt;/add_to_odb.json</code>.</p>
+<h4 id="operation"><a name="user-content-operation" href="#operation" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Operation</h4>
+<p>If you&rsquo;re having issues getting all the components to build see the more in depth <a href="#install">installation section</a>.  With all the components properly built, you can run the DAQ in a few different ways.  The run control scripts are in the <code>online/bin/</code>, and they work by calling the configured frontends, analyzers, and MIDAS utilites to run in the their own screen.  There is another option to deploy a python utility call <a href="http://github.com/mwsmith2/mhelper">mhelper</a>. The mhelper utility figures out which experiment you&rsquo;re working on based on your current working directory, and it calls the run control scripts for you. Here are two equivalent ways to start the experiment.</p>
+<pre><code class="bash">~/Applications/online/bin/start_daq.sh
+mhelper daq start
+</code></pre>
+
+<p>Confirm that the programs are running as expected by going to the address and port specfified in the <code>.expt-env</code> file (default is <code>nmr-daq:8080</code>).  The familiar MIDAS web interface should let you know that the experiment is alive.</p>
+<h4 id="configuration"><a name="user-content-configuration" href="#configuration" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Configuration</h4>
+<p>Several overall experimental parameters are stored in the ODB under Params.  Many of the frontends and slave workers also load JSON configuration files from common/config.  There will be a way to change these settings from the ODB in the future, but for now one needs to edit the JSON files manually.</p>
+<h4 id="output"><a name="user-content-output" href="#output" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Output</h4>
+<p>The experiment produces data based on some ODB settings.  It can produce both MIDAS files and optionally ROOT files.  ROOT output is off by default, but can be controlled with <code>"/Params/root-output"</code> in the ODB.  The data is dumped to <code>resources/data</code>. In addition to digitized data the ODB is dumped to history, the JSON configuration used is dumped to history, and runlog is dumped to the log directory.</p>
+<h4 id="troubleshooting"><a name="user-content-troubleshooting" href="#troubleshooting" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Troubleshooting</h4>
+<p>The best resource when things go awry are the log files.  The MIDAS log is found at <code>resources/log/midas.log</code> by default, and the worker logs are found in <code>/var/log/lab-daq/</code>.</p>
+<h2 id="installation_1"><a name="user-content-installation_1" href="#installation_1" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a><a name="install">Installation</a></h2>
+<h3 id="installing-scientific-linux-6"><a name="user-content-installing-scientific-linux-6" href="#installing-scientific-linux-6" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Installing Scientific Linux 6</h3>
+<p>We are going start at the start here.  I made this guide based on getting a branch new computer up and running at Fermilab.  The first step was installing the OS itself which was done with a boot DVD from the Fermilab computing division. </p>
+<p><strong>Caveats:</strong><br />
+It was a network boot disk for me, so I couldn&rsquo;t do anything until internet reach the computer&rsquo;s location in the mezzanine.</p>
+<h4 id="create-principal-user"><a name="user-content-create-principal-user" href="#create-principal-user" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Create Principal User</h4>
+<p>I went the with some collaboration favorites<br />
+<em>  username: newg2<br />
+</em>  password: [standard-password]<br />
+<em>  root: [collab + standard password]<br />
+</em>  hostname: [nmr-daq]</p>
+<p><strong>Caveats:</strong><br />
+ *  these will depend on the machine, but it&rsquo;s probably best to have standards for this <br />
+ *  the user is not a sudoer by default on this distro, but you can change that by adding to /etc/visudo<br />
+<code>newg2  ALL=(ALL)   ALL</code></p>
+<h4 id="setting-up-the-user-space"><a name="user-content-setting-up-the-user-space" href="#setting-up-the-user-space" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Setting Up the User Space</h4>
+<p>First thing we want to do is create some standard directories to use and keep organized.<br />
+<em>  ~/Applications: for midas experiments and potentially other user tools<br />
+</em>  ~/Packages: for user controlled packages like gm2midas and whatnot<br />
+<em>  ~/Workspace: a separate location for working and analyzing data<br />
+</em>  /home/data:  collect all of the data under one roof<br />
+    *  midas gets a directory here<br />
+    *  each midas experiment gets a subdirectory (i.e. /home/data/midas/gm2-nmr)</p>
+<p><strong>Caveats:</strong><br />
+You may want to put the data directory in /data instead, but if you had a flash (or small separate) boot disk, you don&rsquo;t want to do this.  It will mount the data directory on the small disk partition</p>
+<h4 id="install-zsh-optional"><a name="user-content-install-zsh-optional" href="#install-zsh-optional" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Install zsh (optional)</h4>
+<p>Bash will work just fine, but I&rsquo;ve really come to like zsh.  I&rsquo;d recommend trying it at least.  You can get it from the system&rsquo;s package manager</p>
+<pre><code class="bash">sudo yum install zsh
+</code></pre>
+
+<p>Then you&rsquo;ll want to get oh-my-zsh or prezto for configuration, <a href="https://github.com/robbyrussell/oh-my-zsh">https://github.com/robbyrussell/oh-my-zsh</a>.  My favorite default theme is mrtazz, so I changed that in the ~/.zshrc file.</p>
+<p><strong>Caveats:</strong><br />
+You want all or your zsh scripts to work in bash (zsh is mainly better for interactive use), so you want them to have the same environment.  It becomes a bit annoying to manage environment variables for both bash and zsh, so I would recommend moving shell agnostic lines to a separate file that is sourced by both .zshrc and .bashrc.</p>
+<h3 id="install-midas"><a name="user-content-install-midas" href="#install-midas" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Install MIDAS</h3>
+<p>You&rsquo;ll need to initialize the kerberos principal on the machine, so that you can pull from the Redmine.  Kerberos comes with Fermilab&rsquo;s Scientific Linux distribution, but if it isn&rsquo;t present in your linux installation you can probably get kerberos via the package manager (yum install krb5, apt-get install krb5, etc.) and the Fermilab configuration file can be found here: <a href="http://computing.fnal.gov/authentication/krb5conf/">http://computing.fnal.gov/authentication/krb5conf/</a>.</p>
+<p>With kerberos alive and well on your new computer go ahead and clone the gm2midas package into the appropriately named ~/Packages directory.  Instructions on downloading the packages can be found <a href="https://cdcvs.fnal.gov/redmine/projects/gm2midas/wiki/">https://cdcvs.fnal.gov/redmine/projects/gm2midas/wiki/</a>, but the gist that you need for now is this.</p>
+<pre><code class="bash">cd ~/Packages
+git clone ssh://p-gm2midas@cdcvs.fnal.gov/cvs/projects/gm2midas
+</code></pre>
+
+<p>Now we are almost ready to compile MIDAS.  I had to install mysql before compiling, but that could be different case to case.</p>
+<pre><code class="bash">sudo yum install mysql-devel
+</code></pre>
+
+<p>Then compiling MIDAS was fine.</p>
+<pre><code class="bash">cd ~/Packages/gm2midas/midas
+make midas
+</code></pre>
+
+<p>The next step is setting up the appropriate environment variables for MIDAS.<br />
+ I put mine in a separate file, ~/.midas-env, sourced by .bashrc (and .zshrc for me).</p>
+<pre><code class="bash">#!/bin/bash
+# A short script setting up some MIDAS environment variables
+
+export MIDASHOME=~/Packages/gm2midas/midas
+export MIDAS_ROOT=$MIDASHOME
+export MIDASSYS=$MIDASHOME
+export MIDAS_EXPTAB=/etc/exptab
+export DAQ_DIR=~/Applications/gm2-nmr
+export ONLINEDISP=~/Applications/gm2-nmr/online/display
+export ROMESYS=~/Packages/gm2midas/rome
+
+LD_LIBRARY_PATH=$MIDASSYS/linux/lib:$LD_LIBRARY_PATH
+
+PATH=$PATH:$MIDASSYS/linux/bin
+PATH=$MIDASSYS/linux/bin:$MIDASSYS/utils:$PATH
+PATH=$DAQ_DIR/resources/bin:$PATH
+</code></pre>
+
+<h3 id="install-root"><a name="user-content-install-root" href="#install-root" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Install ROOT</h3>
+<p>We have another old friend to get up and running on our new machine, ROOT!  I ended up building ROOT from source, the guide for which is here <a href="https://root.cern.ch/drupal/content/installing-root-source">https://root.cern.ch/drupal/content/installing-root-source</a>.  I would recommend installing all of the optional packages, or at the very least fftw and python (see <a href="https://root.cern.ch/drupal/content/build-prerequisites">https://root.cern.ch/drupal/content/build-prerequisites</a>).  After getting the third party libraries installed, building is simple.</p>
+<pre><code class="bash">cd ~/Packages/
+git clone http://root.cern.ch/git/root.git
+git checkout -b v5-34-08 v5-34-08
+./configure --all
+make -j4
+</code></pre>
+
+<p>Then we ant to add the initialization script to our shell initialization script.</p>
+<pre><code class="bash">. ~/Packages/root/bin/thisroot.sh
+</code></pre>
+
+<p><strong>Caveats:</strong><br />
+<em>  ROOT is on version 6 which should work for the code in all the DAQ packages, but it isn&rsquo;t the officially ROOT version we want to use yet.<br />
+</em>  DO NOT DO &ldquo;make install&rdquo; with ROOT.  The preferred method is bringing it into the environment by sourcing a script in your .bashrc file. </p>
+<pre><code class="bash">. ~/Packages/root/bin/thisroot.sh
+</code></pre>
+
+<ul>
+<li>the source line is a bit more obtuse for zsh:</li>
+</ul>
+<pre><code class="bash">pushd ~/Packages/root &gt;/dev/null; . libexec/thisroot.sh; popd &gt;/dev/null
+</code></pre>
+
+<h3 id="set-up-ssh-optional"><a name="user-content-set-up-ssh-optional" href="#set-up-ssh-optional" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Set up ssh (optional)</h3>
+<p>The SLF6 distribution doesn&rsquo;t come with openssh set up out of the box, so I set that up with the following lines.</p>
+<pre><code class="bash">sudo yum install openssh-client openssh-server
+ssh-keygen
+chmod 600 ~/.ssh/*
+chmod 700 ~/.ssh
+</code></pre>
+
+<p>Additionally I commented out the &ldquo;ALL&rdquo; line in /etc/host.deny, and changed passwordAuth to yes in sshd_config</p>
+<h3 id="set-up-python-optional"><a name="user-content-set-up-python-optional" href="#set-up-python-optional" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Set Up Python (optional)</h3>
+<p>Python is a very useful tool for prototyping and quickly inspecting things, so let&rsquo;s go ahead and get it running with all some nice, standard scientific libraries.  One of the first things any python set up should get is to the package manager, pip.  Instructions for installing pip are found on the project&rsquo;s website, <a href="https://pip.pypa.io/en/stable/installing.html">https://pip.pypa.io/en/stable/installing.html</a>.  After installing pip we can install all the third-party libraries we want.</p>
+<pre><code class="bash">sudo pip install numpy scipy matplotlib scikit-learn
+</code></pre>
+
+<p><strong>Caveats:</strong><br />
+<em>  I had to install the python headers before anything else<br />
+<pre><code class="bash">sudo yum install python-devel
+</code></pre></em>  I still had to install a bunch of dependencies before getting the packages above to install with pip<br />
+<pre><code class="bash">sudo yum install libpng-devel qt-devel PyQt4 tkinter cmake lapack blas
+</code></pre></p>
+<h3 id="installing-the-g-2-nmr-daq"><a name="user-content-installing-the-g-2-nmr-daq" href="#installing-the-g-2-nmr-daq" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Installing the g-2 NMR-DAQ</h3>
+<p>Clone the code from the Redmine<br />
+<pre><code class="bash">git clone --recursive ssh://p-gm2daq@cdcvs.fnal.gov/cvs/projects/gm2daq
+</code></pre></p>
+<p><strong>Caveats:</strong><br />
+<em>  the &ldquo;&ndash;recursive&rdquo; option is to ask git to clone the code from the submodule as well as the container repository<br />
+</em>  if you forget it, or need to pull submodules into an already initialized repo use the following instead<br />
+<pre><code class="bash">git submodule update --init --recursive
+</code></pre></p>
+<h4 id="nmr-core"><a name="user-content-nmr-core" href="#nmr-core" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>nmr-core</h4>
+<p>The nmr-core submodule needs to be be built first, but that will probably require some dependencies first.  Some were simple, others not so simple.</p>
+<h5 id="g"><a name="user-content-g" href="#g" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>g++</h5>
+<p>The first one is g++4.8 or newer to accommodate c++11 features.  To get this in Scientific Linux you need to install the devtoolset-2.  The solution to this was found on <a href="http://stackoverflow.com/questions/29790076/error-while-installing-gcc-4-8-on-scientific-linux-6">http://stackoverflow.com/questions/29790076/error-while-installing-gcc-4-8-on-scientific-linux-6</a>.  I then added the tools to the path</p>
+<pre><code class="bash">wget -O /etc/yum.repos.d/slc6-devtoolset.repo http://linuxsoft.cern.ch/cern/devtoolset/slc6-devtoolset.repo
+sudo yum install devtoolset-2
+echo '$PATH=$PATH:/opt/rh/devtoolset-2/root/usr/bin' &gt; ~/.bashrc
+</code></pre>
+
+<h5 id="zmq"><a name="user-content-zmq" href="#zmq" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>zmq</h5>
+<p>To get zmq I had  to add the EPEL package repo to install libsodium. Then the included repos for yum had a version of zmq, but it was too old (need version &gt;= 4.0).  I cloned the repository, compiled zmq and installed it.</p>
+<pre><code class="bash">cd ~/Packages
+sudo yum install libsodium-devel
+git clone https://github.com/zeromq/libzmq
+make &amp;&amp; make install
+</code></pre>
+
+<h5 id="boost"><a name="user-content-boost" href="#boost" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>boost</h5>
+<p>Once again, yum has a version of boost, but it is too old to accomodate all the code here.  We need to get a newer version.  I downloaded a tarball of the latest stable version and untared it into ~/Packages</p>
+<pre><code class="bash">cd ~/Packages/boost
+./bootstrap.sh
+./b2 install
+</code></pre>
+
+<h5 id="fid-analysis"><a name="user-content-fid-analysis" href="#fid-analysis" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>fid-analysis</h5>
+<p>This is a small library that I wrote for simulating and analyzing FIDs.</p>
+<pre><code class="bash">cd ~/Packages
+sudo yum install libfftw-devel libarmadillo-devel
+git clone https://github.com/mwsmith2/fid-analysis
+make &amp;&amp; make install
+</code></pre>
+
+<h5 id="include-deps"><a name="user-content-include-deps" href="#include-deps" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>include deps</h5>
+<p>Some of the worker classes depend on CAEN libraries, so we need to install as well.</p>
+<pre><code class="bash">sudo yum install libusb-1.0-devel wxGTK-devel
+cd deps/CAENVMELib-2.41/lib
+sudo ./install_64
+cd ../../CAENComm-1.2/lib
+sudo ./install_64
+cd ../../CAENDigitizer_2.4
+sudo ./install_64
+</code></pre>
+
+<h4 id="nmr-core_1"><a name="user-content-nmr-core_1" href="#nmr-core_1" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>nmr-core</h4>
+<p>Now we should be ready to compile nmr-core itself (including libuwlab.a).  Just before you install make the directory /usr/local/opt if it doesn&rsquo;t exist.</p>
+<h3 id="nmr-front-ends"><a name="user-content-nmr-front-ends" href="#nmr-front-ends" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>NMR front-ends</h3>
+<p>This one should be easy by now.</p>
+<pre><code class="bash">sudo yum install sqlite-devel unixODBC-devel
+make
+</code></pre>
+
+<p>If the front-ends don&rsquo;t compile let me know (<a href="mailto:mwsmith2@uw.edu">mwsmith2@uw.edu</a>), so I can fix this guide.</p>
+<hr />
+<h2 id="basic-tutorial"><a name="user-content-basic-tutorial" href="#basic-tutorial" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a><a name="tutorial">Basic Tutorial</a></h2>
+<p>Once you&rsquo;ve gotten all the dependencies sorted out. We are ready to set up the experiment, and start taking some data.  One could look at the next <a href="#layout">section</a> and set up the experiment layout, but the simplest thing to do is to clone the layout from the one I&rsquo;ve set up on github.</p>
+<pre><code class="bash">cd ~/Applications
+git clone https://github.com/uwmuonlab/gm2-nmr-daq gm2-nmr
+</code></pre>
+
+<p>Renaming it to gm2-nmr isn&rsquo;t strictly necessary, but I&rsquo;ve gotten used to using that as the experiment base directory.  </p>
+<h3 id="configuring-the-experiment"><a name="user-content-configuring-the-experiment" href="#configuring-the-experiment" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Configuring the Experiment</h3>
+<p>The next thing to do is set up the MIDAS exptab.  The exptab is located at <code>/etc/exptab</code>, and all that needs to be added is one line for the experiment.  It should be structured as <code>&lt;expt-name&gt; &lt;expt-dir&gt; &lt;ext-user&gt;</code>.  For example mine for gm2-nmr looks like</p>
+<pre><code class="bash">#/etc/exptab
+gm2-nmr /home/newg2/Applications/gm2-nmr/resources newg2
+simple-daq /home/newg2/Applications/simple-daq/resources newg2
+</code></pre>
+
+<p>The next thing to do is set up the experiment configuration in <code>common/.expt-env</code>.  This file is not tracked by the repository, so you&rsquo;ll need to copy the one from <code>common/examples/expt-env</code> to <code>common/.expt-env</code>. The file is a list of frontends and MIDAS utilities to run when the DAQ is started.  It&rsquo;s used by all the scripts in <code>online/bin/</code> which are scripts perform daq start/kill control.  Some of the variables here may need to be revised like the EXPT_IP to reflect the actual setup where things are being installed.</p>
+<p>The ODB needs to be initialized as well.  I&rsquo;d recommend making it a little bigger than the default, so that it doesn&rsquo;t become a problem later. Try the following command, <code>odbedit -e gm2-nmr -s 50000000</code>, to create a 50MB ODB.  After we create the ODB we need to configure some variables in the ODB.  The easiest way to do this is using the mhelper utility that I&rsquo;ve been writing.  To install it do:</p>
+<pre><code class="bash">cd common/code/mhelper
+sudo python setup.py install
+</code></pre>
+
+<p>With mhelper installed you can add all the ODB variables in a json file (see common/examples/add_to_odb.json) with <code>mhelper add-to-odb &lt;path-to-json-file&gt;</code>.</p>
+<p>We also need to set up the data directory. I usually create the directory in /home/data/midas/<expt_name>/ then link it to the resource directory, <code>ln -s /home/data/midas/gm2-nmr ~/Applications/gm2-nmr/resources/data</code>.</p>
+<p>Now let&rsquo;s build the frontends.</p>
+<p>TODO - Uninstall gm2-nmr and reinstall from guide.</p>
+<hr />
+<h2 id="experiment-layout"><a name="user-content-experiment-layout" href="#experiment-layout" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a><a name="layout">Experiment Layout</a></h2>
+<p>The DAQ structure is based on previous MIDAS experiments with a few tweaks to the in the mix.  One of the reasons for the restructure is to facilitate version control of the entire experiment directory.</p>
+<h3 id="folder-structure"><a name="user-content-folder-structure" href="#folder-structure" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Folder Structure</h3>
+<p>I put these into <code>~/Applications/&lt;expt-name&gt;</code> but they can really go anywhere.<br />
+<em>  online<br />
+</em>  offline<br />
+<em>  common<br />
+</em>  resources</p>
+<h4 id="online"><a name="user-content-online" href="#online" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>online</h4>
+<p>This folder is generally for utilities that are associated with the DAQ during the data taking process and run control. Mine contains the 3 folders<br />
+<em> bin - filled with start/stop scripts<br />
+</em> frontends - contains code + executable MIDAS front-ends<br />
+* www - contains html pages that will be linked to in the ODB</p>
+<h4 id="offline"><a name="user-content-offline" href="#offline" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>offline</h4>
+<p>This is for manipulation of data offline.  It hasn&rsquo;t been used much yet, so it&rsquo;s not a immature design.<br />
+* studies</p>
+<h4 id="common"><a name="user-content-common" href="#common" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>common</h4>
+<p>The directory for things used by analyzers.<br />
+<em> .expt-env - important, experiment specific variables<br />
+</em> config - directory filled with config files used by the DAQ<br />
+<em> analyzers - used both online/offline so it lives here and gets symlinked<br />
+</em> scripts - utility scripts for things like resetting the ODB</p>
+<h4 id="resources"><a name="user-content-resources" href="#resources" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>resources</h4>
+<p>A directory containing all the binary data.  This is the only folder that does not go under version control (although git-lfs could change that for some of the data, like odb).  This directory also contains all the MIDAS SHM chunks.<br />
+<em> data<br />
+</em> elog<br />
+<em> history<br />
+</em> log<br />
+* backups</p>
+<h3 id="important-files"><a name="user-content-important-files" href="#important-files" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Important Files</h3>
+<h4 id="etcexptab"><a name="user-content-etcexptab" href="#etcexptab" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>/etc/exptab</h4>
+<p>MIDAS needs to know about the experiment, so define it here with a line like<br />
+<code>&lt;expt-name&gt; &lt;expt-dir&gt; &lt;expt-user&gt;</code><br />
+for instance my experiment current has<br />
+<code>gm2-nmr /home/newg2/Applications/gm2-nmr/resources newg2</code><br />
+<code>simple-daq /home/newg2/Applications/simple-daq/resources newg2</code></p>
+<h4 id="expt-env"><a name="user-content-expt-env" href="#expt-env" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>.expt-env</h4>
+<p>Contains lots of experiment specific environment variables, for instance:</p>
+<pre><code class="bash">#!/bin/bash
+# Store some useful experiment specific variables that are used by
+# scripts in one place
+
+export EXPT='gm2-nmr'
+export EXPT_IP='nmr-daq'
+export EXPT_DIR='/home/newg2/Applications/gm2-nmr'
+export MSERVER_PORT='7070'
+export MHTTPD_PORT='8080'
+export ROODY_PORT='9090'
+
+export EXT_IP=(
+)
+
+export MIDAS_UTIL=(
+    'mserver'
+    'mhttpd'
+    'mlogger'
+    'mevb'
+)
+
+export EXPT_FE=(
+    'shim_trigger'
+    'shim_platform'
+    'laser_tracker'
+    'mscb_fe'
+)
+
+export EXPT_AN=(
+)
+
+# end script
+</code></pre></article></body></html>
