@@ -30,7 +30,7 @@
     },
 
     "/Equipment/online-monitor/Common/Frontend host": { 
-        "type": "string",
+        "type": "path",
         "value": "nmr-daq"
     },
 
@@ -40,7 +40,7 @@
     },
 
     "/Equipment/online-monitor/Common/Frontend file name": { 
-        "type": "string",
+        "type": "path",
         "value": "src/an_online_monitor.cxx"
     },
 
