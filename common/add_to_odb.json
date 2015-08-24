@@ -1,0 +1,101 @@
+{
+    "/Experiment/Run Parameters/Comment": {
+        "type": "string",
+        "value": "test"
+    },
+
+    "/Experiment/Run Parameters/Tags": {
+        "type": "string",
+        "value": "test"
+    },
+    
+    "/Experiment/Edit On Start/Comment": {
+        "type": "link",
+        "value": "/Experiment/Run Parameters/Comment"
+    },
+
+    "/Experiment/Edit On Start/Tags": {
+        "type": "link",
+        "value": "/Experiment/Run Parameters/Tags"
+    },
+
+    "/Logger/Data Dir": { 
+        "type": "path",
+        "value": "resources/data"
+    },
+
+    "/Logger/Message File": {
+        "type": "path",
+        "value": "resources/log/midas.log"
+    },
+
+    "/Logger/ODB Dump File": {
+        "type": "path",
+        "value": "resources/history/run%05d_odb.xml"
+    },
+        
+    "/Logger/Elog Dir": {
+        "type": "path",
+        "value": "resources/elog"
+    },
+
+    "/Logger/Log Dir": {
+        "type": "path",
+        "value": "resources/log"
+    },
+
+    "/Logger/History Dir": {
+        "type": "path",
+        "value": "resources/history"
+    },
+
+    "/Custom/Shim Display": {
+        "type": "path",
+        "value": "online/www/shim_display.html"
+    },
+
+    "/Custom/MSCB Display": {
+        "type": "path",
+        "value": "online/www/mscb_display.html"
+    },
+
+    "/Params/config-dir": {
+        "type": "path",
+        "value": "common/config"
+    },
+
+    "/Params/config-file/shim-platform": {
+        "type": "string",
+        "value": "fnal/fe_shim_platform.json"
+    },
+
+    "/Params/config-file/shim-fixed": {
+        "type": "string",
+        "value": "fnal/fe_shim_fixed.json"
+    },
+
+    "/Params/html-dir": {
+       "type": "path",
+       "value": "online/www"
+    },
+
+    "/Params/root-output": {
+        "type": "bool",
+        "value": "true"
+    },
+
+    "/Params/sync-trigger-address": {
+        "type": "string",
+        "value": "tcp://192.168.1.200"
+    },
+
+    "/Params/fast-trigger-port": {
+        "type": "int",
+        "value": 42020
+    },
+
+    "/Params/slow-trigger-port": {
+        "type": "int",
+        "value": 42030
+    }
+}

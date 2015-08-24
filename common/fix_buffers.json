@@ -1,0 +1,56 @@
+{
+    "/Equipment/shim-platform/Common/Event ID": { 
+        "type": "int",
+        "value": 1
+    },
+
+    "/Equipment/shim-platform/Common/Buffer": { 
+        "type": "string",
+        "value": "BUF1"
+    },
+
+    "/Equipment/Laser Tracker/Common/Event ID": { 
+        "type": "int",
+        "value": 1
+    },
+
+    "/Equipment/Laser Tracker/Common/Buffer": { 
+        "type": "string",
+        "value": "BUF2"
+    },
+
+    "/Equipment/online-monitor/Common/Event ID": { 
+        "type": "int",
+        "value": 1
+    },
+
+    "/Equipment/online-monitor/Common/Buffer": { 
+        "type": "string",
+        "value": "BUF1"
+    },
+
+    "/Equipment/online-monitor/Common/Frontend host": { 
+        "type": "string",
+        "value": "nmr-daq"
+    },
+
+    "/Equipment/online-monitor/Common/Frontend name": { 
+        "type": "string",
+        "value": "online-monitor"
+    },
+
+    "/Equipment/online-monitor/Common/Frontend file name": { 
+        "type": "string",
+        "value": "src/an_online_monitor.cxx"
+    },
+
+    "/Equipment/online-monitor/Common/Status": { 
+        "type": "string",
+        "value": "online-monitor@nmr-daq"
+    },
+
+    "/Equipment/online-monitor/Common/Status color": { 
+        "type": "string",
+        "value": "#00FF00"
+    }
+}
