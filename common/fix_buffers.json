@@ -9,12 +9,12 @@
         "value": "BUF1"
     },
 
-    "/Equipment/Laser Tracker/Common/Event ID": { 
+    "/Equipment/laser-tracker/Common/Event ID": { 
         "type": "int",
         "value": 1
     },
 
-    "/Equipment/Laser Tracker/Common/Buffer": { 
+    "/Equipment/laser-tracker/Common/Buffer": { 
         "type": "string",
         "value": "BUF2"
     },
