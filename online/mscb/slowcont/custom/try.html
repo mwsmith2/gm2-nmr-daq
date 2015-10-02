@@ -1,0 +1,37 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 TRANSITIONAL//EN">
+<html><head>
+<title> ODBEdit test</title>
+<!-- include the mhttpd JS library -->
+\htmlonly <script src="./mhttpd.js" type="text/javascript"></script> \endhtmlonly
+
+\htmlonly <script type="text/javascript">
+var my_action = '"/CS/try&"'
+var rn
+var path
+var my_expt="Default";
+
+document.write('</head><body>')
+document.write('<form method="get" name="form2" action='+my_action+'> ')
+document.write('<input name="exp" value="'+my_expt+'" type="hidden">');
+
+document.write('Using Javascript and ODBEdit:<br>')
+path='/runinfo/run number'
+rn = ODBGet(path,"Run Number with format: %d")
+document.writeln('Run Number: '+rn+'<br>')
+document.writeln('Edit Run Number:')
+document.writeln('<a href="#" onclick="ODBEdit(path)" >')
+document.writeln(rn)
+document.writeln('</a>');
+</script> \endhtmlonly
+<br>
+Using HTML :
+<br>
+Using edit=2 ...  Run Number:
+<odb src="/runinfo/run number" edit=2>
+<br>
+Using edit=1 ...  Run Number:
+<odb src="/runinfo/run number" edit=1>
+<br>
+</form>
+</html>
+
