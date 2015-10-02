@@ -1,0 +1,80 @@
+#####################################################################
+#
+#  Name:         Makefile
+#  Created by:   Matthias Smith
+#
+#  Contents:     Makefile for MIDAS NMR frontends, based on
+#		 a sample Makefile written by Stefan Ritt.
+#
+#####################################################################
+
+# The following lines define direcories. Adjust if necessary
+INC_DIR = $(MIDASSYS)/include
+LIB_DIR = $(MIDASSYS)/linux/lib
+BIN_DIR = bin
+LINK_DIR = ~/Applications/gm2-nmr/common
+
+# Grab our compilation objects.
+SOURCES = $(wildcard src/*.cxx)
+OBJECTS := $(patsubst src%.cxx,build%.o,$(SOURCES))
+SOURCES = $(wildcard src/*.c)
+OBJECTS += $(patsubst src%.c,build%.o,$(SOURCES))
+#MODULES = $(patsubst modules/%.c,bin/%,$(wildcard modules/*.c))
+#MODULES += $(patsubst modules/%.cxx,bin/%,$(wildcard modules/*.cxx))
+TARGETS = $(patsubst analyzers/%.c,bin/%,$(wildcard analyzers/*.c))
+TARGETS += $(patsubst analyzers/%.cxx,bin/%,$(wildcard analyzers/*.cxx))
+
+#-----------------------------------------
+# This is for Linux
+OSFLAGS = -DOS_LINUX -DHAVE_USB -DHAVE_LIBUSB10 -Dextname
+CFLAGS = -g -fpermissive
+CXXFLAGS = -std=c++0x 
+LIBS = -lm -lz -lpthread -lfftw3 -lzmq -lcurl -lodbc
+
+ROOTFLAGS = $(shell root-config --cflags)
+ROOTLIBS = $(shell root-config --libs)
+
+#-------------------------------------------------------------------
+
+# Libraries && include flags
+LIB = -L$(LIB_DIR) -Lpkg/lib -L/usr/lib64/mysql
+LIB += -lmidas-shared -lfid -lmysqlclient -lsqlite3
+CFLAGS += -I$(INC_DIR) -Ipkg/include -Iinclude -Wl,-rpath,/usr/local/lib
+
+# Set compilers
+CC = gcc
+CXX = g++
+
+#-------------------------------------------------------------------
+# Finally we have the actual make directives.
+
+.SECONDARY: $(OBJECTS)
+
+.PHONY: print_vars
+
+# Make commands
+
+all: $(TARGETS)
+
+print_vars:
+	echo $(TARGETS)
+	echo $(OBJECTS)
+
+bin/%: analyzers/%.cxx $(LIB_DIR)/rmana.o $(OBJECTS)
+	$(CXX) $(CXXFLAGS) $(CFLAGS) $(OSFLAGS) $(ROOTFLAGS) -o $@ $+ \
+	$(LIB) $(LIBS) $(ROOTLIBS) 
+	ln -fs $(shell pwd)/$@ $(LINK_DIR)/$@ 
+
+bin/%: analyzers/%.c $(LIB_DIR)/mana.o $(OBJECTS)
+	$(CC) $(CFLAGS) $(OSFLAGS) -o $@ $+ \
+	$(LIB) $(LIBS) $(ROOTLIBS) 
+	ln -fs $(shell pwd)/$@ $(LINK_DIR)/$@ 
+
+build/%.o: src/%.cxx 
+	$(CXX) $(CXXFLAGS) $(CFLAGS) $(OSFLAGS) $(ROOTFLAGS) -c $< -o $@
+
+build/%.o: src/%.c
+	$(CC) $(CFLAGS) $(OSFLAGS) -c $< -o $@
+
+clean:
+	rm -f *~ $(OBJECTS) $(TARGETS) 
