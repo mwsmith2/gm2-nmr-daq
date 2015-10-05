@@ -9,10 +9,10 @@
   <body>
     <h1>
     <meta http-equiv="refresh" content="5" >
-    <u>Shimming display</u></h1>
+<center>    <u>Shimming display</u></h1> </center>
     <form name="form1" method="Get" action="/CS/Test&">
       <input type=hidden name="redir" value="Shim_Display&">
-      <table border="6" width="640">
+<center>       <table border="6" width="640">
         <tr>
           <td align="center"><input name="cmd" value="Status" type="submit"></td>
           <td align="center"><input name="cmd" value="Start" type="submit"></td>
@@ -36,29 +36,52 @@
 <td colspan="2" align="center"><b><odb src="/Equipment/Environment/Statistics/kBytes per sec."></b></th>
 </tr>
 <tr>
-<th colspan="6">Temperature readings</th>
+<th colspan="6">Temperature readings (C)</th>
 </tr>
-<td colspan="3" align="center">Probe 4</td>
-<td colspan="3" align="center">Probe 5</td>
+<td colspan="3" align="center">Probe 1</td>
+<td colspan="3" align="center">Probe 2</td>
 </tr>
 <tr>
 <td colspan="3" bgcolor = "black" align="center"><FONT color="red" size = "12" FACE="ds-digital"><odb src="/Equipment/Environment/Variables/Input[0]"></FONT></td>
 <td colspan="3" bgcolor = "black" align="center"><FONT color="green" size = "12" FACE="ds-digital"><odb src="/Equipment/Environment/Variables/Input[1]"></FONT></td>
 </tr>
 </table>
-<img width="750" src="http://localhost:8080/HS/Shimming%20vars/temp_trend.gif" align = "top">
+</center> 
+
+<center> <img width="750" src="http://localhost:8080/HS/Shimming%20vars/temp_trend.gif" align = "top"> </center> 
+<center> 
 <table border="6" width="640">
-<th colspan="6">Capacitec readings</th>
+<th colspan="12">Capacitec readings (V)</th>
 </tr>
 <td colspan="3" align="center">Probe 1</td>
 <td colspan="3" align="center">Probe 2</td>
+<td colspan="3" align="center">Probe 3</td>
+<td colspan="3" align="center">Probe 4</td>
 </tr>
 <tr>
 <td colspan="3" bgcolor = "black" align="center"><FONT color="white" size = "12" FACE="ds-digital"><odb src="/Equipment/Environment/Variables/Input[8]"></FONT></td>
 <td colspan="3" bgcolor = "black" align="center"><FONT color="#ff0000" size = "12" FACE="ds-digital"><odb src="/Equipment/Environment/Variables/Input[9]"></FONT></td>
+<td colspan="3" bgcolor = "black" align="center"><FONT color="white" size = "12" FACE="ds-digital"><odb src="/Equipment/Environment/Variables/Input[10]"></FONT></td>
+<td colspan="3" bgcolor = "black" align="center"><FONT color="#ff0000" size = "12" FACE="ds-digital"><odb src="/Equipment/Environment/Variables/Input[11]"></FONT></td>
 </tr>
+<!--
+<th colspan="12">Capacitec readings (converted)</th>
+</tr>
+<td colspan="3" align="center">Probe 1</td>
+<td colspan="3" align="center">Probe 2</td>
+<td colspan="3" align="center">Probe 3</td>
+<td colspan="3" align="center">Probe 4</td>
+</tr>
+<tr>
+<td colspan="3" bgcolor = "black" align="center"><FONT color="white" size = "12" FACE="ds-digital"><odb src="/Equipment/Environment/Variables/Input[8]"></FONT></td>
+<td colspan="3" bgcolor = "black" align="center"><FONT color="#ff0000" size = "12" FACE="ds-digital"><odb src="/Equipment/Environment/Variables/Input[9]"></FONT></td>
+<td colspan="3" bgcolor = "black" align="center"><FONT color="white" size = "12" FACE="ds-digital"><odb src="/Equipment/Environment/Variables/Input[10]"></FONT></td>
+<td colspan="3" bgcolor = "black" align="center"><FONT color="#ff0000" size = "12" FACE="ds-digital"><odb src="/Equipment/Environment/Variables/Input[11]"></FONT></td>
+</tr>
+-->
 </table>
-<img width="750" src="http://localhost:8080/HS/Shimming%20vars/capacitec_trend.gif" align = "top">
+</center> 
+<center> <img width="750" src="http://localhost:8080/HS/Shimming%20vars/capacitec_trend.gif" align = "top"> </center> 
 </body>
 </html>
 </form>

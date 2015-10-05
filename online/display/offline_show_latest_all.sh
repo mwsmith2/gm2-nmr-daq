@@ -3,12 +3,12 @@ DD=$(date +%d)
 MM=$(date +%m)
 YY=$(date +%y)
 
-echo "looking for ~/Applications/midas/resources/data/$YY$MM$DD.hst"
+echo "looking for ~/Applications/gm2-nmr/resources/history$YY$MM$DD.hst"
 
 # -E 10 is mscb (slow)
 # -E 1 is laser tracker ("fast")
-mhdump -t -n -E 10 ~/Applications/midas/resources/data/$YY$MM$DD.hst > ~/Applications/midas/online/history/mhdmpfiles/$YY$MM$DD.slow.txt 2>&1;
-mhdump -t -n -E 1 ~/Applications/midas/resources/data/$YY$MM$DD.hst > ~/Applications/midas/online/history/mhdmpfiles/$YY$MM$DD.fast.txt 2>&1;
+mhdump -t -n -E 11 ~/Applications/gm2-nmr/resources/history$YY$MM$DD.hst > ~/home/newg2/Applications/gm2-nmr/histdump/$YY$MM$DD.slow.txt 2>&1;
+#mhdump -t -n -E 1 ~/Applications/midas/resources/data/$YY$MM$DD.hst > ~/Applications/midas/online/history/mhdmpfiles/$YY$MM$DD.fast.txt 2>&1;
 
 root -b -q ~/Applications/midas/online/history/treefill_slow.C++;
 root -b -q ~/Applications/midas/online/history/treefill_fast.C++;
