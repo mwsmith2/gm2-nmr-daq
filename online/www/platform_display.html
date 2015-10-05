@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="http://code.jquery.com/jquery-1.11.2.min.js"></script>
+<script src="http://code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
+<script src="https://rawgithub.com/d3/d3-plugins/master/cubehelix/cubehelix.js"></script>
+<script src="https://rawgithub.com/mwsmith2/epoch/master/epoch.min.js"></script>
+
+<link rel="stylesheet" type="text/css" 
+href="https://rawgithub.com/mwsmith2/epoch/master/epoch.min.css">
+
+<head>
+  <title>g-2 Shimming Platform</title>
+</head>
+<body>
+  <div style="width:100%;">
+  <h1><center><strong>Shimming Platform Online Display</strong></center></h1>
+  <hr>
+  <script>
+    window.onresize = function(){ location.reload(); };
+
+    var w = Math.max(document.documentElement.clientWidth, 
+                     window.innerWidth || 0);
+    var h = Math.max(document.documentElement.clientHeight, 
+                     window.innerHeight || 0)
+
+    if (w > h) {
+        var size = 0.42 * h;
+    } else {
+        var size = 0.42 * w;
+    }
+
+    // Set up some column formatting for the page.
+    var figs = d3.select('body').select('div').append('div')
+        .attr('id', 'leftcol')
+        .style('float', 'left')
+        .style('width', size / w * 100 + '%')
+        .style('height', '100%');
+
+    var plots = d3.select('body').select('div').append('div')
+        .attr('id', 'rightcol')
+        .style('margin-top', '4%')
+        .style('float', 'right')
+        .style('width', (w - size) / w * 100 + '%')
+        .style('height', 0.9 * h + 'px');
+
+    plot_idx = [0, 6, 1, 7, 2, 8, 3, 9, 4, 10, 5, 11];
+
+    plots.selectAll('div').data(plot_idx)
+      .enter().append('div')
+        .attr('id', function(d) {
+            if (d < 6) {
+                return 'leftPlot' + d;
+            } else {
+                return 'rightPlot' + d % 6;
+            }
+        })
+        .attr('class', 'epoch')
+        .attr('title', function(d) { return "Ring Section " + d; })
+        .style('float', function(d) {
+            if (d < 6) {
+                return 'left';
+            } else {
+                return 'right';
+            }
+        })
+        .style('width', '48%')
+        .style('height', '13%');
+
+    // Now define some variables used to make our figures.
+    var scale = 0.15 * size;
+
+    var r_storage = scale * 2.5;
+    var r_shim_probes = scale / 6.0;
+    var r_big_shim_probes = 1.6 * r_shim_probes;
+
+    var sec_angle = 2.0 * Math.PI / 12.0;
+    var arc_r_mean = 2.25 * scale;
+    var arc_r_half = 0.25 * scale;
+    var arc_half_angle = sec_angle * 0.45;
+    var mouse_arc_r_half = 2.0 * arc_r_half;
+    var mouse_arc_half_angle = 2.0 * arc_half_angle;
+
+    var r_fixed_probes = scale / 32.0;
+    var r_big_fixed_probes = 1.6 * r_fixed_probes;
+    var phi_yshift = sec_angle / 24.0;
+    var rad_yshift = 1.2 * r_fixed_probes;
+
+    var alpha = 0.1;
+
+    var shim_data = {
+        'platform': [
+            {'x': 0.0000, 'y': 0.0000, 'r': 0.0, 'phi': 0.0000},
+        ],
+        'platform_probes':[
+            {'x': 0.000, 'y': 0.000, 'r': 0.0, 'phi': 0.000, 'health': 0.0},
+            {'x': 1.000, 'y': 0.000, 'r': 1.0, 'phi': 0.000, 'health': 0.0},
+            {'x': 0.707, 'y': 0.707, 'r': 1.0, 'phi': 0.785, 'health': 1.0},
+            {'x': 0.000, 'y': 1.000, 'r': 1.0, 'phi': 1.570, 'health': 0.0},
+            {'x':-0.707, 'y': 0.707, 'r': 1.0, 'phi': 2.356, 'health': 0.0},
+            {'x':-1.000, 'y': 0.000, 'r': 1.0, 'phi': 3.141, 'health': 0.0},
+            {'x':-0.707, 'y':-0.707, 'r': 1.0, 'phi': 3.926, 'health': 1.0},
+            {'x': 0.000, 'y':-1.000, 'r': 1.0, 'phi': 4.712, 'health': 0.0},
+            {'x': 0.707, 'y':-0.707, 'r': 1.0, 'phi': 5.497, 'health': 1.0},
+            {'x': 2.000, 'y': 0.000, 'r': 2.0, 'phi': 0.000, 'health': 1.0},
+            {'x': 1.847, 'y': 0.765, 'r': 2.0, 'phi': 0.392, 'health': 1.0},
+            {'x': 1.414, 'y': 1.414, 'r': 2.0, 'phi': 0.785, 'health': 1.0},
+            {'x': 0.765, 'y': 1.847, 'r': 2.0, 'phi': 1.178, 'health': 0.0},
+            {'x': 0.000, 'y': 2.000, 'r': 2.0, 'phi': 1.570, 'health': 0.0},
+            {'x':-0.765, 'y': 1.847, 'r': 2.0, 'phi': 1.963, 'health': 1.0},
+            {'x':-1.414, 'y': 1.414, 'r': 2.0, 'phi': 2.356, 'health': 1.0},
+            {'x':-1.847, 'y': 0.765, 'r': 2.0, 'phi': 2.748, 'health': 0.0},
+            {'x':-2.000, 'y': 0.000, 'r': 2.0, 'phi': 3.141, 'health': 1.0},
+            {'x':-1.847, 'y':-0.765, 'r': 2.0, 'phi': 3.534, 'health': 1.0},
+            {'x':-1.414, 'y':-1.414, 'r': 2.0, 'phi': 3.926, 'health': 0.0},
+            {'x':-0.765, 'y':-1.847, 'r': 2.0, 'phi': 4.319, 'health': 0.0},
+            {'x': 0.000, 'y':-2.000, 'r': 2.0, 'phi': 4.712, 'health': 0.0},
+            {'x': 0.765, 'y':-1.847, 'r': 2.0, 'phi': 5.105, 'health': 1.0},
+            {'x': 1.414, 'y':-1.414, 'r': 2.0, 'phi': 5.497, 'health': 0.0},
+            {'x': 1.847, 'y':-0.765, 'r': 2.0, 'phi': 5.890, 'health': 0.0}
+        ],
+        'platform_coords': [
+            [ 0.000 * scale,  0.000 * scale],
+            [ 1.000 * scale,  0.000 * scale],
+            [ 0.707 * scale,  0.707 * scale],
+            [ 0.000 * scale,  1.000 * scale],
+            [-0.707 * scale,  0.707 * scale],
+            [-1.000 * scale,  0.000 * scale],
+            [-0.707 * scale, -0.707 * scale],
+            [ 0.000 * scale, -1.000 * scale],
+            [ 0.707 * scale, -0.707 * scale],
+            [ 2.000 * scale,  0.000 * scale],
+            [ 1.847 * scale,  0.765 * scale],
+            [ 1.414 * scale,  1.414 * scale],
+            [ 0.765 * scale,  1.847 * scale],
+            [ 0.000 * scale,  2.000 * scale],
+            [-0.765 * scale,  1.847 * scale],
+            [-1.414 * scale,  1.414 * scale],
+            [-1.847 * scale,  0.765 * scale],
+            [-2.000 * scale,  0.000 * scale],
+            [-1.847 * scale, -0.765 * scale],
+            [-1.414 * scale, -1.414 * scale],
+            [-0.765 * scale, -1.847 * scale],
+            [ 0.000 * scale, -2.000 * scale],
+            [ 0.765 * scale, -1.847 * scale],
+            [ 1.414 * scale, -1.414 * scale],
+            [ 1.847 * scale, -0.765 * scale]
+        ]
+    };
+
+test_data = {
+        'platform_probes': [
+            {'health': 1.0,  'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 1.0,  'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 0.0, 'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 1.0,  'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 1.0,  'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 0.0, 'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 1.0,  'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 1.0,  'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 0.0, 'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 0.0, 'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 1.0,  'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 1.0,  'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 0.0, 'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 1.0,  'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 1.0,  'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 0.0, 'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 1.0,  'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 0.0, 'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 1.0,  'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 0.0, 'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 1.0,  'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 1.0,  'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 1.0,  'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
+            {'health': 0.0, 'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]}, 
+            {'health': 0.0, 'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]}
+        ],
+}
+
+    var field_data = [
+      [47.0],
+      [47.0],
+      [47.0],
+      [47.0],
+      [47.0],
+      [47.0],
+      [47.0],
+      [47.0],
+      [47.0],
+      [47.0],
+      [47.0],
+      [47.0],
+      [47.0],
+      [47.0],
+      [47.0],
+      [47.0],
+      [47.0],
+      [47.0],
+      [47.0],
+      [47.0],
+      [47.0],
+      [47.0],
+      [47.0],
+      [47.0],
+      [47.0]
+    ]
+
+    // Create an arc generator
+    var arc = d3.svg.arc()
+      .innerRadius(arc_r_mean - arc_r_half)
+      .outerRadius(arc_r_mean + arc_r_half)
+      .startAngle(function(d) {
+         return d.ref * sec_angle - arc_half_angle;
+      })
+      .endAngle(function(d) {
+         return d.ref * sec_angle + arc_half_angle;
+      });
+
+    var mouse_arc = d3.svg.arc()
+      .innerRadius(arc_r_mean - mouse_arc_r_half)
+      .outerRadius(arc_r_mean + mouse_arc_r_half)
+      .startAngle(function(d) {
+          return d.ref * sec_angle - mouse_arc_half_angle;
+      })
+      .endAngle(function(d) {
+          return d.ref * sec_angle + mouse_arc_half_angle;
+      });
+
+    // Now setup the drawing area.
+    var svg = d3.select('#leftcol')
+      .append('svg')
+        .attr('width', size)
+        .attr('height', 2 * size);
+    
+    var vis = svg.append('g')
+        .attr('id', 'platform')
+        .attr('transform', 'translate(' + 0.5 * size + ',' +  0.5 * size + ')');
+
+    // Now draw the shimming platform.
+    var shim_platform = vis.selectAll('.shim-platform')
+        .data(shim_data.platform)
+      .enter().append('circle')
+        .attr('id', 'shim-platform')        
+        .attr('cx', function(d, i) { return d.x * scale; })
+        .attr('cy', function(d, i) { return d.y * scale; })
+        .attr('r', r_storage)
+        .attr('fill', '#bbb')
+        .attr('stroke', '#000');
+
+    // Now the platform probes.
+    var platform_probes = vis.selectAll('.platform-probes')
+        .data(shim_data.platform_probes)
+      .enter().append('circle', function(d) {return })
+        .attr('id', 'platfrom-probes')
+        .attr('cx', function(d, i) { return d.x * scale; })
+        .attr('cy', function(d, i) { return d.y * scale; })
+        .attr('r', r_shim_probes)
+        .attr('fill', function(d, i) {
+            return healthcolor(d.health);
+        });
+
+    // A new drawing space
+    var vis = svg.append('g')
+        .attr('id', 'storage-field')
+        .attr('transform', 'translate(' + 0.5 * size + ',' +  1.5 * size + ')');
+
+    var storage_region = vis.selectAll('.storage-region')
+        .data(shim_data.platform)
+      .enter().append("svg:clipPath")
+        .attr("id", "storage-region")
+      .append("svg:circle")
+        .attr('cx', function(d, i) { return d.x * scale; })
+        .attr('cy', function(d, i) { return d.y * scale; })
+        .attr('r', r_storage);
+
+    // Now draw the storage region field map.
+    var storage_field = vis.selectAll('.storage-field')
+        .data(d3.geom.voronoi(shim_data.platform_coords))
+      .enter().append('path')
+        .attr('d', function(d, i) { return 'M' + d.join(',') + 'Z'; })
+        .attr('id', function(d, i) { return 'storage-region-' + i; })
+        .attr('fill', '#f00')
+        .attr('stroke', '#fff')
+        .attr('clip-path', "url(#storage-region)");
+
+    setInterval(function() {
+        update_platform_probes();
+        update_storage_field();
+        update_freq_plot();
+    }, 1000);
+
+    function update_platform_probes() {
+        var data = platform_probes.data();
+        for (var i = 0; i < data.length; ++i) {
+            var val = Math.random() <= 0.9;
+            data[i].health = alpha * val + (1.0 - alpha) * data[i].health;
+        }
+        platform_probes.data(data).transition('platform-color')
+            .duration(500)
+            .style('fill', function(d, i) {
+                return healthcolor(d.health);
+            });
+
+    };
+
+    function update_storage_field() {
+        for (var i = 0; i < field_data.length; ++i) {
+          var val = 46.5 + Math.random();
+          field_data[i] = alpha * val + (1.0 - alpha) * field_data[i];
+        }
+
+        var data = storage_field.data();
+        storage_field.data(data).transition('field-update')
+            .duration(500)
+            .style('fill', function(d, i) {
+                return fieldcolor(field_data[i]);
+            });
+    }
+
+    function healthcolor(x) {
+        var r = Math.floor((1.0 - x) * 168);
+        var g = Math.floor(x * 84)
+        var b = Math.floor((1.0 - x) * 42 + x * 168);
+        return d3.rgb(r, g, b);        
+    };
+
+    function fieldcolor(x) {
+        var cm = d3.scale.cubehelix().domain([46.5, 47.5]);
+        return d3.rgb(cm(x));
+    };
+
+    // Now create the line chart data
+    var lineChartData1 = [
+      { label: 'Series 1', values: [] },
+      { label: 'Series 2', values: [] },
+      { label: 'Series 3', values: [] },
+      { label: 'Series 4', values: [] },
+      { label: 'Series 5', values: [] },
+      { label: 'Series 6', values: [] }
+    ];
+
+    for (var j = 0; j < lineChartData1.length; ++j) {
+        var d = new Date();
+        var val = { 'time': d.getTime() / 1000, 'y': Math.random() + 46.5 };
+        lineChartData1[j].values.push(val);
+        if (lineChartData1[j].values.length > 100) {
+            lineChartData1[j].values.pop();
+        }
+    }
+
+    var charts = [];
+    for (var i = 0; i < plot_idx.length; ++i) {
+        if (i < 6) {
+            var name = '#leftPlot' + i%6
+        } else {
+            var name = '#rightPlot' + i%6
+        }
+        charts.push($(name).epoch({
+            type: 'time.line',
+            data: lineChartData1,
+            axes: ['bottom', 'right', 'left'],
+            ticks: {'time': 10, 'right': 5, 'left': 5},
+        }));
+    }
+
+    function update_freq_plot() {
+
+        for (var i = 0; i < charts.length; ++i) {
+            var nextPoint = []
+            var d = new Date();
+            for (var j = 0; j < lineChartData1.length; ++j) {
+                var val = { 'time': d.getTime() / 1000, 'y': Math.random() + 47.0 + j };
+                nextPoint.push(val);
+            };
+            charts[i].push(nextPoint);
+        };
+    };
+
+  </script>
+
+
+
+
+
+</body>

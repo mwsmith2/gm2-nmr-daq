@@ -32,12 +32,12 @@ With all those taken care of, go ahead and clone the repository for the DAQ.  Th
 
 * <a href="https://github.com/uwmuonlab/gm2-simple-daq">Simple DAQ</a>
 ```bash
-mkdir -P ~/Applications && cd ~/Applications
+cd ~/Applications
 git clone --recursive https://github.com/uwmuonlab/gm2-simple-daq simple-daq
 ```
 * <a href="https://github.com/uwmuonlab/gm2-nmr-daq">g-2 NMR DAQ</a>
 ```bash
-mkdir -P ~/Applications && cd ~/Applications
+cd ~/Applications
 git clone --recursive https://github.com/uwmuonlab/gm2-nmr-daq gm2-nmr
 ```
 
@@ -335,9 +335,25 @@ sudo python setup.py install
 
 With mhelper installed you can add all the ODB variables in a json file (see common/examples/add_to_odb.json) with `mhelper add-to-odb <path-to-json-file>`.
 
-We also need to set up the data directory. I usually create the directory in /home/data/midas/<expt_name>/ then link it to the resource directory, `ln -s /home/data/midas/gm2-nmr ~/Applications/gm2-nmr/resources/data`.
+We also need to set up the data directory. I usually create the directory in `/home/data/midas/<expt_name>/` then link it to the resource directory, `ln -s /home/data/midas/gm2-nmr ~/Applications/gm2-nmr/resources/data`.
 
 Now let's build the frontends.
+
+```bash
+cd ~/Applications/gm2-nmr/online/frontends && make
+```
+
+If all went well the frontends binaries are present in the frontend directory as well as symlink into common/bin/.  The daq control scripts know where to find the frontends, so we don't really need to worry about them.  Let's start the experiment now.
+
+```bash
+~/Applications/online/bin/start_daq.sh
+mhelper daq start
+```
+
+Now there should be several programs running in 'screen' instances.  You can confirm that they are running by heading to the `$EXPT_IP` location in your browser as well as attached to the screens from the command line.  To check which screens are available try `screen -ls`.  Then, you can attach to one of the currently detached screens (should be all of them) with `screen -r <expt-name>.<program-name>`.
+
+
+
 
 TODO - Uninstall gm2-nmr and reinstall from guide.
 
@@ -348,7 +364,9 @@ TODO - Uninstall gm2-nmr and reinstall from guide.
 The DAQ structure is based on previous MIDAS experiments with a few tweaks to the in the mix.  One of the reasons for the restructure is to facilitate version control of the entire experiment directory.
 
 ### Folder Structure
+
 I put these into `~/Applications/<expt-name>` but they can really go anywhere.
+
 *  online
 *  offline
 *  common
@@ -356,16 +374,19 @@ I put these into `~/Applications/<expt-name>` but they can really go anywhere.
 
 #### online
 This folder is generally for utilities that are associated with the DAQ during the data taking process and run control. Mine contains the 3 folders
+
 * bin - filled with start/stop scripts
 * frontends - contains code + executable MIDAS front-ends
 * www - contains html pages that will be linked to in the ODB
 
 #### offline
 This is for manipulation of data offline.  It hasn't been used much yet, so it's not a immature design.
+
 * studies
 
 #### common
 The directory for things used by analyzers.
+
 * .expt-env - important, experiment specific variables
 * config - directory filled with config files used by the DAQ
 * analyzers - used both online/offline so it lives here and gets symlinked
@@ -373,6 +394,7 @@ The directory for things used by analyzers.
 
 #### resources
 A directory containing all the binary data.  This is the only folder that does not go under version control (although git-lfs could change that for some of the data, like odb).  This directory also contains all the MIDAS SHM chunks.
+
 * data
 * elog
 * history

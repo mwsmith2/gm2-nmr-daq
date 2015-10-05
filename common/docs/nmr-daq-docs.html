@@ -1277,39 +1277,58 @@ sudo python setup.py install
 </code></pre>
 
 <p>With mhelper installed you can add all the ODB variables in a json file (see common/examples/add_to_odb.json) with <code>mhelper add-to-odb &lt;path-to-json-file&gt;</code>.</p>
-<p>We also need to set up the data directory. I usually create the directory in /home/data/midas/<expt_name>/ then link it to the resource directory, <code>ln -s /home/data/midas/gm2-nmr ~/Applications/gm2-nmr/resources/data</code>.</p>
+<p>We also need to set up the data directory. I usually create the directory in <code>/home/data/midas/&lt;expt_name&gt;/</code> then link it to the resource directory, <code>ln -s /home/data/midas/gm2-nmr ~/Applications/gm2-nmr/resources/data</code>.</p>
 <p>Now let&rsquo;s build the frontends.</p>
+<pre><code class="bash">cd ~/Applications/gm2-nmr/online/frontends &amp;&amp; make
+</code></pre>
+
+<p>If all went well the frontends binaries are present in the frontend directory as well as symlink into common/bin/.  The daq control scripts know where to find the frontends, so we don&rsquo;t really need to worry about them.  Let&rsquo;s start the experiment now.</p>
+<pre><code class="bash">~/Applications/online/bin/start_daq.sh
+mhelper daq start
+</code></pre>
+
+<p>Now there should be several programs running in &lsquo;screen&rsquo; instances.  You can confirm that they are running by heading to the <code>$EXPT_IP</code> location in your browser as well as attached to the screens from the command line.  To check which screens are available try <code>screen -ls</code>.  Then, you can attach to one of the currently detached screens (should be all of them) with <code>screen -r &lt;expt-name&gt;.&lt;program-name&gt;</code>.</p>
 <p>TODO - Uninstall gm2-nmr and reinstall from guide.</p>
 <hr />
 <h2 id="experiment-layout"><a name="user-content-experiment-layout" href="#experiment-layout" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a><a name="layout">Experiment Layout</a></h2>
 <p>The DAQ structure is based on previous MIDAS experiments with a few tweaks to the in the mix.  One of the reasons for the restructure is to facilitate version control of the entire experiment directory.</p>
 <h3 id="folder-structure"><a name="user-content-folder-structure" href="#folder-structure" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Folder Structure</h3>
-<p>I put these into <code>~/Applications/&lt;expt-name&gt;</code> but they can really go anywhere.<br />
-<em>  online<br />
-</em>  offline<br />
-<em>  common<br />
-</em>  resources</p>
+<p>I put these into <code>~/Applications/&lt;expt-name&gt;</code> but they can really go anywhere.</p>
+<ul>
+<li>online</li>
+<li>offline</li>
+<li>common</li>
+<li>resources</li>
+</ul>
 <h4 id="online"><a name="user-content-online" href="#online" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>online</h4>
-<p>This folder is generally for utilities that are associated with the DAQ during the data taking process and run control. Mine contains the 3 folders<br />
-<em> bin - filled with start/stop scripts<br />
-</em> frontends - contains code + executable MIDAS front-ends<br />
-* www - contains html pages that will be linked to in the ODB</p>
+<p>This folder is generally for utilities that are associated with the DAQ during the data taking process and run control. Mine contains the 3 folders</p>
+<ul>
+<li>bin - filled with start/stop scripts</li>
+<li>frontends - contains code + executable MIDAS front-ends</li>
+<li>www - contains html pages that will be linked to in the ODB</li>
+</ul>
 <h4 id="offline"><a name="user-content-offline" href="#offline" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>offline</h4>
-<p>This is for manipulation of data offline.  It hasn&rsquo;t been used much yet, so it&rsquo;s not a immature design.<br />
-* studies</p>
+<p>This is for manipulation of data offline.  It hasn&rsquo;t been used much yet, so it&rsquo;s not a immature design.</p>
+<ul>
+<li>studies</li>
+</ul>
 <h4 id="common"><a name="user-content-common" href="#common" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>common</h4>
-<p>The directory for things used by analyzers.<br />
-<em> .expt-env - important, experiment specific variables<br />
-</em> config - directory filled with config files used by the DAQ<br />
-<em> analyzers - used both online/offline so it lives here and gets symlinked<br />
-</em> scripts - utility scripts for things like resetting the ODB</p>
+<p>The directory for things used by analyzers.</p>
+<ul>
+<li>.expt-env - important, experiment specific variables</li>
+<li>config - directory filled with config files used by the DAQ</li>
+<li>analyzers - used both online/offline so it lives here and gets symlinked</li>
+<li>scripts - utility scripts for things like resetting the ODB</li>
+</ul>
 <h4 id="resources"><a name="user-content-resources" href="#resources" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>resources</h4>
-<p>A directory containing all the binary data.  This is the only folder that does not go under version control (although git-lfs could change that for some of the data, like odb).  This directory also contains all the MIDAS SHM chunks.<br />
-<em> data<br />
-</em> elog<br />
-<em> history<br />
-</em> log<br />
-* backups</p>
+<p>A directory containing all the binary data.  This is the only folder that does not go under version control (although git-lfs could change that for some of the data, like odb).  This directory also contains all the MIDAS SHM chunks.</p>
+<ul>
+<li>data</li>
+<li>elog</li>
+<li>history</li>
+<li>log</li>
+<li>backups</li>
+</ul>
 <h3 id="important-files"><a name="user-content-important-files" href="#important-files" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Important Files</h3>
 <h4 id="etcexptab"><a name="user-content-etcexptab" href="#etcexptab" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>/etc/exptab</h4>
 <p>MIDAS needs to know about the experiment, so define it here with a line like<br />
