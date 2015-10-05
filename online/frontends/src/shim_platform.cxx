@@ -825,14 +825,16 @@ void trigger_loop()
        // Each loop in here is one data point with the stepper motor.
       while (run_in_progress) {
 
-        // Wait for the event to be processed.
-        if (use_stepper && stepper_listener->HasTrigger() == false) {
-          usleep(500000);
+        // Wait for the next event.
+        if (use_stepper && (stepper_listener->HasTrigger() == false)) {
 
-        } else if(!use_stepper){
+          usleep(1000);
+
+        } else if (!use_stepper) {
+
           readout_listener->SetReady();
-        }
-        else { //stepper_listener Had a Trigger, and now HasTrigger gets set back to false
+
+        } else { //stepper_listener Had a Trigger, and now HasTrigger gets set back to false
 
           printf("READY TO MOVE: issuing step\n");
 
@@ -841,7 +843,7 @@ void trigger_loop()
           // If last step, end the run.
           if (num_events >= num_steps) {
             
-            cm_msg(MINFO, "fe_uw_nmr_test", "Step sequence complete");
+            cm_msg(MINFO, frontend_name, "Step sequence complete");
             
             // Reset for next measurement.
             num_events = 0;
@@ -886,7 +888,7 @@ void trigger_loop()
             
             // Set up for the next data point.
             auto rc = stepper->MoveCmForward(step_size);
-            usleep(500000);
+            usleep(1.0e6 / event_rate_limit);
             ++num_events;
             ready_to_move = false;
             readout_listener->SetReady();
