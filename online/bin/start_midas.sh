@@ -15,7 +15,7 @@ for mu in "${MIDAS_UTIL[@]}"; do
 
     case $mu in
         'mserver')
-            cmd="mserver $addresslist -p $MSERVER_PORT$(printf \\r)"
+            cmd="mserver -p $MSERVER_PORT$(printf \\r)"
             screen -dmS "${EXPT}.mserver"
             screen -S "${EXPT}.mserver" -p 0 -rX stuff "$cmd";;
         
