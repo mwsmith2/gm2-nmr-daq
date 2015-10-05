@@ -142,8 +142,7 @@ INT frontend_init()
   int trigger_port(tmp);
 
   readout_trigger = new daq::SyncTrigger(trigger_addr, trigger_port);
-  
-  stepper_trigger = new daq::SyncTrigger(trigger_addr, trigger_port+30);
+  stepper_trigger = new daq::SyncTrigger(trigger_addr, trigger_port + 30);
   return SUCCESS;
 }
 

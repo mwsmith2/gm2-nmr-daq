@@ -146,12 +146,12 @@ std::mutex data_mutex;
 
 daq::shim_platform_st data; // st = short trace
 daq::EventManagerTrgSeq *event_manager;
-daq::SyncClient *listener;
+daq::SyncClient *readout_listener;
 daq::DioStepperMotor *stepper;;
 
   //Brendan Adding another SyncTrigger in order to coordinate the stepper trigger separately
 
-  daq::SyncClient *listenerStepper;
+  daq::SyncClient *stepper_listener;
   
 const int nprobes = SHIM_PLATFORM_CH;
 const char *const mbank_name = (char *)"SHPF";
@@ -232,11 +232,11 @@ INT frontend_init()
 
   int trigger_port(tmp);
 
-  listener = new daq::SyncClient(trigger_addr, trigger_port);
+  readout_listener = new daq::SyncClient(trigger_addr, trigger_port);
 
   //Brendan : Piggy-back off of the port information already extracted for the listener, and increment it by 1
 
-  listenerStepper = new daq::SyncClient(trigger_addr, trigger_port+30);
+  stepper_listener = new daq::SyncClient(trigger_addr, trigger_port+30);
 
   // Load the steppper motor params.
   db_find_key(hDB, 0, "/Params/stepper-motor", &hkey);
@@ -281,8 +281,8 @@ INT frontend_exit()
   }
 
   delete event_manager;
-  delete listener;
-  delete listenerStepper;
+  delete readout_listener;
+  delete stepper_listener;
   delete stepper;
 
   return SUCCESS;
@@ -349,8 +349,8 @@ INT begin_of_run(INT run_number, char *error)
   
   //HW part
   event_manager->BeginOfRun();
-  listener->SetReady();
-  listenerStepper->UnsetReady(); // Make sure the stepper is not set yet
+  readout_listener->SetReady();
+  stepper_listener->UnsetReady(); // Make sure the stepper is not set yet
 
   // Reload the step structure.
   db_find_key(hDB, 0, "/Params/stepper-motor", &hkey);
@@ -391,8 +391,8 @@ INT begin_of_run(INT run_number, char *error)
 INT end_of_run(INT run_number, char *error)
 {
   event_manager->EndOfRun();
-  listener->UnsetReady();
-  listenerStepper->UnsetReady();
+  readout_listener->UnsetReady();
+  stepper_listener->UnsetReady();
 
   // Make sure we write the ROOT data.
   if (run_in_progress && write_root) {
@@ -454,7 +454,7 @@ INT poll_event(INT source, INT count, BOOL test) {
     return 0;
   }
 
-  if (listener->HasTrigger()) {
+  if (readout_listener->HasTrigger()) {
     printf("Got the trigger\n");
     cm_msg(MINFO, frontend_name, "issuing trigger");
     event_manager->IssueTrigger();
@@ -631,10 +631,10 @@ INT read_platform_event(char *pevent, INT off)
   // Brendan: At this point the multiplexors are done (and in fact all the data have been copied to root, midas, etc), but we have no guarantee that the laser tracker, environment, etc.... other frontends might still be going. So we really need to check in with the SyncTrigger that everyone ELSE is done before moving the motor
 
   // E.G. 
-  // Have a second SyncClient called listenerStepper
-  // At this point issue the Trigger to listenerStepper
+  // Have a second SyncClient called stepper_listener
+  // At this point issue the Trigger to stepper_listener
 
-  // When listenerStepper is done, then unset listenerStepper->IsReady(), and set listenerReady() to true
+  // When stepper_listener is done, then unset stepper_listener->IsReady(), and set listenerReady() to true
 
   // OR.....
   // if we could query the listener within a loop, waiting for n-1 Clients to be done (that means everyone else)
@@ -642,19 +642,19 @@ INT read_platform_event(char *pevent, INT off)
 
 
   // The point of this if/else is to set the listener to Ready. in the scheme where we have to use a stepper, we need to first make sure we wait for all
-  // non-stepper frontends to finish, and we delegate the responsibility of setting listener->SetReady to the stepper thread
-  // if the stepper isn't used, then we simply ignore the listenerStepper and set our listener->SetReady directly
+  // non-stepper frontends to finish, and we delegate the responsibility of setting readout_listener->SetReady to the stepper thread
+  // if the stepper isn't used, then we simply ignore the stepper_listener and set our readout_listener->SetReady directly
   if (use_stepper == true) {
-    listenerStepper->SetReady();
+    stepper_listener->SetReady();
     //ready_to_move = true;
 
   } else {
     
-    listener->SetReady();
+    readout_listener->SetReady();
   }
   
-  //  while( // listenerStepper isn't ready, wait
-  // once listenerStepper has // the stepper l
+  //  while( // stepper_listener isn't ready, wait
+  // once stepper_listener has // the stepper l
 
   return bk_size(pevent);
 }
@@ -805,7 +805,7 @@ INT read_fixed_event(char *pevent, INT off)
   // // Pop the event now that we are done copying it.
   // cm_msg(MINFO, frontend_name, "popping event manager data.");
   // //  event_manager->PopCurrentEvent();
-  // //  listener->SetReady();
+  // //  readout_listener->SetReady();
 
   // return bk_size(pevent);
   return 0;
@@ -826,13 +826,13 @@ void trigger_loop()
       while (run_in_progress) {
 
         // Wait for the event to be processed.
-        if (use_stepper && listenerStepper->HasTrigger() == false) {
+        if (use_stepper && stepper_listener->HasTrigger() == false) {
           usleep(500000);
 
         } else if(!use_stepper){
-          listener->SetReady();
+          readout_listener->SetReady();
         }
-        else { //listenerStepper Had a Trigger, and now HasTrigger gets set back to false
+        else { //stepper_listener Had a Trigger, and now HasTrigger gets set back to false
 
           printf("READY TO MOVE: issuing step\n");
 
@@ -889,7 +889,7 @@ void trigger_loop()
             usleep(500000);
             ++num_events;
             ready_to_move = false;
-            listener->SetReady();
+            readout_listener->SetReady();
 
           }
         }
