@@ -1,12 +1,11 @@
 /********************************************************************\
 
-Name:   fe_shim_platform.cxx
+Name:   shim_trigger.cxx
 Author: Matthias W. Smith
 Email:  mwsmith2@uw.edu
 
-About:  Implements a MIDAS frontend that is aware of the 
-        multiplexers.  It configures them, takes data in a 
-        sequence, and builds an event from all the data.
+About:  Implements a frontend that issues synchronized triggers
+        to other frontends.
         
 \********************************************************************/
 
@@ -106,10 +105,10 @@ RUNINFO runinfo;
 // Anonymous namespace for my "globals"
 namespace {
   // This is the trigger for the Measurements
-daq::SyncTrigger *trigger;
+daq::SyncTrigger *readout_trigger;
   //Brendan Adding another SyncTrigger in order to coordinate the stepper trigger separately
-  // Note -- Everywhere below we repeat everything that happens to "trigger" for "triggerStepper", except we bind it to a different port (trigger's port +1)
-daq::SyncTrigger *triggerStepper;
+  // Note -- Everywhere below we repeat everything that happens to "trigger" for "stepper_trigger", except we bind it to a different port (trigger's port +1)
+daq::SyncTrigger *stepper_trigger;
 
 }
 
@@ -142,43 +141,43 @@ INT frontend_init()
 
   int trigger_port(tmp);
 
-  trigger = new daq::SyncTrigger(trigger_addr, trigger_port);
+  readout_trigger = new daq::SyncTrigger(trigger_addr, trigger_port);
   
-  triggerStepper = new daq::SyncTrigger(trigger_addr, trigger_port+30);
+  stepper_trigger = new daq::SyncTrigger(trigger_addr, trigger_port+30);
   return SUCCESS;
 }
 
 //--- Frontend Exit ------------------------------------------------//
 INT frontend_exit()
 {
-  delete trigger;
-  delete triggerStepper;
+  delete readout_trigger;
+  delete stepper_trigger;
   return SUCCESS;
 }
 
 //--- Begin of Run --------------------------------------------------*/
 INT begin_of_run(INT run_number, char *error)
 {
-  trigger->FixNumClients();
-  trigger->StartTriggers();
-  triggerStepper->FixNumClients();
-  triggerStepper->StartTriggers();
+  readout_trigger->FixNumClients();
+  readout_trigger->StartTriggers();
+  stepper_trigger->FixNumClients();
+  stepper_trigger->StartTriggers();
   return SUCCESS;
 }
 
 //--- End of Run ----------------------------------------------------*/
 INT end_of_run(INT run_number, char *error)
 {
-  trigger->StopTriggers();
-  triggerStepper->StopTriggers();
+  readout_trigger->StopTriggers();
+  stepper_trigger->StopTriggers();
   return SUCCESS;
 }
 
 //--- Pause Run -----------------------------------------------------*/
 INT pause_run(INT run_number, char *error)
 {
-  trigger->StopTriggers();
-  triggerStepper->StopTriggers();
+  readout_trigger->StopTriggers();
+  stepper_trigger->StopTriggers();
   return SUCCESS;
 }
 
@@ -186,8 +185,8 @@ INT pause_run(INT run_number, char *error)
 INT resume_run(INT run_number, char *error)
 {
 
-  trigger->StartTriggers();
-  triggerStepper->StartTriggers();
+  readout_trigger->StartTriggers();
+  stepper_trigger->StartTriggers();
   return SUCCESS;
 }
 
