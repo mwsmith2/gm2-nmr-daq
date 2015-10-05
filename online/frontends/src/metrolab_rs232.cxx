@@ -12,6 +12,7 @@ About:  A simple frontend to communicate with the Metrolab via RS232 and
 \********************************************************************/
 
 // ---std includes -----------------------------------------------//
+#include <termios.h>
 #include <sys/socket.h>
 #include <string>
 #include <iostream>
@@ -75,14 +76,13 @@ extern "C" {
       {FRONTEND_NAME,  // equipment name                     
        {11, 0,         // event ID, trigger mask
         "SYSTEM",      // event buffer (use to be SYSTEM)
-        EQ_POLLED |
-        EQ_EB,         // equipment type
+        EQ_PERIODIC,   // equipment type
         0,             // not used
         "MIDAS",       // format
         TRUE,          // enabled
-        RO_RUNNING |   // read only when running
+        RO_ALWAYS |    // read only when running
         RO_ODB,        // and update ODB
-        10,            // poll for 10ms
+        2000,          // read every 2s
         0,             // stop run after this event limit                      
         0,             // number of sub events
         0,             // don't log history
@@ -90,6 +90,8 @@ extern "C" {
        },
 
        read_trigger_event,      // readout routine                              
+       NULL,
+       NULL
       },
 
       {""}
@@ -134,12 +136,58 @@ INT frontend_init()
   }  
   
   if(db_find_key(hDB, 0, str, &hkey)==DB_SUCCESS){
-      printf("Hallo\n");
       size = sizeof(METROLAB_SETTINGS);
       db_get_record(hDB, hkey, &metrolab_settings, &size, 0);
   }
   
+  char devname[100];
+  struct termios options;
   
+  sprintf(devname, "/dev/ttyUSB0");
+  SerialPort = open(devname, O_RDWR | O_NOCTTY | O_NDELAY | O_NONBLOCK);
+  
+  if(SerialPort < 0) {
+    perror("opening device");
+    return -1;
+  }
+  fcntl(SerialPort, F_SETFL, 0); // return immediately if no data
+  
+  if(tcgetattr(SerialPort, &options) < 0) {
+    perror("tcgetattr");
+    return -2;
+  }
+  
+  cfsetospeed(&options, B9600);
+  cfsetispeed(&options, B9600);
+  
+  /* Setting other Port Stuff */
+  options.c_cflag     &=  ~PARENB;        // Make 8n1
+  options.c_cflag     &=  ~CSTOPB;
+  options.c_cflag     &=  ~CSIZE;
+  options.c_cflag     |=  CS8;
+  options.c_cflag     &=  ~CRTSCTS;       // no flow control
+  options.c_lflag     =   0;          // no signaling chars, no echo, no canonical processing
+  options.c_oflag     =   0;                  // no remapping, no delays
+  options.c_cc[VMIN]      =   0;                  // read doesn't block
+  options.c_cc[VTIME]     =   5;                  // 0.5 seconds read timeout
+  
+  options.c_cflag     |=  CREAD | CLOCAL;     // turn on READ & ignore ctrl lines
+  options.c_iflag     &=  ~(IXON | IXOFF | IXANY);// turn off s/w flow ctrl
+  options.c_lflag     &=  ~(ICANON | ECHO | ECHOE | ISIG); // make raw
+  options.c_oflag     &=  ~OPOST;              // make raw   
+
+  tcflush( SerialPort, TCIFLUSH );
+
+  if(tcsetattr(SerialPort, TCSANOW, &options) < 0) {
+    perror("tcsetattr");
+    return -3;
+  }
+
+  char line[200];
+  sprintf(line,"R\r\nA0\r\nH\r\n");
+  write(SerialPort, line, strlen(line));
+  tcflush(SerialPort, TCIFLUSH );
+
   
   /*
   db_find_key(hDB, 0, "Params/config-dir", &hkey);
@@ -316,6 +364,11 @@ INT read_trigger_event(char *pevent, INT off)
   string field_unit;
   double time_stamp;
 
+  char line[200];
+  int b, n;
+  char status, unit, buf[30];
+  double value;
+
   // @user: readout routine here.                                              
   // And MIDAS output.                                                          
   bk_init32(pevent);
@@ -323,9 +376,27 @@ INT read_trigger_event(char *pevent, INT off)
   // Get the time as an example                                                
   sprintf(bk_name, "MTR2");
 
+  sprintf(line,"\u0005\n");
+  n=write(SerialPort, line, strlen(line));
+  b=read(SerialPort, &buf, 30);
+  if(b==13){
+    status = buf[0];
+    char v[12]; 
+    strncpy(v, &buf[1], 9);
+    v[11] = '\0';
+    value = atof(v);
+    unit = buf[10];
+  }
+  else{
+    printf("Metrolab read_trigger_event: No valid readback value found\n");
+    return 0;
+  }
+    
   bk_create(pevent, bk_name, TID_DOUBLE, &pdata);
 
-  *(pdata++) = 5.;
+  *(pdata++) = (double)status;
+  *(pdata++) = value;
+  *(pdata++) = (double)unit;
   
   bk_close(pevent, pdata);
 
