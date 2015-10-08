@@ -74,7 +74,7 @@ extern "C" {
   EQUIPMENT equipment[] =
     {
       {FRONTEND_NAME,  // equipment name                     
-       {11, 0,         // event ID, trigger mask
+       {12, 11,         // event ID, trigger mask
         "SYSTEM",      // event buffer (use to be SYSTEM)
         EQ_PERIODIC,   // equipment type
         0,             // not used
@@ -85,7 +85,7 @@ extern "C" {
         2000,          // read every 2s
         0,             // stop run after this event limit                      
         0,             // number of sub events
-        0,             // don't log history
+        2,             // log history every 2 seconds
         "", "", "",
        },
 
