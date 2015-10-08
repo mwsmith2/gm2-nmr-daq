@@ -4,10 +4,90 @@
 <script src="http://code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
 <script src="https://rawgithub.com/d3/d3-plugins/master/cubehelix/cubehelix.js"></script>
-<script src="https://rawgithub.com/mwsmith2/epoch/master/epoch.min.js"></script>
+<script src="http://square.github.com/cubism/cubism.v1.min.js?1.0.0"></script>
+<style>
+.axis {
+  font: 10px sans-serif;
+  position: relative;
+  pointer-events: none;
+  z-index: 2;
+}
 
-<link rel="stylesheet" type="text/css" 
-href="https://rawgithub.com/mwsmith2/epoch/master/epoch.min.css">
+.axis text {
+  -webkit-transition: fill-opacity 250ms linear;
+}
+
+.axis path {
+  display: none;
+}
+
+.axis line {
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.axis.top {
+  background-image: linear-gradient(top, #fff 0%, rgba(255,255,255,0) 100%);
+  background-image: -o-linear-gradient(top, #fff 0%, rgba(255,255,255,0) 100%);
+  background-image: -moz-linear-gradient(top, #fff 0%, rgba(255,255,255,0) 100%);
+  background-image: -webkit-linear-gradient(top, #fff 0%, rgba(255,255,255,0) 100%);
+  background-image: -ms-linear-gradient(top, #fff 0%, rgba(255,255,255,0) 100%);
+  top: 0px;
+  padding: 0 0 24px 0;
+}
+
+.axis.bottom {
+  background-image: linear-gradient(bottom, #fff 0%, rgba(255,255,255,0) 100%);
+  background-image: -o-linear-gradient(bottom, #fff 0%, rgba(255,255,255,0) 100%);
+  background-image: -moz-linear-gradient(bottom, #fff 0%, rgba(255,255,255,0) 100%);
+  background-image: -webkit-linear-gradient(bottom, #fff 0%, rgba(255,255,255,0) 100%);
+  background-image: -ms-linear-gradient(bottom, #fff 0%, rgba(255,255,255,0) 100%);
+  bottom: 0px;
+  padding: 24px 0 0 0;
+}
+
+.horizon {
+  border-bottom: solid 1px #000;
+  overflow: hidden;
+  position: relative;
+}
+
+.horizon {
+  border-top: solid 1px #000;
+  border-bottom: solid 1px #000;
+}
+
+.horizon + .horizon {
+  border-top: none;
+}
+
+.horizon canvas {
+  display: block;
+}
+
+.horizon .title,
+.horizon .value {
+  bottom: 0;
+  line-height: 30px;
+  margin: 0 6px;
+  position: absolute;
+  text-shadow: 0 1px 0 rgba(255,255,255,.5);
+  white-space: nowrap;
+}
+
+.horizon .title {
+  left: 0;
+}
+
+.horizon .value {
+  right: 0;
+}
+
+.line {
+  background: #000;
+  z-index: 2;
+}
+</style>
 
 <head>
   <title>g-2 Shimming Platform</title>
@@ -39,33 +119,9 @@ href="https://rawgithub.com/mwsmith2/epoch/master/epoch.min.css">
 
     var plots = d3.select('body').select('div').append('div')
         .attr('id', 'rightcol')
-        .style('margin-top', '4%')
         .style('float', 'right')
         .style('width', (w - size) / w * 100 + '%')
-        .style('height', 0.9 * h + 'px');
-
-    plot_idx = [0, 6, 1, 7, 2, 8, 3, 9, 4, 10, 5, 11];
-
-    plots.selectAll('div').data(plot_idx)
-      .enter().append('div')
-        .attr('id', function(d) {
-            if (d < 6) {
-                return 'leftPlot' + d;
-            } else {
-                return 'rightPlot' + d % 6;
-            }
-        })
-        .attr('class', 'epoch')
-        .attr('title', function(d) { return "Ring Section " + d; })
-        .style('float', function(d) {
-            if (d < 6) {
-                return 'left';
-            } else {
-                return 'right';
-            }
-        })
-        .style('width', '48%')
-        .style('height', '13%');
+        .style('height', '100%')
 
     // Now define some variables used to make our figures.
     var scale = 0.15 * size;
@@ -227,6 +283,7 @@ test_data = {
           return d.ref * sec_angle + mouse_arc_half_angle;
       });
 
+
     // Now setup the drawing area.
     var svg = d3.select('#leftcol')
       .append('svg')
@@ -245,7 +302,7 @@ test_data = {
         .attr('cx', function(d, i) { return d.x * scale; })
         .attr('cy', function(d, i) { return d.y * scale; })
         .attr('r', r_storage)
-        .attr('fill', '#bbb')
+        .attr('fill', '#ADB2BD')
         .attr('stroke', '#000');
 
     // Now the platform probes.
@@ -284,10 +341,90 @@ test_data = {
         .attr('stroke', '#fff')
         .attr('clip-path', "url(#storage-region)");
 
+    // Now define transitions now that we have all our groups
+    platform_probes.on('mouseenter', function(d) {
+            d3.select(this).transition()
+                .duration(200)
+                .attr('r', r_big_shim_probes);
+        })
+        .on('mouseleave', function(d) {
+            d3.select(this).transition()
+                .duration(200)
+                .attr('r', r_shim_probes);
+        })
+        .on('click', function(d) {
+            var sn = 'UW-099'; //d3.select(this).attr('sn');
+            window.open('probe_display.html?id=' + sn, '_blank').focus();
+        });
+
+        // Now create the line chart data
+    var ctx = cubism.context()
+      .step(2e3)
+      .size(0.24 * w);
+
+    var vis = d3.select('#rightcol').append('div')
+        .attr('id', 'left-plots')
+        .style('position', 'absolute')
+        .style('width', '24%')
+        .style('left', '35.01%');
+
+    vis.selectAll('.axis')
+        .data(['top', 'bottom']) 
+      .enter().append('div')
+        .attr('class', function(d) { return d + ' axis'; })
+        .each(function(d) { 
+          d3.select(this).call(ctx.axis().ticks(12).orient(d)); 
+        });
+
+    vis.append('div')
+      .attr('class', 'rule')
+      .call(ctx.rule());
+
+    vis.selectAll('.horizon')
+        .data(d3.range(1, 26).map(random))
+      .enter().insert('div', '.bottom')
+        .attr('class', 'horizon')
+        .call(ctx.horizon().extent([-10, 10]).height('24'));
+
+  ctx.on("focus", function(i) {
+    vis.selectAll(".value").style("right", i == null ? null : ctx.size() - i + "px");
+});
+
+    var ctx = cubism.context()
+      .step(2e3)
+      .size(0.24 * w);
+
+    var vis = d3.select('#rightcol').append('div')
+        .attr('id', 'right-plots')
+        .style('position', 'absolute')
+        .style('width', '24%')
+        .style('left', '65.01%');
+
+    vis.selectAll('.axis')
+        .data(['top', 'bottom']) 
+      .enter().append('div')
+        .attr('class', function(d) { return d + ' axis'; })
+        .each(function(d) { 
+          d3.select(this).call(ctx.axis().ticks(12).orient(d)); 
+        });
+
+    vis.append('div')
+      .attr('class', 'rule')
+      .call(ctx.rule());
+
+    vis.selectAll('.horizon')
+        .data(d3.range(1, 10).map(random))
+      .enter().insert('div', '.bottom')
+        .attr('class', 'horizon')
+        .call(ctx.horizon().extent([-10, 10]).height('48'));
+
+  ctx.on("focus", function(i) {
+    vis.selectAll(".value").style("right", i == null ? null : ctx.size() - i + "px");
+});
+
     setInterval(function() {
         update_platform_probes();
         update_storage_field();
-        update_freq_plot();
     }, 1000);
 
     function update_platform_probes() {
@@ -300,8 +437,7 @@ test_data = {
             .duration(500)
             .style('fill', function(d, i) {
                 return healthcolor(d.health);
-            });
-
+        });
     };
 
     function update_storage_field() {
@@ -330,51 +466,21 @@ test_data = {
         return d3.rgb(cm(x));
     };
 
-    // Now create the line chart data
-    var lineChartData1 = [
-      { label: 'Series 1', values: [] },
-      { label: 'Series 2', values: [] },
-      { label: 'Series 3', values: [] },
-      { label: 'Series 4', values: [] },
-      { label: 'Series 5', values: [] },
-      { label: 'Series 6', values: [] }
-    ];
-
-    for (var j = 0; j < lineChartData1.length; ++j) {
-        var d = new Date();
-        var val = { 'time': d.getTime() / 1000, 'y': Math.random() + 46.5 };
-        lineChartData1[j].values.push(val);
-        if (lineChartData1[j].values.length > 100) {
-            lineChartData1[j].values.pop();
+    function random(x) {
+      var value = 0,
+          values = [],
+          i = 0,
+          last;
+      return ctx.metric(function(start, stop, step, callback) {
+        start = +start, stop = +stop;
+        if (isNaN(last)) last = start;
+        while (last < stop) {
+          last += step;
+          value = Math.max(-10, Math.min(10, value + .8 * Math.random() - .4 + .2 * Math.cos(i += x * .02)));
+          values.push(value);
         }
-    }
-
-    var charts = [];
-    for (var i = 0; i < plot_idx.length; ++i) {
-        if (i < 6) {
-            var name = '#leftPlot' + i%6
-        } else {
-            var name = '#rightPlot' + i%6
-        }
-        charts.push($(name).epoch({
-            type: 'time.line',
-            data: lineChartData1,
-            axes: ['bottom', 'right', 'left'],
-            ticks: {'time': 10, 'right': 5, 'left': 5},
-        }));
-    }
-
-    function update_freq_plot() {
-
-        for (var i = 0; i < charts.length; ++i) {
-            var nextPoint = []
-            var d = new Date();
-            for (var j = 0; j < lineChartData1.length; ++j) {
-                var val = { 'time': d.getTime() / 1000, 'y': Math.random() + 47.0 + j };
-                nextPoint.push(val);
-            };
-            charts[i].push(nextPoint);
-        };
+        callback(null, values = values.slice((start - stop) / step));
+      }, x);
     };
 
   </script>
