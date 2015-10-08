@@ -71,7 +71,7 @@ BANK_LIST trigger_bank_list[] = {
 
 ANALYZE_REQUEST analyze_request[] = {
   {"online-monitor",                // equipment name 
-   {1,                         // event ID 
+   {10,                         // event ID 
     TRIGGER_ALL,               // trigger mask 
     GET_NONBLOCKING,           // get some events 
     "BUF1",                  // event buffer 
@@ -259,7 +259,10 @@ INT analyzer_loop()
 
 INT analyze_trigger_event(EVENT_HEADER * pheader, void *pevent)
 {
+  cm_msg(MINFO, analyzer_name, "analyzing event");
+
   // We need these for each FID, so keep them allocated.
+  HNDLE hDB, hkey;
   unsigned int ch, idx;
   DWORD *pvme;
   float *pfreq;
@@ -268,7 +271,52 @@ INT analyze_trigger_event(EVENT_HEADER * pheader, void *pevent)
   if (bk_locate(pevent, "SHPF", &pvme) != 0) {
 
     platform_data = *reinterpret_cast<daq::shim_platform_st *>(pvme);
+    
+    cm_get_experiment_database(&hDB, NULL);
+    
+    // First set the frequencies
+    db_find_key(hDB, 0, "/Custom/Data/shim-platform/freq", &hkey);
 
+    if (hkey) {
+      db_set_data(hDB, hkey,
+                  platform_data.freq, 
+                  sizeof(platform_data.freq), 
+                  25, 
+                  TID_DOUBLE);
+    }
+
+    // Now the probe health.
+    db_find_key(hDB, 0, "/Custom/Data/shim-platform/health", &hkey);
+
+    if (hkey) {
+      db_set_data(hDB, hkey,
+                  platform_data.freq,
+                  sizeof(platform_data.health), 
+                  25, 
+                  TID_WORD);
+    }
+
+    // Give the event a timestamp.
+    db_find_key(hDB, 0, "/Custom/Data/shim-platform/timestamp", &hkey);
+
+    if (hkey) {
+      auto time = platform_data.sys_clock[0];
+      db_set_data(hDB, hkey, &time, sizeof(time), 1, TID_DOUBLE); 
+    }
+
+    // And increment the monotonic event ref.
+    db_find_key(hDB, 0, "/Custom/Data/shim-platform/event-id", &hkey);
+
+    if (hkey) {
+      double id;
+      int size = sizeof(id);
+      db_get_data(hDB, hkey, &id, &size, TID_DOUBLE); 
+
+      id += 1;
+      db_set_data(hDB, hkey, &id, sizeof(id), 1, TID_DOUBLE); 
+    }
+
+    // Now let the plot loop know.
     new_platform_waveforms = true;
   }
 
