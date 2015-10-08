@@ -129,7 +129,7 @@ namespace {
   double step_size = 0.4;  //  23.375 mm per 1 step size // So pretty close to 1 inch per 1 step_size (note: this calibration occurred using a chord of about 3 meters, so the string was not moving along the azimuth. So there is a missing cos(theta) -- where theta is small -- that needs to be included
 
 double event_rate_limit = 10.0;
-  int num_steps = 5; // num_steps was 50
+int num_steps = 50; // num_steps was 50
 int num_shots = 1;
 bool write_root = false;
 bool write_midas = true;
@@ -151,7 +151,7 @@ daq::DioStepperMotor *stepper;;
 
   //Brendan Adding another SyncTrigger in order to coordinate the stepper trigger separately
 
-  daq::SyncClient *stepper_listener;
+daq::SyncClient *stepper_listener;
   
 const int nprobes = SHIM_PLATFORM_CH;
 const char *const mbank_name = (char *)"SHPF";
@@ -661,153 +661,6 @@ INT read_platform_event(char *pevent, INT off)
 
 INT read_fixed_event(char *pevent, INT off)
 {
-  // using namespace daq;
-  // static unsigned long long num_events;
-  // static unsigned long long events_written;
-
-  // // Allocate vectors for the FIDs
-  // static std::vector<double> tm;
-  // static std::vector<double> wf;
-
-  // int count = 0;
-  // char bk_name[10];
-  // DWORD *pdata;
-
-  // cm_msg(MINFO, frontend_name, "got data");
-  // if (!run_in_progress) return 0;
-  
-  // // Copy the event data
-  // auto shim_data = event_manager->GetCurrentEvent();
-
-  // // Set the time vector.
-  // if (tm.size() == 0) {
-
-  //   tm.resize(SHORT_FID_LN);
-  //   wf.resize(SHORT_FID_LN);
-
-  //   for (int n = 0; n < SHORT_FID_LN; ++n) {
-  //     tm[n] = 0.001 * n;
-  //   }
-  // }
-
-  // data_mutex.lock();
-
-  // for (int idx = 0; idx < nprobes; ++idx) {
-  //   cm_msg(MINFO, frontend_name, "analyzing FID[%i]", idx);
-
-  //   for (int n = 0; n < SHORT_FID_LN; ++n) {
-  //     wf[n] = shim_data.trace[idx][n*10 + 1];
-  //     data.trace[idx][n] = wf[n];
-  //   }
-
-  //   fid::FID myfid(tm, wf);
-    
-  //   // Make sure we got an FID signal
-  //   if (myfid.isgood()) {
-      
-  //     data.freq[idx] = myfid.CalcPhaseFreq();
-  //     data.ferr[idx] = myfid.freq_err();
-  //     data.snr[idx] = myfid.snr();
-  //     data.len[idx] = myfid.fid_time();
-      
-  //   } else {
-      
-  //     myfid.PrintDiagnosticInfo();
-  //     data.freq[idx] = -1.0;
-  //     data.ferr[idx] = -1.0;
-  //     data.snr[idx] = -1.0;
-  //     data.len[idx] = -1.0;
-  //   }
-  // }
-  
-  // cm_msg(MINFO, frontend_name, "copying the data from event");
-  // std::copy(shim_data.sys_clock.begin(), 
-  //           shim_data.sys_clock.begin() + nprobes,
-  //           &data.sys_clock[0]);
-
-  // std::copy(shim_data.gps_clock.begin(), 
-  //           shim_data.gps_clock.begin() + nprobes,
-  //           &data.gps_clock[0]);
-
-  // std::copy(shim_data.dev_clock.begin(), 
-  //           shim_data.dev_clock.begin() + nprobes,
-  //           &data.dev_clock[0]);
-  
-  // std::copy(shim_data.snr.begin(), 
-  //           shim_data.snr.begin() + nprobes,
-  //           &data.snr[0]);
-  
-  // std::copy(shim_data.len.begin(), 
-  //           shim_data.len.begin() + nprobes,
-  //           &data.len[0]);
-  
-  // std::copy(shim_data.freq.begin(), 
-  //           shim_data.freq.begin() + nprobes,
-  //           &data.freq[0]);
-  
-  // std::copy(shim_data.ferr.begin(), 
-  //           shim_data.ferr.begin() + nprobes,
-  //           &data.ferr[0]);
-
-  // std::copy(shim_data.freq_zc.begin(), 
-  //           shim_data.freq_zc.begin() + nprobes,
-  //           &data.freq_zc[0]);
-
-  // std::copy(shim_data.ferr_zc.begin(), 
-  //           shim_data.ferr_zc.begin() + nprobes,
-  //           &data.ferr_zc[0]);
-
-  // std::copy(shim_data.method.begin(), 
-  //           shim_data.method.begin() + nprobes,
-  //           &data.method[0]);
-
-  // std::copy(shim_data.health.begin(), 
-  //           shim_data.health.begin() + nprobes,
-  //           &data.health[0]);
-
-  // // for (int idx = 0; idx < nprobes; ++idx) {
-  // //   std::copy(shim_data.trace[idx].begin(), 
-  // //         shim_data.trace[idx].end(), 
-  // //         &data.trace[idx][0]);
-  // // }
-  
-  // data_mutex.unlock();
-
-  // if (write_root) {
-  //   cm_msg(MINFO, frontend_name, "shim-platform: Filling TTree.");
-  //   // Now that we have a copy of the latest event, fill the tree.
-  //   t->Fill();
-  //   num_events++;
-
-  //   if (num_events % 10 == 1) {
-      
-  //     cm_msg(MINFO, frontend_name, "flushing TTree.");
-  //     t->AutoSave("SaveSelf,FlushBaskets");
-  //     root_file->Flush();
-
-  //   }
-  // }
-
-  // // And MIDAS output.
-  // bk_init32(pevent);
-
-  // if (write_midas) {
-
-  //   // Copy the shimming trolley data.
-  //   bk_create(pevent, mbank_name, TID_DWORD, &pdata);
-
-  //   memcpy(pdata, &data, sizeof(data));
-  //   pdata += sizeof(data) / sizeof(DWORD);
-
-  //   bk_close(pevent, pdata);
-  // }
-
-  // // Pop the event now that we are done copying it.
-  // cm_msg(MINFO, frontend_name, "popping event manager data.");
-  // //  event_manager->PopCurrentEvent();
-  // //  readout_listener->SetReady();
-
-  // return bk_size(pevent);
   return 0;
 }
 
@@ -892,6 +745,14 @@ void trigger_loop()
             ++num_events;
             ready_to_move = false;
             readout_listener->SetReady();
+
+            // Make sure there isn't a trigger waiting
+            stepper_listener->UnsetReady();
+            for (int i = 0; i < 10; ++i) {
+              readout_listener->HasTrigger();
+            }
+
+            printf("Took a step: %i, %i\n\n", ss_idx, num_events);
 
           }
         }
