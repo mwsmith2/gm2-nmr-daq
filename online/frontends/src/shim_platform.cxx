@@ -53,7 +53,7 @@ extern "C" {
   INT display_period = 1000;
   
   // maximum event size produced by this frontend
-  INT max_event_size = 0x80000; // 80 kB
+  INT max_event_size = 0x100000; // 1 MB
 
   // maximum event size for fragmented events (EQ_FRAGMENTED)
   INT max_event_size_frag = 0x800000;  
@@ -256,9 +256,11 @@ INT frontend_init()
     db_get_value(hDB, hkey, "num_shots", &num_shots, &size, TID_INT, false);
 
     // And finally the bool.
-    size = sizeof(use_stepper);
+    BOOL tmp;
+    size = sizeof(tmp);
     db_get_value(hDB, hkey, "use_stepper", 
-                 &use_stepper, &size, TID_BOOL, false);
+                 &tmp, &size, TID_BOOL, false);
+    use_stepper = tmp;
   }
 
   thread_live = true;
@@ -374,9 +376,12 @@ INT begin_of_run(INT run_number, char *error)
     }
 
     // And finally the bool.
-    size = sizeof(use_stepper);
+    BOOL tmp;
+    size = sizeof(tmp);
     db_get_value(hDB, hkey, "use_stepper", 
-                 &use_stepper, &size, TID_BOOL, false);
+                 &tmp, &size, TID_BOOL, false);
+
+    use_stepper = tmp;
   }
 
   cm_msg(MINFO, frontend_name, "begin_of_run completed");
