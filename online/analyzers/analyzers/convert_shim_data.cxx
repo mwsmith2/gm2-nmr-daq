@@ -41,13 +41,14 @@ TTree *pt = nullptr;
 }
 
 /* The analyzer name (client name) as seen by other MIDAS clients   */
-char *analyzer_name = "Shim Data Converter";
+char *analyzer_name = "midas-to-root";
 
 /* analyzer_loop is called with this interval in ms (0 to disable)  */
 INT analyzer_loop_period = 0;
 
 /* default ODB size */
-INT odb_size = DEFAULT_ODB_SIZE;
+//INT odb_size = DEFAULT_ODB_SIZE;
+INT odb_size = 50000000;
 
 /*-- Module declaration --------------------------------------------*/
 
@@ -64,8 +65,8 @@ INT ana_end_of_run(INT run_number, char *error);
 
 ANALYZE_REQUEST analyze_request[] = {
    {"shim-platform",            /* equipment name */
-    {1,                         /* event ID */
-     TRIGGER_ALL,               /* trigger mask */
+    {10,                        /* event ID */
+     0,               /* trigger mask */
      GET_NONBLOCKING,           /* get events without blocking producer */
      "BUF1",                    /* event buffer */
      TRUE,                      /* enabled */
