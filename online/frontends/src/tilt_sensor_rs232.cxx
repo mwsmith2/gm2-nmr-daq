@@ -4,7 +4,7 @@ Name:   Metrolab RS232 client
 Author: Peter Winter
 Email:  winterp@anl.gov
 
-About:  A simple frontend to communicate with the Metrolab via RS232 and 
+About:  A simple frontend to communicate with the tilt sensors via RS232 and 
       that is synchronized to the SyncTrigger class in shim_trigger using 
       a SyncClient. Boilerplate code is surrounded with @sync flags and 
       places needing user code are marked with @user.  
@@ -31,7 +31,7 @@ using namespace std;
 
  //--- globals ------------------------------------------------------//          
 
-#define FRONTEND_NAME "metrolab_rs232"
+#define FRONTEND_NAME "tilt_sensor_rs232"
 
 extern "C" {
 
@@ -103,11 +103,11 @@ RUNINFO runinfo;
 
 typedef struct {
    char address[128];
-} METROLAB_SETTINGS;
-METROLAB_SETTINGS metrolab_settings;
+} TILT_SENSOR_SETTINGS;
+TILT_SENSOR_SETTINGS tilt_sensor_settings;
 
-#define METROLAB_SETTINGS_STR "\
-Address = STRING : [128] /dev/ttyUSB0\n\
+#define TILT_SENSOR_SETTINGS_STR "\
+Address = STRING : [128] /dev/ttyUSB1\n\
 "
 
 int SerialPort;
@@ -129,21 +129,21 @@ INT frontend_init()
   cm_get_experiment_database(&hDB, NULL);
   
   sprintf(str,"/Equipment/%s/Settings",FRONTEND_NAME);
-  status = db_create_record(hDB, 0, str, METROLAB_SETTINGS_STR);
+  status = db_create_record(hDB, 0, str, TILT_SENSOR_SETTINGS_STR);
   if (status != DB_SUCCESS){
     printf("Could not create record %s\n", str);
     return FE_ERR_ODB;   
   }  
   
   if(db_find_key(hDB, 0, str, &hkey)==DB_SUCCESS){
-      size = sizeof(METROLAB_SETTINGS);
-      db_get_record(hDB, hkey, &metrolab_settings, &size, 0);
+      size = sizeof(TILT_SENSOR_SETTINGS);
+      db_get_record(hDB, hkey, &tilt_sensor_settings, &size, 0);
   }
   
   char devname[100];
   struct termios options;
   
-  sprintf(devname, metrolab_settings.address);
+  sprintf(devname, tilt_sensor_settings.address);
   SerialPort = open(devname, O_RDWR | O_NOCTTY | O_NDELAY | O_NONBLOCK);
   
   if(SerialPort < 0) {
@@ -183,12 +183,6 @@ INT frontend_init()
     return -3;
   }
 
-  char line[200];
-  sprintf(line,"R\r\nA0\r\nH\r\n");
-  write(SerialPort, line, strlen(line));
-  tcflush(SerialPort, TCIFLUSH );
-
-  
   /*
   db_find_key(hDB, 0, "Params/config-dir", &hkey);
 
@@ -358,7 +352,7 @@ INT read_trigger_event(char *pevent, INT off)
 {
   int count = 0;
   char bk_name[10];
-  double *pdata;
+  int *pdata;
 
   double magnetic_field;
   string field_unit;
@@ -374,29 +368,28 @@ INT read_trigger_event(char *pevent, INT off)
   bk_init32(pevent);
 
   // Get the time as an example                                                
-  sprintf(bk_name, "MTR2");
+  sprintf(bk_name, "TILT");
 
-  sprintf(line,"\u0005\n");
+  sprintf(line,"r");
   n=write(SerialPort, line, strlen(line));
   b=read(SerialPort, &buf, 30);
-  if(b==13){
-    status = buf[0];
-    char v[12]; 
-    strncpy(v, &buf[1], 9);
-    v[11] = '\0';
-    value = atof(v);
-    unit = buf[10];
-  }
-  else{
-    printf("Metrolab read_trigger_event: No valid readback value found\n");
-    return 0;
-  }
-    
-  bk_create(pevent, bk_name, TID_DOUBLE, &pdata);
 
-  *(pdata++) = (double)status;
-  *(pdata++) = value;
-  *(pdata++) = (double)unit;
+  bk_create(pevent, bk_name, TID_INT, &pdata);
+
+  sprintf(line,"t");
+  n=write(SerialPort, line, strlen(line));
+  b=read(SerialPort, &buf, 30);
+  *(pdata++) = (INT)atoi(buf);
+
+  sprintf(line,"x");
+  n=write(SerialPort, line, strlen(line));
+  b=read(SerialPort, &buf, 30);
+  *(pdata++) = (INT)atoi(buf);
+
+  sprintf(line,"y");
+  n=write(SerialPort, line, strlen(line));
+  b=read(SerialPort, &buf, 30);
+  *(pdata++) = (INT)atoi(buf);
   
   bk_close(pevent, pdata);
 
