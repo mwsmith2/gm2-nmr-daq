@@ -384,7 +384,7 @@ INT read_trigger_event(char *pevent, INT off)
     char v[12]; 
     strncpy(v, &buf[1], 9);
     v[11] = '\0';
-    value = atof(v);
+    value = stof(v);
     unit = buf[10];
   }
   else{
@@ -395,7 +395,7 @@ INT read_trigger_event(char *pevent, INT off)
   bk_create(pevent, bk_name, TID_DOUBLE, &pdata);
 
   *(pdata++) = (double)status;
-  *(pdata++) = value;
+  *(pdata++) = value - 1.45;
   *(pdata++) = (double)unit;
   
   bk_close(pevent, pdata);
