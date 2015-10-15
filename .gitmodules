@@ -4,3 +4,6 @@
 [submodule "common/submodules/mhelper"]
 	path = common/submodules/mhelper
 	url = http://github.com/mwsmith2/mhelper
+[submodule "common/submodules/gm2-field-core"]
+	path = common/submodules/gm2-field-core
+	url = https://github.com/uwmuonlab/gm2-field-core
