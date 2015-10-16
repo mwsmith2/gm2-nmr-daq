@@ -281,7 +281,7 @@ INT analyze_trigger_event(EVENT_HEADER * pheader, void *pevent)
       db_set_data(hDB, hkey,
                   platform_data.freq, 
                   sizeof(platform_data.freq), 
-                  25, 
+                  SHIM_PLATFORM_CH, 
                   TID_DOUBLE);
     }
 
@@ -292,7 +292,7 @@ INT analyze_trigger_event(EVENT_HEADER * pheader, void *pevent)
       db_set_data(hDB, hkey,
                   platform_data.freq,
                   sizeof(platform_data.health), 
-                  25, 
+                  SHIM_PLATFORM_CH, 
                   TID_WORD);
     }
 
