@@ -85,9 +85,9 @@ void MIDTFillGraph::BeginOfRun()
 
    //set branches.  should generalize to use var like nTempChan, nCapacChan, etc.
    fEventTree->Branch("Timestamp",&tStamp,"Timestamp/I");
-   fEventTree->Branch("Tilt0",&tilt[0],"Tilt0/F");
-   fEventTree->Branch("Tilt1",&tilt[1],"Tilt1/F");
-   fEventTree->Branch("Tilt2",&tilt[2],"Tilt2/F");
+   fEventTree->Branch("Tilt0",&tilt[0],"Tilt0/I");
+   fEventTree->Branch("Tilt1",&tilt[1],"Tilt1/I");
+   fEventTree->Branch("Tilt2",&tilt[2],"Tilt2/I");
 }
 
 //______________________________________________________________________________
