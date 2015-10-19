@@ -132,7 +132,10 @@ void MIDTFillGraph::Event()
 	                 
          }
       }
-      fEventTree->Fill();
+      
+      if (gAnalyzer->GetMidasDAQ()->GetCTECBankEntries() > 0) {
+         fEventTree->Fill();
+      }
    }
 }
 

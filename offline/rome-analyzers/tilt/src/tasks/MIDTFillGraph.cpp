@@ -130,7 +130,10 @@ void MIDTFillGraph::Event()
 	                 
          }
       }
-      if (gAnalyzer->GetMidasDAQ()->GetTILTBankEntries()>0) fEventTree->Fill();
+
+      if (gAnalyzer->GetMidasDAQ()->GetTILTBankEntries() > 0) {
+        fEventTree->Fill();
+      }
    }
 }
 

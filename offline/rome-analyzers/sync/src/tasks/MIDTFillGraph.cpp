@@ -131,7 +131,10 @@ void MIDTFillGraph::Event()
 	                 
          }
       }
-      fEventTree->Fill();
+
+      if (gAnalyzer->GetMidasDAQ()->GetLTRKBankEntries() > 0) {
+        fEventTree->Fill();
+      }
    }
 }
 

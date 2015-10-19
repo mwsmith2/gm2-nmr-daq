@@ -139,7 +139,10 @@ void MIDTFillGraph::Event()
 	                 
          }
       }
-      fEventTree->Fill();
+
+      if (gAnalyzer->GetMidasDAQ()->GetINPTBankEntries() > 0) {
+        fEventTree->Fill();
+      }
    }
 }
 
