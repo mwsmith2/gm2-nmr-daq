@@ -8,4 +8,10 @@ for fe in "${EXPT_FE[@]}"; do
     done
 done
 
+for fe in "${EXT_FE[@]}"; do
+    fe_arr=(${fe//\:/ })
+    ssh "${fe_arr[0]}" "source kill_${fe_arr[1]}.sh"
+
+done
+
 # end script
