@@ -4,6 +4,7 @@
 source $(dirname $(readlink -f $0))/../../common/.expt-env
 
 source $EXPT_DIR/online/bin/kill_daq.sh
+sleep 1
 source $EXPT_DIR/online/bin/start_daq.sh
 
 # end script
