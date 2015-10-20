@@ -4,7 +4,7 @@ OBJECTS = $(patsubst src/%.cxx,build/%.o,$(SOURCES))
 TARGETS = $(patsubst src/%.cxx,bin/%,$(SOURCES))
 
 # Debugging/profiling flags
-DEBUG = -g -pg
+# DEBUG = -g -pg
 
 # Figure out the architecture
 UNAME_S = $(shell uname -s)
