@@ -86,7 +86,7 @@ extern "C" {
          TRUE,          // enabled 
          RO_RUNNING |   // read only when running 
          RO_ODB,        // and update ODB 
-         50,           // poll for 50ms 
+         100,           // poll for 50ms 
          0,             // stop run after this event limit 
          0,             // number of sub events 
          0,             // don't log history 
