@@ -70,7 +70,7 @@ extern "C" {
     {
       {FRONTEND_NAME,   //"sync-example", // equipment name 
        { 10, 0,          // event ID, trigger mask 
-         "BUF1",        // event buffer (used to be SYSTEM)
+         "SYSTEM",        // event buffer (used to be SYSTEM)
          EQ_POLLED |
 	 EQ_EB,         // equipment type 
          0,             // not used 

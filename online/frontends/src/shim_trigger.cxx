@@ -79,7 +79,7 @@ extern "C" {
     {
       {"fast-sync-trigger", // equipment name 
        { 10, 0,          // event ID, trigger mask 
-         "SYSTEM",      // event buffer 
+         "BUF1",      // event buffer 
          EQ_POLLED,     // equipment type 
          0,             // not used 
          "MIDAS",       // format 
