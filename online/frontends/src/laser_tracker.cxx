@@ -35,6 +35,9 @@ using namespace std;
 
 //--- globals ------------------------------------------------------//
 
+bool p1=false;
+bool p2=false;
+double p2_offset = 1.971; // p2 leads p1 by this angle, https://muon.npl.washington.edu/elog/g2/General+Field+Team/209
 #define FE_NAME "laser-tracker"
 
 extern "C" {
@@ -74,8 +77,8 @@ extern "C" {
   INT poll_event(INT source, INT count, BOOL test);
   INT interrupt_configure(INT cmd, INT source, PTYPE adr);
 
-  void TriggerLaserTracker(float sleeptime, bool DIAG);
-  void ResetLaserTracker(int channel, float sleeptime, bool DIAG);
+  void TriggerLaserTracker(float sleeptime, bool DIAG); // Note: obsolete from a time we were using a hardware trigger
+  void ResetLaserTracker(int channel, float sleeptime, bool DIAG); // Note: obsolete from a time we were using a hardware trigger
   
   int SetChannel(int channel, 
                  float newsetvalue, 
@@ -90,14 +93,14 @@ extern "C" {
     {
       {FE_NAME, //"Laser Tracker", // equipment name
        { 10, 0,          // event ID, trigger mask 
-         "BUF1",      // event buffer (use to be SYSTEM)
+         "BUF2",      // event buffer (use to be SYSTEM)
          EQ_POLLED |
 	 EQ_EB,         // equipment type 
          0,             // not used 
          "MIDAS",       // format 
          TRUE,          // enabled 
          RO_RUNNING| RO_ODB,   // read only when running 
-         100,            // poll every 100ms 
+         10,            // poll for 10ms 
          0,             // stop run after this event limit 
          0,             // number of sub events 
          0,             // don't log history 
@@ -129,6 +132,27 @@ INT frontend_init()
   int size;
     
   cm_get_experiment_database(&hDB, NULL);
+  // Try to get the P1/P2 definition
+  db_find_key(hDB,0,"/Experiment/Run Parameters/Laser Tracker Point", &hkey);
+  
+  char lp[32];
+  if (hkey){
+    size = sizeof(lp);
+    db_get_data(hDB,hkey,lp,&size,TID_STRING);
+    printf("Identified the laser tracker target as %s\n",lp);
+    if (lp[0]== 'p' || lp[0]=='P'){
+      if (lp[1]=='1') p1 =true;
+      if (lp[1]=='2') p2 = true;
+    }
+  }
+
+  else
+    printf("no laser tracker source point found\n");
+
+  if (p1) printf("USING P1\n");
+  if (p2) printf("USING P2\n");
+  sleep(2);
+
   db_find_key(hDB, 0, "Params/config-dir", &hkey);
     
   if (hkey) {
@@ -183,7 +207,38 @@ INT frontend_exit()
 //--- Begin of Run --------------------------------------------------*/
 INT begin_of_run(INT run_number, char *error)
 {
-  // BK_TODO
+  // Find out what point is being used and hold onto that info
+  HNDLE hDB, hkey;
+  char lp[32];
+  int size;
+    
+  cm_get_experiment_database(&hDB, NULL);
+
+  // Try to get the P1/P2 definition
+  db_find_key(hDB,0,"/Experiment/Run Parameters/Laser Tracker Point", &hkey);
+  
+  if (hkey){
+    size = sizeof(lp);
+    db_get_data(hDB,hkey,lp,&size,TID_STRING);
+    printf("Identified the laser tracker target as %s\n",lp);
+    if (lp[0]== 'p' || lp[0]=='P'){
+      if (lp[1]=='1') p1 =true;
+      if (lp[1]=='2') p2 = true;
+    }
+  }
+
+  else
+    printf("no laser tracker source point found\n");
+  
+  if (1){
+    if (p1) printf("USING P1\n");
+    else if (p2) printf("USING P2\n");
+    else printf("NOT USING EITHER P1 OR P2\n");
+    sleep(2);
+  }
+  // We should also keep track of which point is being used
+  
+
   // If lock file exists, delete it so that the laser tracker will trigger
   static FILE* f;  
   f = fopen ("/home/me/portal/Export2.txt", "r");
@@ -210,6 +265,8 @@ INT end_of_run(INT run_number, char *error)
 {
   listener->UnsetReady();
   listenerStepper->UnsetReady();
+  p1=false;
+  p2=false;
   return SUCCESS;
 }
 
@@ -219,7 +276,7 @@ INT pause_run(INT run_number, char *error)
   return SUCCESS;
 }
 
-//--- Resuem Run ----------------------------------------------------*/
+//--- Resume Run ----------------------------------------------------*/
 INT resume_run(INT run_number, char *error)
 {
   return SUCCESS;
@@ -266,22 +323,14 @@ INT poll_event(INT source, INT count, BOOL test) {
     
     printf("\t\t\t\t\tListener has a trigger\n");
     
-    // User: Issue trigger here.
-    
-    // In our case this means doing the set/reset sequence for the laser tracker hardware
-    
-    //Turning off for asynchronous mode
-    //    TriggerLaserTracker(3, true); // 10 seconds, make sure that scs sees it
-    //   ResetLaserTracker(2,3,true);  // need to be done with this sequence when the laser tracker is done
     m.lock();
     f = fopen ("/home/me/portal/Export2.txt", "r");
     if (f !=NULL ){
       fclose(f);
-      // try to remove it
+      
       usleep(10000);
       
       if (remove("/home/me/portal/Export2.txt") != 0) {
-	
 	perror( "Error deleting lock file" );
 	return 0;
 
@@ -293,7 +342,7 @@ INT poll_event(INT source, INT count, BOOL test) {
       m.unlock();
       return 1;
 
-    } else {
+    } else { // no lock file found, forward the trigger anyways
       
       m.unlock();
       return 1;
@@ -305,9 +354,6 @@ INT poll_event(INT source, INT count, BOOL test) {
   
   // @sync: end boilerplate
   
-  // In our case we need to now poll for the lock file
-  // when it exists, it's time to readout the event
-  // otherwise, just 
     
   return 0;
 
@@ -344,159 +390,144 @@ INT read_trigger_event(char *pevent, INT off)
   sprintf(bk_name, "LTRK");
   bk_create(pevent, bk_name, TID_DOUBLE, &pdata);
 
-  //  *(pdata++) = daq::systime_us() * 1.0e-6;
-
-
-  // BEGIN Paul code
   
   HNDLE hDB;
   cm_get_experiment_database(&hDB, NULL);
   static int count_cycles=0;
   bool first = 1;
   
-  // ---  This is the stuff we need to move over ----- //
+  bool readRealData = (p1 || p2);
+
+
   std::string::size_type sz;
   FILE *ptr_file;
   char line[1000];
   char *til;
   char *sp;
 
-  do {
-    ptr_file = fopen("/home/me/portal/Export2.txt", "r");
-    usleep(10000);
-  } while (ptr_file == NULL);
-
-  fclose(ptr_file);
-
-  // Open Data File (we have already checked for lock file)
-  ptr_file=fopen("/home/me/portal/Export1.txt","r"); 
-  if (!ptr_file) {
-    printf("Error when opening file\n");
-  }
-  
   struct LaserLine {
     double r;
     double theta;
     double z;
     double t; // time
   } ;
-  LaserLine dataLine[1]; // array of laserlines
 
-    // LOOP over valid lines in the file
-
+  const int nLaserLines=1;
+  LaserLine dataLine[nLaserLines]; // array of laserlines based on how many lines we expect to see in the export file
   int lineNumber =0;
-  while (fgets(line,1000,ptr_file)!=NULL) {
-    string sline(line);
-    stringstream ss(sline);
-    cout << "line is" << sline <<endl;    
 
-    int tokenNumber =0;    
-    string token;
-    while (getline(ss,token,','))
-      {
-	//	cout << "\t" << token << endl;
-	stringstream stream_token;
-	stream_token<<setprecision(10);
-	stream_token<<token;
-	
-	double value;
-	stream_token >> value;
-	cout <<value<<endl;
-	
-	// throw out the label and the time
-	switch (tokenNumber){
-	case 1:
-	  dataLine[lineNumber].r = value;
-	case 2:
-	  dataLine[lineNumber].theta = value;
-	case 3: 
-	  dataLine[lineNumber].z = value;
-	default:
+  // if we are pointing at a point, then try to read a file
+  if (readRealData){
+    do {
+      ptr_file = fopen("/home/me/portal/Export2.txt", "r");
+      usleep(10000);
+    } while (ptr_file == NULL);
+    
+    fclose(ptr_file);
+    
+    // Open Data File (we have already checked for lock file)
+    ptr_file=fopen("/home/me/portal/Export1.txt","r"); 
+    if (!ptr_file) {
+      printf("Error when opening file\n");
+    }
+    
+    // LOOP over valid lines in the file
+    
+    lineNumber = 0;
+    while (fgets(line,1000,ptr_file)!=NULL) {
+      string sline(line);
+      stringstream ss(sline);
+      cout << "line is" << sline <<endl;    
+      int tokenNumber =0;    
+      string token;
+      while (getline(ss,token,','))
+	{
+	  //	cout << "\t" << token << endl;
+	  stringstream stream_token;
+	  stream_token<<setprecision(10);
+	  stream_token<<token;
+	  
+	  double value;
+	  stream_token >> value;
+	  cout <<value<<endl;
+	  
+	  // throw out the label and the time
+	  switch (tokenNumber){
+	  case 1:
+	    dataLine[lineNumber].r = value;
+	  case 2:
+	    dataLine[lineNumber].theta = value;
+	  case 3: 
+	    dataLine[lineNumber].z = value;
+	  default:
 	    break;
-	} //switch case
-	++ tokenNumber;
-      } //loop over tokens
-    ++lineNumber;
-  }//loop over lines in the file
+	  } //switch case
+	  ++ tokenNumber;
+	} //loop over tokens
+      ++lineNumber;
+    }//loop over lines in the file
+  } // end if (readRealData)
 
+  else{ // no file handling and simply put in dummy values
 
-   for (int i=0;i<lineNumber;++i)
-     {
-       cout << "r,theta,z "<<dataLine[i].r<<","<<dataLine[i].theta<<","<<dataLine[i].z<<endl;
+    for (int line =0;line<nLaserLines;++line){
+      dataLine[line].r = -1;
+      dataLine[line].theta =-1;
+      dataLine[line].z = -1;
+    }
+  }
+  
+  //Regardless of how we got here, stuff the data into the structures
+  
+  // Include theta conversion here
+  for (int i=0;i<nLaserLines;++i)
+    {
+      cout << "r,theta,z "<<dataLine[i].r<<","<<dataLine[i].theta<<","<<dataLine[i].z<<endl;
+      LaserLine currLine = dataLine[i];
+      LaserLine p1_data = dataLine[i];
+      LaserLine p2_data = dataLine[i];
+
+      if (p1) {
+	p1_data.theta = 360 + (-1*p1_data.theta); //convert to clockwise
+	
+	p2_data.r = 0;
+	p2_data.z = 0;
+	p2_data.t = 0;
+	p2_data.theta = p1_data.theta+p2_offset;
+	
+	if (p2_data.theta > 360) p2_data.theta =p2_data.theta - 360;
+      }
+      else if (p2){ // convert to clockwise
+	p2_data.theta = 360 + (-1*p2_data.theta);
+	p1_data.r=0;
+	p1_data.z=0;
+	p1_data.t=0;
+	//derive p1
+	
+	p1_data.theta = p2_data.theta - p2_offset;
+	if (p2_data.theta <0) p1_data.theta =p1_data.theta + 360;
+      }
+      else {
+	printf("Neither is used, both points will be the same!");
+      }
+      /*
        *(pdata++)=dataLine[i].r;
-       *(pdata++)=dataLine[i].theta;
+       *(pdata++)=360 + (-1*p2_data.theta);
        *(pdata++)=dataLine[i].z;
+       */
+
+
+      //Write it out to pdata
+       //Use p1/p2 knowledge to make adjustments
+       *(pdata++)=p1_data.r;
+       *(pdata++)=p1_data.theta;
+       *(pdata++)=p1_data.z;
+
+       *(pdata++)=p2_data.r;
+       *(pdata++)=p2_data.theta;
+       *(pdata++)=p2_data.z;
        
      }
-  
-  /*
-  //------------- CODE WE ARE REPLACING ----------//  
-  FILE *ptr_file;
-  double tilnum;
-  char line[1000];
-  char *til;
-  char *sp;
-  bool keepers[22] = {0,1,1,1,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0};
-
-  
-  
-  //  ptr_file=fopen("//media//sf_VBSF//Main_p2-Meas.txt","r"); //open lock file
-  ptr_file=fopen("/home/me/portal/Export1.txt","r"); //open lock file
-  if (!ptr_file) {
-    printf("Error when opening file\n");
-  }
-
-
-  while (fgets(line,1000,ptr_file)!=NULL) {
-    
-    //std::cout<<"Copying data from file to MIDAS bank"<<std::endl;
-    
-    char rawline[1000];
-    strcpy(rawline,line);
-    til = strtok_r(line,",", &sp);
-    int index = 0;
-    while (til != NULL) {
-      if (keepers[index++]==1) {
-	if (index == 7) {
-	  char temptil[64];
-	  strcpy (temptil,til);
-	  char* newtil;
-	  double newtilnum;
-	  newtil = strtok(temptil,"/: ");
-	  while (newtil != NULL) {
-	    newtilnum = atof(newtil);
-	    *pdata++ = newtilnum*1000;
-	    newtil = strtok(NULL,"/: ");
-	    
-	    
-	  } 
-	    
-	}
-	else if (index == 11) {
-	  char temptil2[64];
-	  strcpy (temptil2,til);
-	  char *newtil2;
-	  double newtilnum2;
-	  newtil2 = strtok(temptil2,"Weather:T=C ");
-	  while (newtil2 != NULL) {
-	    newtilnum2 = atof(newtil2);
-	    *pdata++ = newtilnum2*1000;
-	    newtil2 = strtok(NULL,"Weather:T=C ");
-	  }
-	}
-	else {
-	  tilnum=atof(til);
-	  *pdata++ = tilnum*1000;
-	 
-	}
-	
-	// take the first three and set them in the 
-
-      } // (keepers index)
-      til = strtok_r(NULL,",",&sp);
-    }
-
-  */
 
   if (first)
     {
@@ -505,17 +536,22 @@ INT read_trigger_event(char *pevent, INT off)
 		   &count_cycles, sizeof(count_cycles), 1, TID_INT); 
       count_cycles++;
     }
-  
-  fclose(ptr_file);
-  
-  if( remove( "/home/me/portal/Export1.txt" ) != 0 ) {
-    
-    perror( "Error deleting file" );
-
-  } else {
-    
-    puts( "File successfully deleted" );
-  }
+ 
+  // only delete the files if you opened them
+  if (readRealData) 
+    {
+      fclose(ptr_file); 
+      
+      
+      if( remove( "/home/me/portal/Export1.txt" ) != 0 ) {
+	
+	perror( "Error deleting file" );
+	
+      } else {
+	
+	puts( "File successfully deleted" );
+      }
+    } //
 
   // End Paul code
   
