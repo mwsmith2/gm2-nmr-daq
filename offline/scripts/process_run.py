@@ -14,7 +14,7 @@ def main():
     odb = midas.ODB('gm2-nmr')
     run_num = odb.get_value("Runinfo/Run Number")
 
-    call(['python', 'scripts/test_crunch_runs.py', run_num])
+    call(['python', 'scripts/crunch_runs.py', run_num])
 
 
 if __name__ == '__main__':
