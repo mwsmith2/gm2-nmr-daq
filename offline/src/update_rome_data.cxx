@@ -29,6 +29,8 @@ int main(int argc, char *argv[])
 {
   int run_number;
   std::string datadir;
+  std::string laser_point;
+  std::stringstream ss;
 
   // Declare the data structures.
   gm2::platform_t platform;
@@ -84,9 +86,6 @@ int main(int argc, char *argv[])
     datadir = std::string("data/");
   }
 
-  std::stringstream ss;
-  std::ios::fmtflags flags(ss.flags());
-
   // Load the rome_laser data.
   ss.str("");
   ss << datadir << "rome/laser_tree_run" << std::setfill('0') << std::setw(5);
@@ -128,7 +127,7 @@ int main(int argc, char *argv[])
 
   // And the platform data.
   ss.str("");
-  ss << datadir << "recrunched/run_" << std::setfill('0') << std::setw(5);
+  ss << datadir << "crunched/run_" << std::setfill('0') << std::setw(5);
   ss << run_number << ".root";
 
   pf_platform = new TFile(ss.str().c_str(), "read");
@@ -155,10 +154,25 @@ int main(int argc, char *argv[])
   // Attach to the data files if they exist.
   if (pt_rome_laser != nullptr) {
 
-    pt_rome_laser->SetBranchAddress("Timestamp", &laser.midas_time);
-    pt_rome_laser->SetBranchAddress("position_rad", &laser.r);
-    pt_rome_laser->SetBranchAddress("position_height", &laser.phi);
-    pt_rome_laser->SetBranchAddress("position_azim", &laser.z);
+    if (run_number < 787) {
+      pt_rome_laser->SetBranchAddress("Timestamp", &laser.midas_time);
+      pt_rome_laser->SetBranchAddress("position_rad", &laser.r_1);
+      pt_rome_laser->SetBranchAddress("position_height", &laser.phi_1);
+      pt_rome_laser->SetBranchAddress("position_azim", &laser.z_1);
+      laser.r_2 = 0.0;
+      laser.z_2 = 0.0;
+      laser.phi_2 = 0.0;
+
+    } else {
+
+      pt_rome_laser->SetBranchAddress("Timestamp", &laser.midas_time);
+      pt_rome_laser->SetBranchAddress("p1_rad", &laser.r_1);
+      pt_rome_laser->SetBranchAddress("p1_phi", &laser.phi_1);
+      pt_rome_laser->SetBranchAddress("p1_height", &laser.z_1);
+      pt_rome_laser->SetBranchAddress("p2_rad", &laser.r_2);
+      pt_rome_laser->SetBranchAddress("p2_phi", &laser.phi_2);
+      pt_rome_laser->SetBranchAddress("p2_height", &laser.z_2);
+    }
   }
 
   if (pt_rome_ctec != nullptr) {
@@ -249,7 +263,7 @@ int main(int argc, char *argv[])
   }
 
   ss.str("");
-  ss << datadir << "recrunched/run_" << std::setfill('0') << std::setw(5);
+  ss << datadir << "crunched/run_" << std::setfill('0') << std::setw(5);
   ss << run_number << ".root";
 
   pf_all->Write();

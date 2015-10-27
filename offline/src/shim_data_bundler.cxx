@@ -3,8 +3,7 @@
   file:    shim_data_bundler.cxx
   author:  Matthias W. Smith
 
-  about:   Look for SHPF and SHFX midas banks and convert them
-           into root trees.
+  about:   Takes rome root trees and bundles them together.
 
 \********************************************************************/
 
@@ -17,8 +16,12 @@
 #include <iomanip>
 #include <cassert>
 using std::string;
+using std::cout;
+using std::endl;
 
 //--- other includes -----------------------------------------------//
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 #include "TTree.h"
 #include "TFile.h"
 
@@ -29,6 +32,8 @@ int main(int argc, char *argv[])
 {
   int run_number;
   std::string datadir;
+  std::string laser_point;
+  std::stringstream ss;
 
   // Declare the data structures.
   gm2::platform_t platform;
@@ -84,8 +89,15 @@ int main(int argc, char *argv[])
     datadir = std::string("data/");
   }
 
-  std::stringstream ss;
-  std::ios::fmtflags flags(ss.flags());
+  string attr_file("/home/newg2/Applications/gm2-nmr/");
+  attr_file += string("resources/log/run_attributes.json");
+
+  boost::property_tree::ptree pt;
+  boost::property_tree::read_json(attr_file, pt);
+
+  ss.str("");
+  ss << std::setfill('0') << std::setw(5) << run_number << ".laser_point";
+  laser_point = pt.get<string>(ss.str());
 
   // Load the rome_laser data.
   ss.str("");
@@ -155,11 +167,40 @@ int main(int argc, char *argv[])
 
   // Attach to the data files if they exist.
   if (pt_rome_laser != nullptr) {
+    
+    if (run_number < 787) {
+      
+      if (laser_point == string("P1")) {
 
-    pt_rome_laser->SetBranchAddress("Timestamp", &laser.midas_time);
-    pt_rome_laser->SetBranchAddress("position_rad", &laser.r);
-    pt_rome_laser->SetBranchAddress("position_height", &laser.phi);
-    pt_rome_laser->SetBranchAddress("position_azim", &laser.z);
+        pt_rome_laser->SetBranchAddress("Timestamp", &laser.midas_time);
+        pt_rome_laser->SetBranchAddress("position_rad", &laser.r_1);
+        pt_rome_laser->SetBranchAddress("position_height", &laser.phi_1);
+        pt_rome_laser->SetBranchAddress("position_azim", &laser.z_1);
+        laser.r_2 = 0.0;
+        laser.z_2 = 0.0;
+        laser.phi_2 = 0.0;
+
+      } else {
+
+        pt_rome_laser->SetBranchAddress("Timestamp", &laser.midas_time);
+        pt_rome_laser->SetBranchAddress("position_rad", &laser.r_2);
+        pt_rome_laser->SetBranchAddress("position_height", &laser.phi_2);
+        pt_rome_laser->SetBranchAddress("position_azim", &laser.z_2);
+        laser.r_1 = 0.0;
+        laser.z_1 = 0.0;
+        laser.phi_1 = 0.0;
+      }
+
+    } else {
+
+      pt_rome_laser->SetBranchAddress("Timestamp", &laser.midas_time);
+      pt_rome_laser->SetBranchAddress("p1_rad", &laser.r_1);
+      pt_rome_laser->SetBranchAddress("p1_phi", &laser.phi_1);
+      pt_rome_laser->SetBranchAddress("p1_height", &laser.z_1);
+      pt_rome_laser->SetBranchAddress("p2_rad", &laser.r_2);
+      pt_rome_laser->SetBranchAddress("p2_phi", &laser.phi_2);
+      pt_rome_laser->SetBranchAddress("p2_height", &laser.z_2);
+    }
   }
 
   if (pt_rome_ctec != nullptr) {
@@ -226,6 +267,21 @@ int main(int argc, char *argv[])
 
     if (pt_rome_laser != nullptr) {
       pt_rome_laser->GetEntry(i);
+
+      if (laser_point == string("P1")) {
+        laser.phi_2 = laser.phi_1 + gm2::laser_phi_offset_p2_to_p1;
+
+        if (laser.phi_2 >= 360.0) {
+          laser.phi_2 -= 360.0;
+        }
+
+      } else if (laser_point == string("P2")) {
+        laser.phi_1 = laser.phi_2 - gm2::laser_phi_offset_p2_to_p1;
+
+        if (laser.phi_1 <= 0.0) {
+          laser.phi_1 += 360.0;
+        }
+      }        
     }
 
     if (pt_rome_ctec != nullptr) {

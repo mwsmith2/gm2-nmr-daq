@@ -12,7 +12,7 @@ def main():
     except:
         run_attr = {}
 
-    for run_num in range(850):
+    for run_num in range(860):
         run_files = glob.glob(arch_dir + '/*%05i*' % run_num)
         key = "%05i" % run_num
         run_attr[key] = {}

@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
 
   } else {
 
-    outdir = string("data/recrunched/");
+    outdir = string("data/crunched/");
     auto fname = boost::filesystem::path(datafile).filename().string();
     outfile = outdir + fname;
   }

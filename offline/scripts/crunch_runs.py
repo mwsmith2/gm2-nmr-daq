@@ -49,11 +49,22 @@ def main():
 
             else:
                 run_num = int(rf.split('.')[-2][-5:])
-                process_rome(run_num)
+                process_root(run_num)
+
+        for rf in glob.glob('data/shim/*.root'):
+            print rf
+
+            if rf in info['crunched_files']:
+                pass
+
+            else:
+                run_num = int(rf.split('.')[-2][-5:])
+                process_shim(run_num)
 
     for run in runs:
         process_midas(run)
-        process_rome(run)
+        process_root(run)
+        process_shim(run)
 
     print os.getcwd()
     with open(data_info_file, 'w') as f:
@@ -61,8 +72,13 @@ def main():
 
 def process_midas(run_num):
     print "process_midas(%i)" % run_num
+    
+    if (run_num < 787):
+        rome_analyzers = ['sync', 'ctec', 'slowcont', 'tilt']
 
-    rome_analyzers = ['sync', 'ctec', 'slowcont', 'tilt']
+    else:
+        rome_analyzers = ['sync_ext_ltrk', 'ctec', 'slowcont', 'tilt']
+
     cmd_prefix = "./midanalyzer.exe -i romeConfig.xml -r "
     cmd_suffix = " -m offline -p 0 -q"
 
@@ -107,23 +123,6 @@ def process_root(run_num):
     for f in glob.glob('data/rome/*%i.root' % run_num):
         info['crunched_files'].append(f)
 
-def process_rome(run_num):
-    print "process_rome(%i)" % run_num
-
-    cmd = 'bin/update_rome_data'
-    subprocess.call([cmd, str(run_num)])
-
-    md5sum = hashlib.md5(open(cmd, 'r').read()).hexdigest()
-
-    try:
-        info[run_num]['rome'] = md5sum
-    
-    except:
-        info[run_num] = { 'rome': md5sum }
-
-    for f in glob.glob('data/rome/*%i.root' % run_num):
-        info['crunched_files'].append(f)
-
 
 def process_shim(run_num):
     print "process_shim(%i)" % run_num
@@ -134,12 +133,12 @@ def process_shim(run_num):
     md5sum = hashlib.md5(open(cmd, 'r').read()).hexdigest()
 
     try:
-        info[run_num]['recrunched'] = md5sum
+        info[run_num]['crunched'] = md5sum
     
     except:
-        info[run_num] = { 'recrunched': md5sum }
+        info[run_num] = { 'crunched': md5sum }
 
-    for f in glob.glob('data/shimt/*%i.root' % run_num):
+    for f in glob.glob('data/shim/*%i.root' % run_num):
         info['crunched_files'].append(f)
 
 if __name__ == '__main__':
