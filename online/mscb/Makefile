@@ -36,7 +36,7 @@ endif
 # This is for Linux ----------------
 ifeq ($(OSTYPE),Linux)
 OS_DIR = linux
-LIBS = -lm -lutil -lpthread -lrt -lz -lnsl
+LIBS = -lm -lutil -lpthread -lrt -lz -lnsl -lstdc++
 OSFLAGS = -DOS_LINUX
 CFLAGS = -g -Wallendif
 endif
@@ -107,6 +107,10 @@ mscb2_fe:  $(LIB) $(LIB_DIR)/mfe.o mscb2_fe.o $(DRIVERS)
 	$(CC) -o mscb2_fe mscb2_fe.o $(LIB_DIR)/mfe.o $(DRIVERS) $(LIB) $(LIBS)
 	ln -fs $@ $(LINK_DIR)/$@
 
+mscb_fe2:  $(LIB) $(LIB_DIR)/mfe.o mscb_fe2.o $(DRIVERS)
+	$(CC) -o mscb_fe2 mscb_fe2.o $(LIB_DIR)/mfe.o $(DRIVERS) $(LIB) $(LDFLAGS)  $(LIBS) $(ROOTLIBS) $(ROOTFLAGS)
+	ln -fs $(shell pwd)/$@ $(LINK_DIR)/$@
+
 template_async_fe:  $(LIB) $(LIB_DIR)/mfe.o template_async_fe.o $(DRIVERS)
 	$(CC) -o template_async_fe template_async_fe.o $(LIB_DIR)/mfe.o $(DRIVERS) $(LIB) $(LIBS)
 	ln -fs $@ $(LINK_DIR)/$@
@@ -130,7 +134,7 @@ frontend.o: frontend.c
 mscb_fe.o: mscb_fe.c
 	$(CC) $(CFLAGS) $(OSFLAGS) -c $< -o $@
 
-mscb2_fe.o: mscb2_fe.c
+mscb_fe2.o: mscb_fe2.c
 	$(CC) $(CFLAGS) $(OSFLAGS) -c $< -o $@
 
 template_async_fe.o: template_async_fe.c

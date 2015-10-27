@@ -19,3 +19,7 @@ embedded/subm_260/subm_260
 *.odb
 *.png
 *.txt
+*.a
+analyzer
+mscb_fe
+mscb_fe2
