@@ -51,7 +51,12 @@ int main(int argc, char *argv[])
   TTree *pt_run;
 
   // Parse the i/o files
-  assert(argc > 3);
+  if (argc < 4) {
+    cout << "Insufficent arguments, usage:" << endl;
+    cout << "bundle_full_scan <output-file> <input-data-dir> [run list]\n";
+    exit(1);
+  }
+
   outfile = string(argv[1]);
   datadir = string(argv[2]);
 

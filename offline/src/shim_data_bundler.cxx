@@ -180,7 +180,7 @@ int main(int argc, char *argv[])
         laser.z_2 = 0.0;
         laser.phi_2 = 0.0;
 
-      } else {
+      } else if (laser_point == string("P2")) {
 
         pt_rome_laser->SetBranchAddress("Timestamp", &laser.midas_time);
         pt_rome_laser->SetBranchAddress("position_rad", &laser.r_2);
@@ -189,6 +189,16 @@ int main(int argc, char *argv[])
         laser.r_1 = 0.0;
         laser.z_1 = 0.0;
         laser.phi_1 = 0.0;
+
+      } else {
+
+        pt_rome_laser->SetBranchAddress("Timestamp", &laser.midas_time);
+        pt_rome_laser->SetBranchAddress("position_rad", &laser.r_1);
+        pt_rome_laser->SetBranchAddress("position_height", &laser.phi_1);
+        pt_rome_laser->SetBranchAddress("position_azim", &laser.z_1);
+        laser.r_2 = -1.0;
+        laser.z_2 = -1.0;
+        laser.phi_2 = -1.0;
       }
 
     } else {

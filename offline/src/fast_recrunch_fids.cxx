@@ -65,7 +65,12 @@ int main(int argc, char *argv[])
   // Declare ROOT variables.
   TCanvas c1;
 
-  assert (argc > 1);
+  if (argc < 2) {
+    cout << "Insufficient arguments, usage:" << endl;
+    cout << "fast_recrunch_fids <input-file> [output-dir]" << endl;
+    exit(1);
+  }
+
   datafile = string(argv[1]);
 
   // Set output directory.

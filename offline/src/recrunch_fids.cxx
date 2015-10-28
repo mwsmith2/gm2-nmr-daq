@@ -64,21 +64,30 @@ int main(int argc, char **argv)
 
   // Declare ROOT variables.
   TCanvas c1;
+  
+  if (argc < 2) {
+    cout << "Insufficent arguments, usage:" << endl;
+    cout << "recrunch_fids <input-file> [output-dir]" << endl;
+    exit(1);
+  }
 
-  assert (argc > 1);
   datafile = string(argv[1]);
 
   // Set output directory.
   if (argc > 2) {
 
     outdir = string(argv[2]);
+    if (outdir[outdir.size() -1 ] != '/') {
+      outdir += string("/");
+    }
 
   } else {
 
     outdir = string("data/crunched/");
-    auto fname = boost::filesystem::path(datafile).filename().string();
-    outfile = outdir + fname;
   }
+
+  auto fname = boost::filesystem::path(datafile).filename().string();
+  outfile = outdir + fname;
 
   // Make sure it is a root file.
   assert (datafile.find_last_of(".root") == datafile.size() - 1);
@@ -138,7 +147,7 @@ int main(int argc, char **argv)
         odata.freq[ch] = myfid.CalcPhaseFreq();
         odata.ferr[ch] = myfid.freq_err();
         odata.method[ch] = (ushort)fid::Method::PH;
-        odata.health[ch] = myfid.isgood();
+        odata.health[ch] = myfid.health();
         odata.freq_zc[ch] = myfid.CalcZeroCountFreq();
         odata.ferr_zc[ch] = myfid.freq_err();
         
@@ -149,7 +158,7 @@ int main(int argc, char **argv)
         odata.freq[ch] = 0.0;
         odata.ferr[ch] = 0.0;
         odata.method[ch] = (ushort)fid::Method::PH;
-        odata.health[ch] = myfid.isgood();
+        odata.health[ch] = myfid.health();
         odata.freq_zc[ch] = 0.0;
         odata.ferr_zc[ch] = 0.0;
       }
