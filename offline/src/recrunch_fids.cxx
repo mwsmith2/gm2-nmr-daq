@@ -39,6 +39,9 @@ using namespace gm2;
 
 int main(int argc, char **argv)
 {
+  // Use to make checksum changeable at will.
+  const int id = 2L; 
+
   // Allocate parameters
   const double dt = 10.0 / SHORT_FID_LN;
   const double t0 = 0.0;
@@ -46,8 +49,6 @@ int main(int argc, char **argv)
 
   std::vector<double> wf(SHORT_FID_LN, 0.0);
   std::vector<double> tm(SHORT_FID_LN, 0.0);
-  std::vector<std::array<double, SHIM_PLATFORM_CH>> platform_freqs_ph;
-  std::vector<std::array<double, SHIM_PLATFORM_CH>> platform_freqs_zc;
 
   string datafile;
   string outfile;
