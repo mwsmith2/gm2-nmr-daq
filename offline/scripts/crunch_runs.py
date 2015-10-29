@@ -24,7 +24,7 @@ def main():
 
         cmd = ['python', 'scripts/extract_run_attr.py']
         cmd.append(str(run[0]))
-        cmd.append(str(run[-1])
+        cmd.append(str(run[-1]))
         subprocess.call(cmd)
 
         for run in runs:
