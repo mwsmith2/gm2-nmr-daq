@@ -1,3 +1,4 @@
+import sys
 import re
 import json
 import glob
@@ -11,8 +12,16 @@ def main():
 
     except:
         run_attr = {}
+    
+    if len(sys.argv) > 2:
+         start = int(sys.argv[1])
+         stop = int(sys.argv[2])
 
-    for run_num in range(860):
+    else:
+        start = 0
+        stop = int(sys.argv[1])
+
+    for run_num in range(start, stop):
         run_files = glob.glob(arch_dir + '/*%05i*' % run_num)
         key = "%05i" % run_num
         run_attr[key] = {}
