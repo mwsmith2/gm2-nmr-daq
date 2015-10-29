@@ -20,6 +20,13 @@ def main():
         for i in sys.argv[1:]:
             runs.append(int(i))
 
+        runs.sort()
+
+        cmd = ['python', 'scripts/extract_run_attr.py']
+        cmd.append(str(run[0]))
+        cmd.append(str(run[-1])
+        subprocess.call(cmd)
+
         for run in runs:
             try:
                 process_midas(run)
@@ -52,6 +59,11 @@ def main():
 
 
         print last_full_crunch, current_run_number
+
+        cmd = ['python', 'scripts/extract_run_attr.py']
+        cmd.append(str(last_full_crunch))
+        cmd.append(str(current_run_number))
+        subprocess.call(cmd)
 
         for run in range(last_full_crunch, current_run_number):
             try:
