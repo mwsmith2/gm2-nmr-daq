@@ -1,4 +1,4 @@
-#!/bin/python
+#!/usr/bin/python
 
 import os
 import sys
@@ -10,54 +10,68 @@ import hashlib
 
 def main():
 
-    offline_dir = os.path.dirname(__file__) + '/..'
+    offline_dir = os.path.abspath(os.path.dirname(__file__) + '/..')
     os.chdir(offline_dir)
-    
+
+    info_file = offline_dir + '/data/crunched/.processing_metadata.json'
     runs = []
 
     if len(sys.argv) > 1:
         for i in sys.argv[1:]:
             runs.append(int(i))
 
+        for run in runs:
+            try:
+                process_midas(run)
+                process_root(run)
+                process_shim(run)
+            except:
+                pass
+
+
     else:
-        
-        info_file = 'data/crunched/.processing_metadata.json'
-        info = json.loads(open(info_file).read())
 
         try:
-            run_num = info['last_full_crunch'] + 1
+            info = json.loads(open(info_file).read())
 
         except:
-            info['last_full_crunch'] = 1
-            run_num = 1
-
-        while True:
+            with open(info_file, 'w') as f:
+                f.write(json.dumps({}, indent=2, sort_keys=True))
             
-            if run_num > info['last_full_crunch']:
-                last_full_crunch = run_num
-
-            if len(glob.glob('data/midas/run%05i.mid' % run_num)) > 0:
-                runs.append(run_num)
-                run_num += 1
-
-            else:
-                break
-
-        info = json.loads(open(info_file).read())
-
-        info['last_full_crunch'] = last_full_crunch
-
-        info = open(info_file, 'w').write(json.dumps(info))
-
-    runs.sort()
-
-    for run in runs:
         try:
-            process_midas(run)
-            process_root(run)
-            process_shim(run)
+            last_full_crunch = info['last_full_crunch'] + 1
+
         except:
-            pass
+            last_full_crunch = 1
+
+        current_run_number = last_full_crunch
+
+        for mf in glob.glob('data/midas/run*.mid'):
+            if int(mf[-9:-4]) > current_run_number:
+                current_run_number = int(mf[-9:-4])
+
+
+        print last_full_crunch, current_run_number
+
+        for run in range(last_full_crunch, current_run_number):
+            try:
+                process_midas(run)
+                os.chdir(offline_dir)
+
+                process_root(run)
+                os.chdir(offline_dir)
+
+                process_shim(run)
+                os.chdir(offline_dir)
+            except:
+                pass
+
+            os.chdir(offline_dir)
+            info = json.loads(open(info_file).read())
+            info['last_full_crunch'] = run
+
+            with open(info_file, 'w') as f:
+                f.write(json.dumps(info, indent=2, sort_keys=True))
 
 
 def process_midas(run_num):
@@ -101,8 +115,14 @@ def process_midas(run_num):
             os.chdir('../../')
 
         else:
-            subprocess.call(cmd_prefix + str(run_num) + cmd_suffix, shell=True)
+            print "Running rome analyzer %s." % ra
             info[ra] = md5sum
+            all_info = json.loads(open(info_file).read())
+            all_info[run_key] = info
+            with open(info_file, 'w') as f:
+                f.write(json.dumps(all_info, indent=2, sort_keys=True))
+
+            subprocess.call(cmd_prefix + str(run_num) + cmd_suffix, shell=True)
 
             # Clean up unecessary files.
             for rf in glob.glob('*.root'):
@@ -111,16 +131,11 @@ def process_midas(run_num):
             # Back to offline dir
             os.chdir('../../')
 
-    all_info = json.loads(open(info_file).read())
-    all_info[run_key] = info
-    with open(info_file, 'w') as f:
-        f.write(json.dumps(all_info, indent=2, sort_keys=True))
-
 
 def process_root(run_num):
     print "process_root(%i)" % run_num
 
-    info_file = 'data/shim/.processing_metatdata.json'
+    info_file = 'data/shim/.processing_metadata.json'
     run_key = str(run_num)
     cmd = 'bin/shim_data_bundler'
 
@@ -168,13 +183,13 @@ def process_root(run_num):
         return
 
     else:
-        subprocess.call([cmd, str(run_num)])
         info[cmd] = md5sum
+        all_info = json.loads(open(info_file).read())
+        all_info[run_key] = info
+        with open(info_file, 'w') as f:
+            f.write(json.dumps(all_info, indent=2, sort_keys=True))
 
-    all_info = json.loads(open(info_file).read())
-    all_info[run_key] = info
-    with open(info_file, 'w') as f:
-        f.write(json.dumps(all_info, indent=2, sort_keys=True))
+        subprocess.call([cmd, str(run_num)])
 
 def process_shim(run_num):
     print "process_shim(%i)" % run_num
@@ -218,13 +233,14 @@ def process_shim(run_num):
         return
 
     else:
-        subprocess.call([cmd, 'data/shim/run_%05i.root' % (run_num)])
         info[cmd] = md5sum
+        all_info = json.loads(open(info_file).read())
+        all_info[run_key] = info
+        with open(info_file, 'w') as f:
+            f.write(json.dumps(all_info, indent=2, sort_keys=True))
+
+        subprocess.call([cmd, 'data/shim/run_%05i.root' % (run_num)])
     
-    all_info = json.loads(open(info_file).read())
-    all_info[run_key] = info
-    with open(info_file, 'w') as f:
-        f.write(json.dumps(all_info, indent=2, sort_keys=True))
 
 if __name__ == '__main__':
     main()
