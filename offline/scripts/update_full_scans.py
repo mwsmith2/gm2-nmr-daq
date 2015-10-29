@@ -75,7 +75,7 @@ def process_full_run(run_num):
         info[prog] = md5sum
 
     # Set the output file and data directory.
-    cmd.append('data/full_scan_run_%05i.root' % int(run_num))
+    cmd.append('data/full_scans/full_scan_run_%05i.root' % int(run_num))
     cmd.append('data/crunched')
 
     for run in info['runs']:
