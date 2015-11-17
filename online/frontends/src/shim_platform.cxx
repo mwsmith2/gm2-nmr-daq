@@ -1,4 +1,4 @@
-/********************************************************************\
+/******************************************************************** \
 
 Name:   shim_platform.cxx
 Author: Matthias W. Smith
@@ -34,6 +34,7 @@ using std::string;
 #include "event_manager_trg_seq.hh"
 #include "sync_client.hh"
 #include "dio_stepper_motor.hh"
+#include "ino_stepper_motor.hh"
 #include "common.hh"
 
 //--- globals ------------------------------------------------------//
@@ -87,8 +88,7 @@ extern "C" {
          0,             // not used 
          "MIDAS",       // format 
          TRUE,          // enabled 
-         RO_RUNNING |   // read only when running 
-         RO_ODB,        // and update ODB 
+         RO_RUNNING,    // read only when running 
          100,            // poll for 10ms 
          0,             // stop run after this event limit 
          0,             // number of sub events 
@@ -134,6 +134,7 @@ int num_shots = 1;
 bool write_root = false;
 bool write_midas = true;
 bool use_stepper = true;
+bool ino_stepper_type = false;
 
 TFile *root_file;
 TTree *t;
@@ -147,7 +148,8 @@ std::mutex data_mutex;
 daq::shim_platform_st data; // st = short trace
 daq::EventManagerTrgSeq *event_manager;
 daq::SyncClient *readout_listener;
-daq::DioStepperMotor *stepper;;
+daq::DioStepperMotor *dio_stepper = nullptr;
+daq::InoStepperMotor *ino_stepper = nullptr;
 
   //Brendan Adding another SyncTrigger in order to coordinate the stepper trigger separately
 
@@ -162,6 +164,8 @@ void trigger_loop();
 //--- Frontend Init -------------------------------------------------//
 INT frontend_init() 
 {
+  printf("\t\t\tInitializing the frontend via frontend_init()\n");
+  
   //DATA part
   string conf_dir;
   string conf_file;
@@ -211,7 +215,34 @@ INT frontend_init()
     conf_file = conf_dir + std::string("fnal/stepper_motor.json");
   }
 
-  stepper = new daq::DioStepperMotor(0x0, daq::BOARD_B, conf_file);
+  db_find_key(hDB, 0, "Params/stepper-motor/type", &hkey);
+  if (hkey) {
+    printf("\t\t\tfound the stepper-motor type key \n");
+    size = sizeof(str);
+    db_get_data(hDB, hkey, str, &size, TID_STRING);
+    
+    if (std::string(str) == "INO") {
+      printf("\t\tIdentified that we are supposed to use the INO stepper motor\n");
+      ino_stepper_type = true;
+
+    } else {
+      printf("\t\tIdentified that we are supposed to use some other type of motor: %s \n",str);
+      ino_stepper_type = false;
+    }
+    
+  } else {
+
+    ino_stepper_type = false;
+  }
+
+  if (ino_stepper_type) {
+    printf("trying to initialize InoStepperMotor based on %s\n",conf_file.c_str());
+    ino_stepper = new daq::InoStepperMotor(conf_file);
+
+  } else {
+
+    dio_stepper = new daq::DioStepperMotor(0x0, daq::BOARD_B, conf_file);
+  }
 
   // Get the config for the synchronized trigger.
   db_find_key(hDB, 0, "Params/sync-trigger-address", &hkey);
@@ -285,7 +316,16 @@ INT frontend_exit()
   delete event_manager;
   delete readout_listener;
   delete stepper_listener;
-  delete stepper;
+  
+  if (dio_stepper != nullptr) {
+    delete dio_stepper;
+    dio_stepper = nullptr;
+  }
+
+  if (ino_stepper != nullptr) {
+    delete ino_stepper;
+    ino_stepper = nullptr;
+  }
 
   return SUCCESS;
 }
@@ -460,7 +500,7 @@ INT poll_event(INT source, INT count, BOOL test) {
   }
 
   if (readout_listener->HasTrigger()) {
-    printf("Got the trigger\n");
+    printf("\nGot the trigger\n");
     cm_msg(MINFO, frontend_name, "issuing trigger");
     event_manager->IssueTrigger();
   }
@@ -489,6 +529,7 @@ INT interrupt_configure(INT cmd, INT source, PTYPE adr)
 
 INT read_platform_event(char *pevent, INT off)
 {
+  printf("\nread_platform_event\n");
   using namespace daq;
   static unsigned long long num_events;
   static unsigned long long events_written;
@@ -505,6 +546,10 @@ INT read_platform_event(char *pevent, INT off)
   if (!run_in_progress) return 0;
   
  auto shim_data = event_manager->GetCurrentEvent();
+
+ if ((shim_data.sys_clock[0] == 0) && (shim_data.sys_clock[nprobes-1] == 0)) {
+   return 0;
+ }
 
   // Set the time vector.
   if (tm.size() == 0) {
@@ -745,7 +790,14 @@ void trigger_loop()
           } else if (ss_idx == 0) {
             
             // Set up for the next data point.
-            auto rc = stepper->MoveCmForward(step_size);
+            if (ino_stepper_type) {
+              auto rc = ino_stepper->MoveCmForward(step_size);
+
+            } else {
+
+              auto rc = dio_stepper->MoveCmForward(step_size);
+            }
+
             usleep(1.0e6 / event_rate_limit);
             ++num_events;
             ready_to_move = false;
