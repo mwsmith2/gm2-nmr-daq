@@ -1,13 +1,11 @@
 /********************************************************************\
 
-Name:   example_sync_fe.cxx
+Name:   template_fe.cxx
 Author: Matthias W. Smith
 Email:  mwsmith2@uw.edu
 
-About:  A simple example frontend that is synchronized to the
-      SyncTrigger class in shim_trigger using a SyncClient.
-      Boilerplate code is surrounded with @sync flags and 
-      places needing user code are marked with @user.  
+About:  A very simple frontend template.  Basically a MIDAS example
+        with a few things I tend to use added.
         
 \********************************************************************/
 
@@ -23,6 +21,7 @@ About:  A simple example frontend that is synchronized to the
 #include "boost/property_tree/json_parser.hpp"
 
 //--- project includes ---------------------------------------------//
+#include "common.hh" // This is from fast-daq-core
 
 //--- globals ------------------------------------------------------//
 
@@ -68,8 +67,8 @@ extern "C" {
 
   EQUIPMENT equipment[] = 
     {
-      {FRONTEND_NAME,   //"sync-example", // equipment name 
-       { 10, 0,          // event ID, trigger mask 
+      {FRONTEND_NAME,   // equipment name 
+       { 10, 0,         // event ID, trigger mask 
          "SYSTEM",      // event buffer (use to be SYSTEM)
          EQ_POLLED,     // equipment type 
          0,             // not used 
@@ -96,7 +95,6 @@ RUNINFO runinfo;
 //--- Frontend Init -------------------------------------------------//
 INT frontend_init() 
 {
-  // @sync: begin boilerplate
   //DATA part
   HNDLE hDB, hkey;
   INT status, tmp;
