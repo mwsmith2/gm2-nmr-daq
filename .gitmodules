@@ -1,0 +1,9 @@
+[submodule "common/submodules/mhelper"]
+	path = common/submodules/mhelper
+	url = https://github.com/mwsmith2/mhelper
+[submodule "common/submodules/fast-daq-core"]
+	path = common/submodules/fast-daq-core
+	url = https://github.com/uwmuonlab/fast-daq-core
+[submodule "common/submodules/gm2-field-core"]
+	path = common/submodules/gm2-field-core
+	url = https://github.com/uwmuonlab/gm2-field-core
