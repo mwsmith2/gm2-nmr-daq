@@ -49,8 +49,53 @@
         "value": "resources/history"
     },
 
+    "/Custom/Shim Display": {
+        "type": "path",
+        "value": "online/www/shim_display.html"
+    },
+
+    "/Custom/MSCB Display": {
+        "type": "path",
+        "value": "online/www/mscb_display.html"
+    },
+
     "/Params/config-dir": {
         "type": "path",
         "value": "common/config"
+    },
+
+    "/Params/config-file/shim-platform": {
+        "type": "string",
+        "value": "fnal/fe_shim_platform.json"
+    },
+
+    "/Params/config-file/shim-fixed": {
+        "type": "string",
+        "value": "fnal/fe_shim_fixed.json"
+    },
+
+    "/Params/html-dir": {
+       "type": "path",
+       "value": "online/www"
+    },
+
+    "/Params/root-output": {
+        "type": "bool",
+        "value": "true"
+    },
+
+    "/Params/sync-trigger-address": {
+        "type": "string",
+        "value": "tcp://192.168.1.200"
+    },
+
+    "/Params/fast-trigger-port": {
+        "type": "int",
+        "value": 42020
+    },
+
+    "/Params/slow-trigger-port": {
+        "type": "int",
+        "value": 42030
     }
 }
