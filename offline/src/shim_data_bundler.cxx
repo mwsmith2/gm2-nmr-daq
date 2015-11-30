@@ -31,6 +31,7 @@ using std::endl;
 int main(int argc, char *argv[])
 {
   int run_number;
+  bool laser_swap;
   std::string datadir;
   std::string laser_point;
   std::stringstream ss;
@@ -99,6 +100,10 @@ int main(int argc, char *argv[])
   ss << std::setfill('0') << std::setw(5) << run_number << ".laser_point";
   laser_point = pt.get<string>(ss.str());
 
+  ss.str("");
+  ss << std::setfill('0') << std::setw(5) << run_number << ".laser_swap";
+  laser_swap = pt.get<bool>(ss.str());
+  
   // Load the rome_laser data.
   ss.str("");
   ss << datadir << "rome/laser_tree_run" << std::setfill('0') << std::setw(5);
@@ -202,15 +207,29 @@ int main(int argc, char *argv[])
       }
 
     } else {
+      
+      if (laser_swap) {
 
-      pt_rome_laser->SetBranchAddress("Timestamp", &laser.midas_time);
-      pt_rome_laser->SetBranchAddress("p1_rad", &laser.r_1);
-      pt_rome_laser->SetBranchAddress("p1_phi", &laser.phi_1);
-      pt_rome_laser->SetBranchAddress("p1_height", &laser.z_1);
-      pt_rome_laser->SetBranchAddress("p2_rad", &laser.r_2);
-      pt_rome_laser->SetBranchAddress("p2_phi", &laser.phi_2);
-      pt_rome_laser->SetBranchAddress("p2_height", &laser.z_2);
-    }
+        pt_rome_laser->SetBranchAddress("Timestamp", &laser.midas_time);
+        pt_rome_laser->SetBranchAddress("p1_rad", &laser.r_2);
+        pt_rome_laser->SetBranchAddress("p1_phi", &laser.phi_2);
+        pt_rome_laser->SetBranchAddress("p1_height", &laser.z_2);
+        pt_rome_laser->SetBranchAddress("p2_rad", &laser.r_1);
+        pt_rome_laser->SetBranchAddress("p2_phi", &laser.phi_1);
+        pt_rome_laser->SetBranchAddress("p2_height", &laser.z_1);
+   
+      } else {
+
+        pt_rome_laser->SetBranchAddress("Timestamp", &laser.midas_time);
+        pt_rome_laser->SetBranchAddress("p1_rad", &laser.r_1);
+        pt_rome_laser->SetBranchAddress("p1_phi", &laser.phi_1);
+        pt_rome_laser->SetBranchAddress("p1_height", &laser.z_1);
+        pt_rome_laser->SetBranchAddress("p2_rad", &laser.r_2);
+        pt_rome_laser->SetBranchAddress("p2_phi", &laser.phi_2);
+        pt_rome_laser->SetBranchAddress("p2_height", &laser.z_2);
+   
+      }
+    } 
   }
 
   if (pt_rome_ctec != nullptr) {
@@ -280,6 +299,12 @@ int main(int argc, char *argv[])
 
       if (laser_point == string("P1")) {
         laser.phi_2 = laser.phi_1 + gm2::laser_phi_offset_p2_to_p1;
+        // RUN 1014 AND 1018 were labeled as pointing to P1, but actually pointing to P2
+        if (run_number == 1014 || run_number== 1018)
+          {
+            laser.phi_2 = laser.phi_1 ;// don't apply any offset 
+            laser.phi_1 = laser.phi_2 - gm2::laser_phi_offset_p2_to_p1;
+          }
 
         if (laser.phi_2 >= 360.0) {
           laser.phi_2 -= 360.0;
@@ -287,6 +312,7 @@ int main(int argc, char *argv[])
 
       } else if (laser_point == string("P2")) {
         laser.phi_1 = laser.phi_2 - gm2::laser_phi_offset_p2_to_p1;
+        
 
         if (laser.phi_1 <= 0.0) {
           laser.phi_1 += 360.0;
