@@ -33,8 +33,12 @@ logger_sck.bind('tcp://127.0.0.1:44445')
 worker_sck = context.socket(zmq.PUSH)
 worker_sck.connect('tcp://127.0.0.1:44445')
 
+# Socket to query the scheduler.
+answer_sck = context.socket(zmq.REP)
+answer_sck.connect('tcp://127.0.0.1:44446')
+
 job_queue = {}
-run_queue = []
+req_queue = []
 msg_queue = []
 log_queue = []
 workers = []
@@ -54,6 +58,7 @@ def main():
 
         jobs.append(gevent.spawn(crunch_sck.poll, timeout=250))
         jobs.append(gevent.spawn(logger_sck.poll, timeout=250))
+        jobs.append(gevent.spawn(answer_sck.poll, timeout=250))
         gevent.joinall(jobs)
 
         nevents = [job.value for job in jobs]
@@ -65,10 +70,15 @@ def main():
         if nevents[1]:
             while (logger_sck.poll(timeout=20)):
                 log_queue.append(logger_sck.recv_json())
+
+        if nevents[2]:
+            while (answer_sck.poll(timeout=20)):
+                req_queue.append(answer_sck.recv_json())
         
-        if nevents[0] == 0 and nevents[1] == 0:
+        if all(for n ==0 for in neventsnevents):
             parse_jobs()
             spawn_jobs()
+            write_reps()
             write_logs()
 
 
@@ -80,7 +90,6 @@ def parse_jobs():
 
         run_num = msg['run']
         job_queue[run_num] = [[], [], [], []]
-
         
         # Add ROME jobs first
         cmd_prefix = "./midanalyzer.exe -i romeConfig.xml -r "
@@ -256,7 +265,7 @@ def spawn_jobs():
         for job in job_queue[run][0]:
 
             # Make sure the job isn't running already.
-            print [worker[2] for worker in workers]
+            print [worker[2]['name'] for worker in workers]
             if job in [worker[2] for worker in workers]:
                 continue
 
@@ -293,7 +302,37 @@ def spawn_jobs():
                 return
 
 
+def write_req():
+    """Write requests back for queries to on answer socket."""
+
+    for req in req_queue:
+        
+        rep = {}
+
+        if req['type'] == 'job':
+            
+            if check_job(req['body']):
+                rep['result'] = True
+
+            else:
+                rep['result'] = False
+
+        if req['type'] == 'var':
+            
+            if req['body'] == 'nworkers':
+                rep['result'] = nworkers
+            
+            elif req['body'] == 'njobs':
+                req['result'] = len(job_queue)
+            
+            else:
+                req['result'] = None
+
+        answer.send_json(req)
+            
+
 def write_logs():
+    """Write data to the log file for crunchd."""
     global log_queue
 
     for msg in log_queue:
