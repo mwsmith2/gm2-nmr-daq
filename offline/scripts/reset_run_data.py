@@ -27,11 +27,13 @@ def main():
     info = open(info_file, 'w').write(json.dumps(info))
 
     for run in runs:
+        run_key = str(run).zfill(5)
+
         info_file = 'data/rome/.processing_metadata.json'
 
         info = json.loads(open(info_file).read())
         try:
-            del info[str(run)]
+            del info[run_key]
         except:
             pass
 
@@ -42,7 +44,7 @@ def main():
 
         info = json.loads(open(info_file).read())
         try:
-            del info[str(run)]
+            del info[run_key]
         except:
             pass
 
@@ -53,7 +55,7 @@ def main():
 
         info = json.loads(open(info_file).read())
         try:
-            del info[str(run)]
+            del info[run_key]
         except:
             pass
 

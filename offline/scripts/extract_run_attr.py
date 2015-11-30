@@ -18,8 +18,8 @@ def main():
          stop = int(sys.argv[2])
 
     else:
-        start = 0
-        stop = int(sys.argv[1])
+        start = int(sys.argv[1])
+        stop = int(sys.argv[1]) + 1
 
     for run_num in range(start, stop):
         run_files = glob.glob(arch_dir + '/*%05i*' % run_num)
@@ -73,6 +73,12 @@ def main():
         except:
             run_attr[key]['laser_point'] = 'N'
 
+        try:
+            run_attr[key]['laser_swap']
+
+        except:
+            run_attr[key]['laser_swap'] = False
+ 
         print run_attr[key]
     
     with open(attr_file, 'w') as f:

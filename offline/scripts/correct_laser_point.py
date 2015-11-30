@@ -6,6 +6,7 @@ import time
 import tempfile
 import shutil
 import subprocess
+import json
 import midas
 
 
@@ -23,42 +24,46 @@ def main():
     
     run_number = int(sys.argv[1])
     correct_point = sys.argv[2]
-    key = 'Laser Tracker Point = STRING : [32]'
-
-    if correct_point == 'p1':
-        print "Capitalizing point to P1."
-        correct_point = 'P1'
 
     if correct_point == 'p2':
         print "Capitalizing point to P2."
         correct_point = 'P2'
 
+    if correct_point == 'p1':
+        print "Capitalizing point to P1."
+        correct_point = 'P1'
+
     if correct_point not in ('P1', 'P2'):
         print 'Unrecognized point setting to no point, \'N\''
         correct_point = 'N'
 
-    odb_file = resource_dir + '/run%05i.odb' % run_number
+    with open('../resources/log/run_attributes.json') as f:
 
-    fh, abs_path = tempfile.mkstemp()
+        run_attr = json.loads(f.read())
 
-    with open(odb_file) as f:
+        old_point = run_attr['%05i' % run_number]['laser_point']
+        old_swap = run_attr['%05i' % run_number]['laser_swap']
 
-        with open(abs_path, 'w') as tmpfile:
+        run_attr['%05i' % run_number]['laser_point'] = correct_point
+        correct_swap = False
 
-            for line in f:
+        if correct_point == 'P1' and old_point == 'P2':
+            correct_swap = True
 
-                if line.find(key) == 0:
-                    tmpfile.write('%s %s\n' % (key, correct_point))
+        if correct_point == 'P2' and old_point == 'P1':
+            correct_swap = True
 
-                else:
-                    tmpfile.write(line)
+        run_attr['%05i' % run_number]['laser_swap'] = correct_swap
 
-    os.close(fh)
-    os.remove(odb_file)
-    shutil.move(abs_path, odb_file)
+    with open('../resources/log/run_attributes.json', 'w') as f:
+        f.write(json.dumps(run_attr, indent=2, sort_keys=True))
+
+    with open('../resources/log/attribute_changes.json', 'a') as f:
+        args = (old_point, old_swap, correct_point, correct_swap)
+        f.write('(%s, %s) -> (%s, %s)\n' % args)
 
     subprocess.call(['python', 'scripts/reset_run_data.py', str(run_number)])
-
+    
 
 if __name__ == '__main__':
     main()
