@@ -75,7 +75,7 @@ def main():
             while (answer_sck.poll(timeout=20)):
                 req_queue.append(answer_sck.recv_json())
         
-        if all(for n ==0 for in neventsnevents):
+        if all(n == 0 for n in nevents):
             parse_jobs()
             spawn_jobs()
             write_reps()
@@ -99,6 +99,7 @@ def parse_jobs():
         job = {}
         job['meta'] = datadir + '/rome/.processing_metadata.json'
         job['cmd'] = cmd_prefix + str(run_num) + cmd_suffix
+        job['clean'] = 'rm histos%05i.root run%05i.root'
 
         if run_num < 787:
             job['dir'] = rome_dir + '/sync'
@@ -145,6 +146,7 @@ def parse_jobs():
         job['name'] = 'extract_run_attr'
         job['dir'] = offline_dir
         job['cmd'] = 'python scripts/extract_run_attr.py %i' % run_num
+        job['clean'] = None
         job['meta'] = datadir + '/crunched/.processing_metadata.json'
         job['deps'] = {}
         job_queue[run_num][0].append(job)
@@ -153,6 +155,7 @@ def parse_jobs():
         job = {}
         job['name'] = 'shim_data_bundler'
         job['cmd'] = 'bin/shim_data_bundler %i' % run_num
+        job['clean'] = None
         job['dir'] = offline_dir
         job['meta'] = datadir + '/shim/.processing_metadata.json'
         job['deps'] = {}
@@ -171,6 +174,7 @@ def parse_jobs():
         job['name'] = 'crunched'
         job['dir'] = offline_dir
         job['cmd'] = 'bin/recrunch_fids data/shim/run_%05i.root' % run_num
+        job['clean'] = None
         job['meta'] = datadir + '/crunched/.processing_metadata.json'
         job['deps'] = {}
         job['deps'][offline_dir + '/bin/recrunch_fids'] = None
@@ -184,6 +188,7 @@ def parse_jobs():
         job['cmd'] = 'bin/fix_run_probe_map '
         job['cmd'] += 'data/crunched/run_%05i.root' % run_num
         job['cmd'] += 'data/crunched/ %i' % run_num
+        job['clean'] = None
         job['meta'] = datadir + '/crunched/.processing_metadata.json'
         job['deps'] = {}
         job['deps'][offline_dir + '/bin/recrunch_fids'] = None
@@ -302,8 +307,8 @@ def spawn_jobs():
                 return
 
 
-def write_req():
-    """Write requests back for queries to on answer socket."""
+def write_reps():
+    """Write replies back for queries to on answer socket."""
 
     for req in req_queue:
         
