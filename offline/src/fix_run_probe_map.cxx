@@ -43,6 +43,8 @@ int main(int argc, char *argv[])
   capacitec_t ctec;
   scs2000_t envi;
   tilt_sensor_t tilt;
+  metrolab_t metro;
+  sync_flags_t flags;
 
   // ROOT stuff
   TFile *pf;
@@ -89,6 +91,8 @@ int main(int argc, char *argv[])
   pt_sync->Branch("platform", &platform, gm2::platform_str);
   pt_sync->Branch("laser", &laser, gm2::hamar_str);
   pt_sync->Branch("ctec", &ctec, gm2::capacitec_str);
+  pt_sync->Branch("metro", &metro, gm2::capacitec_str);
+  pt_sync->Branch("flags", &ctec, gm2::sync_flags_str);
   pt_envi->Branch("envi", &envi, gm2::scs2000_str);
   pt_tilt->Branch("tilt", &tilt, gm2::tilt_sensor_str);
 
@@ -142,6 +146,8 @@ int main(int argc, char *argv[])
       
     laser = d[i].laser;
     ctec = d[i].ctec;
+    flags = d[i].flags;
+    metro = d[i].metro;
     pt_sync->Fill();
   }
 
