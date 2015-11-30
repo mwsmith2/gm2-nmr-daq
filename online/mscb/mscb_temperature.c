@@ -31,7 +31,7 @@
  #endif
 
 /* The frontend name (client name) as seen by other MIDAS clients   */
-   char *frontend_name = "Temperature";
+char *frontend_name = "Temperature Monitor";
 /* The frontend file name, don't change it */
 char *frontend_file_name = __FILE__;
 
@@ -57,13 +57,14 @@ INT read_periodic_event(char *pevent, INT off);
 /* device driver list */
 DEVICE_DRIVER mscb_driver[] = {
    {"SCS2002", mscbdev, 0, NULL, DF_INPUT | DF_MULTITHREAD},
+   {"Output", mscbdev, 0, NULL, DF_OUTPUT | DF_PRIO_DEVICE | DF_MULTITHREAD},
    {""}
 };
 
 EQUIPMENT equipment[] = {
 
-   {"Temperature",              /* equipment name */
-    {11, 14,                     /* event ID, trigger mask */
+   {"Temperature Monitor",              /* equipment name */
+    {11, 0,                     /* event ID, trigger mask */
      "SYSTEM",                  /* event buffer */
      EQ_SLOW,                   /* equipment type */
      0,                         /* event source */
@@ -73,7 +74,7 @@ EQUIPMENT equipment[] = {
      1000,                     /* read every 1 sec */
      1000,                     /* read one value every 1 sec */ /*stops after this many events*/
      0,                         /* number of sub events */
-     60,                        /* log history every 60 second */
+     30,                        /* log history every 60 second */
      "", "", ""} ,
     cd_multi_read_0,              /* readout routine */
     //read_periodic_event,			//call routine?
@@ -262,19 +263,20 @@ INT frontend_init()
   
   // GAPS do not count -- just the order of cards encountered from P0->P7
   int ADCSlot = 0;  
-  int TempSlot = 1; // The slot of SCS2002 in which the Temp card is installed
+  int TempSlot = 1; // The slot of SCS2001 in which the Temp card is installed
   // Nothing in P2, but MIDAS will just skip that anyway
   int IOSlot = 2; // in P3
   
 //temperature  
-  mscb_define("mscb174", "Temperature", "SCS2002", mscb_driver, 0x1, TempSlot*8+0, "Yoke F Temp 1", 0.01);
-  mscb_define("mscb174", "Temperature", "SCS2002", mscb_driver, 0x1, TempSlot*8+1, "Yoke F Temp 2", 0.01);
-  mscb_define("mscb174", "Temperature", "SCS2002", mscb_driver, 0x1, TempSlot*8+2, "Yoke F Temp 3", 0.01);
-  mscb_define("mscb174", "Temperature", "SCS2002", mscb_driver, 0x1, TempSlot*8+3, "Yoke F Temp 4", 0.01);
-  mscb_define("mscb174", "Temperature", "SCS2002", mscb_driver, 0x1, TempSlot*8+4, "Temperature 5", 0.01);
-  mscb_define("mscb174", "Temperature", "SCS2002", mscb_driver, 0x1, TempSlot*8+5, "Temperature 6", 0.01);
-  mscb_define("mscb174", "Temperature", "SCS2002", mscb_driver, 0x1, TempSlot*8+6, "Temperature 7", 0.01);
-  mscb_define("mscb174", "Temperature", "SCS2002", mscb_driver, 0x1, TempSlot*8+7, "Temperature 8", 0.01);
+  mscb_define("mscb174", "Temperature Monitor", "SCS2002", mscb_driver, 0x1, TempSlot*8+0, "SC Temperature 1", 0.01);
+  mscb_define("mscb174", "Temperature Monitor", "SCS2002", mscb_driver, 0x1, TempSlot*8+1, "SC Temperature 2", 0.01);
+  mscb_define("mscb174", "Temperature Monitor", "SCS2002", mscb_driver, 0x1, TempSlot*8+2, "SC Temperature 3", 0.01);
+  mscb_define("mscb174", "Temperature Monitor", "SCS2002", mscb_driver, 0x1, TempSlot*8+3, "SC Temperature 4", 0.01);
+  mscb_define("mscb174", "Temperature Monitor", "SCS2002", mscb_driver, 0x1, TempSlot*8+4, "SC Temperature 5", 0.01);
+  mscb_define("mscb174", "Temperature Monitor", "SCS2002", mscb_driver, 0x1, TempSlot*8+5, "SC Temperature 6", 0.01);
+  mscb_define("mscb174", "Temperature Monitor", "SCS2002", mscb_driver, 0x1, TempSlot*8+6, "SC Temperature 7", 0.01);
+  mscb_define("mscb174", "Temperature Monitor", "SCS2002", mscb_driver, 0x1, TempSlot*8+7, "SC Temperature 8", 0.01);
+  
   
   return CM_SUCCESS;
 }
@@ -324,7 +326,9 @@ INT read_periodic_event(char *pevent, INT off){
   float temp1[3];
   INT size;
   // get key handle for temp
-  db_find_key(hDB, 0, "/Equipment/Temperature/Variables/Input", &hkey);
+
+  db_find_key(hDB, 0, "/Equipment/Temperature Monitor/Variables/Input", &hkey);
+
   // return temp
   size = sizeof(temp1);
   db_get_data(hDB, hkey, &temp1, &size, TID_FLOAT);
@@ -332,16 +336,16 @@ INT read_periodic_event(char *pevent, INT off){
   //char *pevent;
   bk_init(pevent);
   float *pdata;
-  //  *pdata = temp1[0];
+  *pdata = temp1[0];
    // create SCLR bank 
-     bk_create(pevent, "NEW1", TID_FLOAT, &pdata);
+   bk_create(pevent, "NEW1", TID_FLOAT, &pdata);
 
      
 // *pdata = 29.3;
 printf("%f\n",temp1[0]);
     
    // close SCLR bank 
-bk_close(pevent, pdata);
+   bk_close(pevent, pdata);
 printf("eo fB\n");
    return bk_size(pevent);
 

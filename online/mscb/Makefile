@@ -74,7 +74,7 @@ MODULES   = envi.o TEnvi.o
 #-------------------------------------------------------------------
 # Drivers needed by the frontend program
 #                 
-DRIVERS         = hv.o multi.o null.o nulldev.o mscbdev.o mscb.o
+DRIVERS         = hv.o multi.o null.o nulldev.o mscbdev.o mscb.o multi_0.o
 
 ####################################################################
 # Lines below here should not be edited
@@ -101,6 +101,10 @@ scfe:  $(LIB) $(LIB_DIR)/mfe.o frontend.o $(DRIVERS)
 
 mscb_fe:  $(LIB) $(LIB_DIR)/mfe.o mscb_fe.o $(DRIVERS)
 	$(CC) -o mscb_fe mscb_fe.o $(LIB_DIR)/mfe.o $(DRIVERS) $(LIB) $(LDFLAGS) $(LIBS) $(ROOTLIBS) $(ROOTFLAGS)
+	ln -fs $(shell pwd)/$@ $(LINK_DIR)/$@
+
+mscb_temperature:  $(LIB) $(LIB_DIR)/mfe.o mscb_temperature.o $(DRIVERS)
+	$(CC) -o mscb_temperature mscb_temperature.o $(LIB_DIR)/mfe.o $(DRIVERS) $(LIB) $(LDFLAGS) $(LIBS) $(ROOTLIBS) $(ROOTFLAGS)
 	ln -fs $(shell pwd)/$@ $(LINK_DIR)/$@
 
 mscb2_fe:  $(LIB) $(LIB_DIR)/mfe.o mscb2_fe.o $(DRIVERS)
@@ -134,6 +138,9 @@ frontend.o: frontend.c
 mscb_fe.o: mscb_fe.c
 	$(CC) $(CFLAGS) $(OSFLAGS) -c $< -o $@
 
+mscb_temperature.o: mscb_temperature.c
+	$(CC) $(CFLAGS) $(OSFLAGS) -c $< -o $@
+
 mscb_fe2.o: mscb_fe2.c
 	$(CC) $(CFLAGS) $(OSFLAGS) -c $< -o $@
 
@@ -141,6 +148,9 @@ template_async_fe.o: template_async_fe.c
 	$(CC) $(CFLAGS) $(OSFLAGS) -c $< -o $@
 
 multi.o: $(DRV_DIR)/class/multi.c
+	$(CC) $(CFLAGS) $(OSFLAGS) -c $< -o $@
+
+multi_0.o: $(DRV_DIR)/class/multi_0.c
 	$(CC) $(CFLAGS) $(OSFLAGS) -c $< -o $@
 
 nulldev.o: $(DRV_DIR)/device/nulldev.c
