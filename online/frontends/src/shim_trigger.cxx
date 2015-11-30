@@ -104,7 +104,11 @@ RUNINFO runinfo;
 
 // Anonymous namespace for my "globals"
 namespace {
-  // This is the trigger for the Measurements
+const char *const mbank_name = (char *)"SHTR";
+unsigned long long num_events;
+
+// This is the trigger for the Measurements
+
 daq::SyncTrigger *readout_trigger;
   //Brendan Adding another SyncTrigger in order to coordinate the stepper trigger separately
   // Note -- Everywhere below we repeat everything that happens to "trigger" for "stepper_trigger", except we bind it to a different port (trigger's port +1)
@@ -161,6 +165,8 @@ INT frontend_exit()
 //--- Begin of Run --------------------------------------------------*/
 INT begin_of_run(INT run_number, char *error)
 {
+  num_events = 0;
+
   readout_trigger->FixNumClients();
   readout_trigger->StartTriggers();
   stepper_trigger->FixNumClients();
@@ -247,6 +253,19 @@ INT interrupt_configure(INT cmd, INT source, PTYPE adr)
 
 INT read_trigger_event(char *pevent, INT off)
 {
-  return 0;
+  DWORD *pdata;
+
+  // And MIDAS output.
+  bk_init32(pevent);
+
+  // Copy the shimming trolley data.
+  bk_create(pevent, mbank_name, TID_DWORD, &pdata);
+
+  *pdata = num_events++;
+  pdata += sizeof(num_events) / sizeof(DWORD);
+
+  bk_close(pevent, pdata);
+
+  return bk_size(pevent);
 }
 
