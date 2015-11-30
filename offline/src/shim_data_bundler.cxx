@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
   gm2::platform_t platform;
   gm2::hamar_t laser;
   gm2::capacitec_t ctec;
-  gm2::metrolab_t metro;
+  gm2::metrolab_t mlab;
   gm2::scs2000_t envi;
   gm2::tilt_sensor_t tilt;
   gm2::sync_flags_t flags;
@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
   }
   laser.midas_time = 0;
   ctec.midas_time = 0;
-  metro.midas_time = 0;
+  mlab.midas_time = 0;
   envi.midas_time = 0;
   tilt.midas_time = 0;
 
@@ -71,13 +71,14 @@ int main(int argc, char *argv[])
   TFile *pf_rome_tilt = nullptr;
   TTree *pt_rome_tilt = nullptr;
 
-  TFile *pf_rome_metro = nullptr;
-  TTree *pt_rome_metro = nullptr;
+  TFile *pf_rome_mlab = nullptr;
+  TTree *pt_rome_mlab = nullptr;
 
   TFile *pf_all = nullptr;
   TTree *pt_sync = nullptr;
   TTree *pt_envi = nullptr;
   TTree *pt_tilt = nullptr;
+  TTree *pt_mlab = nullptr;
 
   // All the program needs is a run number, and optionally a data dir.
   assert(argc > 0);
@@ -153,10 +154,10 @@ int main(int argc, char *argv[])
   ss.str("");
   ss << datadir << "rome/metrolab_tree_run" << std::setfill('0');
   ss << std::setw(5) << run_number << ".root";
-  pf_rome_metro = new TFile(ss.str().c_str(), "read");
+  pf_rome_mlab = new TFile(ss.str().c_str(), "read");
 
   if (!pf_rome_tilt->IsZombie()) {
-    pt_rome_metro = (TTree *)pf_rome_metro->Get("g2metrolab");
+    pt_rome_mlab = (TTree *)pf_rome_mlab->Get("g2metrolab");
   }
 
   // And the platform data.
@@ -178,15 +179,16 @@ int main(int argc, char *argv[])
   pt_sync = new TTree("t_sync", "Synchronous Shim Data");
   pt_envi = new TTree("t_envi", "Asynchronous SCS200 Data");
   pt_tilt = new TTree("t_tilt", "Asynchronous Tilt Sensor Data");
+  pt_mlab = new TTree("t_mlab", "Asynchronous Metrolab Data");
 
   // Attach the branches to the final output
   pt_sync->Branch("platform", &platform, gm2::platform_str);
   pt_sync->Branch("laser", &laser, gm2::hamar_str);
   pt_sync->Branch("ctec", &ctec, gm2::capacitec_str);
-  pt_sync->Branch("metro", &metro, gm2::metrolab_str);
   pt_sync->Branch("flags", &flags.platform_data, gm2::sync_flags_str);
   pt_envi->Branch("envi", &envi, gm2::scs2000_str);
   pt_tilt->Branch("tilt", &tilt, gm2::tilt_sensor_str);
+  pt_mlab->Branch("mlab", &mlab, gm2::metrolab_str);
 
   // Attach to the data files if they exist.
   if (pt_rome_laser != nullptr) {
@@ -277,14 +279,14 @@ int main(int argc, char *argv[])
     pt_rome_ctec->SetBranchAddress("cap_3", &ctec.outer_up);
   }
 
-  if (pt_rome_metro != nullptr) {
+  if (pt_rome_mlab != nullptr) {
 
-    flags.metro_data = true;
+    flags.mlab_data = true;
 
-    pt_rome_metro->SetBranchAddress("Timestamp", &metro.midas_time);
-    pt_rome_metro->SetBranchAddress("Mtr1", &metro.field);
-    pt_rome_metro->SetBranchAddress("Mtr0", &metro.state);
-    pt_rome_metro->SetBranchAddress("Mtr2", &metro.units);
+    pt_rome_mlab->SetBranchAddress("Timestamp", &mlab.midas_time);
+    pt_rome_mlab->SetBranchAddress("Mtr1", &mlab.field);
+    pt_rome_mlab->SetBranchAddress("Mtr0", &mlab.state);
+    pt_rome_mlab->SetBranchAddress("Mtr2", &mlab.units);
   }
 
   if (pt_platform != nullptr) {
@@ -341,14 +343,6 @@ int main(int argc, char *argv[])
     }
   }
 
-  if (pt_rome_metro != nullptr) {
-    int nmetro = pt_rome_metro->GetEntries();
-    if ((num_sync_events > nmetro) && (nmetro != 0)) {
-      num_sync_events = pt_rome_metro->GetEntries();
-      cout << "num_sync_events = " << num_sync_events << endl;
-    }
-  }
-
   for (int i = 0; i < num_sync_events; ++i) {
     
     if (pt_platform != nullptr) {
@@ -385,28 +379,6 @@ int main(int argc, char *argv[])
       pt_rome_ctec->GetEntry(i);
     }
 
-    if (pt_rome_metro != nullptr) {
-      pt_rome_metro->GetEntry(i);
-     
-      if (metro.state == 'L') {
-
-        metro.locked = true;
-
-      } else {
-
-        metro.locked = false;
-      }
-
-      if (metro.units == 'T') {
-
-        metro.is_tesla = true;
-
-      } else {
-
-        metro.is_tesla = false;
-      }
-    }
-
     pt_sync->Fill();
   }
 
@@ -421,6 +393,33 @@ int main(int argc, char *argv[])
     for (int i = 0; i < pt_rome_tilt->GetEntries(); ++i) {
       pt_rome_tilt->GetEntry(i);
       pt_tilt->Fill();
+    }
+  }
+
+
+  if (pt_rome_mlab != nullptr) {
+    for (int i = 0; i < pt_rome_mlab->GetEntries(); ++i) {
+      pt_rome_mlab->GetEntry(i);
+      
+      if (mlab.state == 'L') {
+        
+        mlab.locked = true;
+        
+      } else {
+        
+        mlab.locked = false;
+      }
+      
+      if (mlab.units == 'T') {
+        
+        mlab.is_tesla = true;
+        
+      } else {
+        
+        mlab.is_tesla = false;
+      }
+      
+      pt_mlab->Fill();
     }
   }
 

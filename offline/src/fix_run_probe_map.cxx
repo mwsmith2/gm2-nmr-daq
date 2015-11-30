@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
   capacitec_t ctec;
   scs2000_t envi;
   tilt_sensor_t tilt;
-  metrolab_t metro;
+  metrolab_t mlab;
   sync_flags_t flags;
 
   // ROOT stuff
@@ -51,6 +51,7 @@ int main(int argc, char *argv[])
   TTree *pt_sync;
   TTree *pt_envi;
   TTree *pt_tilt;
+  TTree *pt_mlab;
   TTree *pt_run;
 
   // Parse the i/o files
@@ -86,15 +87,16 @@ int main(int argc, char *argv[])
   pt_sync = new TTree("t_sync", "Synchronous Shim Data");
   pt_envi = new TTree("t_envi", "Asynchronous SCS200 Data");
   pt_tilt = new TTree("t_tilt", "Asynchronous Tilt Sensor Data");
+  pt_mlab = new TTree("t_mlab", "Asynchronous Metrolab Data");
 
   // Attach the branches to the new output.
   pt_sync->Branch("platform", &platform, gm2::platform_str);
   pt_sync->Branch("laser", &laser, gm2::hamar_str);
   pt_sync->Branch("ctec", &ctec, gm2::capacitec_str);
-  pt_sync->Branch("metro", &metro, gm2::capacitec_str);
   pt_sync->Branch("flags", &ctec, gm2::sync_flags_str);
   pt_envi->Branch("envi", &envi, gm2::scs2000_str);
   pt_tilt->Branch("tilt", &tilt, gm2::tilt_sensor_str);
+  pt_mlab->Branch("mlab", &mlab, gm2::metrolab_str);
 
   platform_t p_blank; // Used to substitute probe index 18
   p_blank.health[0] = 0;
@@ -147,7 +149,6 @@ int main(int argc, char *argv[])
     laser = d[i].laser;
     ctec = d[i].ctec;
     flags = d[i].flags;
-    metro = d[i].metro;
     pt_sync->Fill();
   }
 
@@ -163,11 +164,18 @@ int main(int argc, char *argv[])
     tilt = d[i].tilt;
     pt_tilt->Fill();
   }    
+
+  for (int i = 0; i < d.GetMlabEntries(); ++i) {
+      
+    mlab = d[i].mlab;
+    pt_mlab->Fill();
+  }    
     
 
   pt_sync->Write();  
   pt_envi->Write();
   pt_tilt->Write();
+  pt_mlab->Write();
 
   pf->Write();
   pf->Close();

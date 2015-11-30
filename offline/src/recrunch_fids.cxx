@@ -59,6 +59,7 @@ int main(int argc, char **argv)
   TTree *pt_sync;
   TTree *pt_envi;
   TTree *pt_tilt;
+  TTree *pt_mlab;
 
   TFile *pf_out;
   TTree *pt_out;
@@ -97,18 +98,18 @@ int main(int argc, char **argv)
   pt_sync = (TTree *)pf_in->Get("t_sync");
   pt_envi = (TTree *)pf_in->Get("t_envi");
   pt_tilt = (TTree *)pf_in->Get("t_tilt");
+  pt_mlab = (TTree *)pf_in->Get("t_mlab");
 
   // Attach the appropriate branches/leaves.
   platform_t idata;
   hamar_t laser;
   capacitec_t ctec;
-  metrolab_t metro;
+  metrolab_t mlab;
   sync_flags_t flags;
 
   pt_sync->SetBranchAddress("platform", &idata.sys_clock[0]);
   pt_sync->SetBranchAddress("laser", &laser.midas_time);
   pt_sync->SetBranchAddress("ctec", &ctec.midas_time);
-  pt_sync->SetBranchAddress("metro", &metro.field);
   pt_sync->SetBranchAddress("flags", &flags.platform_data);
 
   pf_out = new TFile(outfile.c_str(), "recreate");
@@ -118,7 +119,7 @@ int main(int argc, char **argv)
   pt_out->Branch("platform", &odata.sys_clock[0], platform_str);
   pt_out->Branch("laser", &laser.midas_time, hamar_str);
   pt_out->Branch("ctec", &ctec.midas_time, capacitec_str);
-  pt_out->Branch("metro", &metro.field, metrolab_str);
+  pt_out->Branch("mlab", &mlab.field, metrolab_str);
   pt_out->Branch("flags", &flags.platform_data, sync_flags_str);
 
   // Set the time vector.
@@ -183,6 +184,9 @@ int main(int argc, char **argv)
 
   TTree *pt_async_1 = pt_tilt->CloneTree();
   pt_async_1->Write();
+
+  TTree *pt_async_2 = pt_mlab->CloneTree();
+  pt_async_2->Write();
 
   pf_out->Write();
   pf_out->Close();
