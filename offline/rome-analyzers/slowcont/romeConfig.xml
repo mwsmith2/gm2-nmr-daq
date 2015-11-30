@@ -33,7 +33,7 @@
       <!-- The name of the host of the online experiment. (required) -->
       <Host></Host>
       <!-- The name of the online experiment. (required) -->
-      <Experiment></Experiment>
+      <Experiment>gm2-nmr</Experiment>
       <!-- The name of the analyzer in the midas environment. Can be used to run two analyzer in parallel. (optional) -->
       <AnalyzerName>Analyzer</AnalyzerName>
       <!-- The name of the memory buffer to be accessed. (optional) -->
@@ -269,6 +269,16 @@
 
         <Tab>
           <TabName>Capacitec</TabName>
+          <!-- Inactive tasks are not executed by the framework. -->
+          <Active>true</Active>
+          <!-- When this is set, screen show of the tab is written periodically. -->
+          <ScreenShotFileName></ScreenShotFileName>
+          <!-- When this is set, a new window is created for the tab. -->
+          <NewWindow>false</NewWindow>
+        </Tab>
+
+        <Tab>
+          <TabName>Indiv_Capacitec</TabName>
           <!-- Inactive tasks are not executed by the framework. -->
           <Active>true</Active>
           <!-- When this is set, screen show of the tab is written periodically. -->

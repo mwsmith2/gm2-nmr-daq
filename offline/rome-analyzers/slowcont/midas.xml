@@ -72,6 +72,10 @@
                         <TabTitle>Capacitec</TabTitle>
                 </Tab>
                 <Tab>
+                        <TabName>Indiv_Capacitec</TabName>
+                        <TabTitle>Indiv_Capacitec</TabTitle>
+                </Tab>
+                <Tab>
                         <TabName>Inner_Outer_Gaps</TabName>
                         <TabTitle>Inner_Outer_Gaps</TabTitle>
                 </Tab>
