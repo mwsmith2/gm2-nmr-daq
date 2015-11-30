@@ -40,8 +40,10 @@ int main(int argc, char *argv[])
   gm2::platform_t platform;
   gm2::hamar_t laser;
   gm2::capacitec_t ctec;
+  gm2::metrolab_t metro;
   gm2::scs2000_t envi;
   gm2::tilt_sensor_t tilt;
+  gm2::sync_flags_t flags;
 
   // Initialize the times to check for bad data.
   for (int i = 0; i < SHIM_PLATFORM_CH; ++i) {
@@ -49,6 +51,7 @@ int main(int argc, char *argv[])
   }
   laser.midas_time = 0;
   ctec.midas_time = 0;
+  metro.midas_time = 0;
   envi.midas_time = 0;
   tilt.midas_time = 0;
 
@@ -67,6 +70,9 @@ int main(int argc, char *argv[])
 
   TFile *pf_rome_tilt = nullptr;
   TTree *pt_rome_tilt = nullptr;
+
+  TFile *pf_rome_metro = nullptr;
+  TTree *pt_rome_metro = nullptr;
 
   TFile *pf_all = nullptr;
   TTree *pt_sync = nullptr;
@@ -133,7 +139,7 @@ int main(int argc, char *argv[])
     pt_rome_envi = (TTree *)pf_rome_envi->Get("g2slow");
   }
 
-  // And the envi control data.
+  // And the tilt sensor data.
   ss.str("");
   ss << datadir << "rome/tilt_tree_run" << std::setfill('0') << std::setw(5);
   ss << run_number << ".root";
@@ -141,6 +147,16 @@ int main(int argc, char *argv[])
 
   if (!pf_rome_tilt->IsZombie()) {
     pt_rome_tilt = (TTree *)pf_rome_tilt->Get("g2tilt");
+  }
+
+  // And the metrolab data.
+  ss.str("");
+  ss << datadir << "rome/metrolab_tree_run" << std::setfill('0');
+  ss << std::setw(5) << run_number << ".root";
+  pf_rome_metro = new TFile(ss.str().c_str(), "read");
+
+  if (!pf_rome_tilt->IsZombie()) {
+    pt_rome_metro = (TTree *)pf_rome_metro->Get("g2metrolab");
   }
 
   // And the platform data.
@@ -167,16 +183,22 @@ int main(int argc, char *argv[])
   pt_sync->Branch("platform", &platform, gm2::platform_str);
   pt_sync->Branch("laser", &laser, gm2::hamar_str);
   pt_sync->Branch("ctec", &ctec, gm2::capacitec_str);
+  pt_sync->Branch("metro", &metro, gm2::metrolab_str);
+  pt_sync->Branch("flags", &flags.platform_data, gm2::sync_flags_str);
   pt_envi->Branch("envi", &envi, gm2::scs2000_str);
   pt_tilt->Branch("tilt", &tilt, gm2::tilt_sensor_str);
 
   // Attach to the data files if they exist.
   if (pt_rome_laser != nullptr) {
+
+    flags.laser_data = true;
     
     if (run_number < 787) {
       
       if (laser_point == string("P1")) {
 
+        flags.laser_p1 = true;
+    
         pt_rome_laser->SetBranchAddress("Timestamp", &laser.midas_time);
         pt_rome_laser->SetBranchAddress("position_rad", &laser.r_1);
         pt_rome_laser->SetBranchAddress("position_height", &laser.phi_1);
@@ -186,6 +208,8 @@ int main(int argc, char *argv[])
         laser.phi_2 = 0.0;
 
       } else if (laser_point == string("P2")) {
+
+        flags.laser_p2 = true;
 
         pt_rome_laser->SetBranchAddress("Timestamp", &laser.midas_time);
         pt_rome_laser->SetBranchAddress("position_rad", &laser.r_2);
@@ -201,14 +225,24 @@ int main(int argc, char *argv[])
         pt_rome_laser->SetBranchAddress("position_rad", &laser.r_1);
         pt_rome_laser->SetBranchAddress("position_height", &laser.phi_1);
         pt_rome_laser->SetBranchAddress("position_azim", &laser.z_1);
-        laser.r_2 = -1.0;
-        laser.z_2 = -1.0;
-        laser.phi_2 = -1.0;
+        laser.r_2 = 0.0;
+        laser.z_2 = 0.0;
+        laser.phi_2 = 0.0;
       }
 
     } else {
+
+      if (laser_point == string("P1")) {
+        flags.laser_p1 = true;
+      }
+      
+      if (laser_point == string("P2")) {
+        flags.laser_p2 = true;
+      }
       
       if (laser_swap) {
+
+        flags.laser_swap = true;
 
         pt_rome_laser->SetBranchAddress("Timestamp", &laser.midas_time);
         pt_rome_laser->SetBranchAddress("p1_rad", &laser.r_2);
@@ -234,6 +268,8 @@ int main(int argc, char *argv[])
 
   if (pt_rome_ctec != nullptr) {
 
+    flags.ctec_data = true;
+
     pt_rome_ctec->SetBranchAddress("Timestamp", &ctec.midas_time);
     pt_rome_ctec->SetBranchAddress("cap_0", &ctec.outer_lo);
     pt_rome_ctec->SetBranchAddress("cap_1", &ctec.inner_up);
@@ -241,11 +277,23 @@ int main(int argc, char *argv[])
     pt_rome_ctec->SetBranchAddress("cap_3", &ctec.outer_up);
   }
 
+  if (pt_rome_metro != nullptr) {
+
+    flags.metro_data = true;
+
+    pt_rome_metro->SetBranchAddress("Timestamp", &metro.midas_time);
+    pt_rome_metro->SetBranchAddress("Mtr1", &metro.field);
+    pt_rome_metro->SetBranchAddress("Mtr0", &metro.state);
+    pt_rome_metro->SetBranchAddress("Mtr2", &metro.units);
+  }
+
   if (pt_platform != nullptr) {
+    flags.platform_data = true;
     pt_platform->SetBranchAddress("shim_platform", &platform.sys_clock[0]);
   }
 
   if (pt_rome_envi != nullptr) {
+    flags.envi_data = true;
     pt_rome_envi->SetBranchAddress("Timestamp", &envi.midas_time);
     pt_rome_envi->SetBranchAddress("Temp0", &envi.temp[0]);
     pt_rome_envi->SetBranchAddress("Temp1", &envi.temp[1]);
@@ -262,7 +310,7 @@ int main(int argc, char *argv[])
   }
   
   if (pt_rome_tilt != nullptr) {
-
+    flags.tilt_data = true;
     pt_rome_tilt->SetBranchAddress("Timestamp", &tilt.midas_time);
     pt_rome_tilt->SetBranchAddress("Tilt0", &tilt.temp);
     pt_rome_tilt->SetBranchAddress("Tilt1", &tilt.phi);
@@ -270,14 +318,18 @@ int main(int argc, char *argv[])
   }
 
   int num_sync_events = 0;
+  cout << "num_sync_events = " << num_sync_events << endl;
+  
   if (pt_platform != nullptr) {
     num_sync_events = pt_platform->GetEntries();
+    cout << "num_sync_events = " << num_sync_events << endl;
   }
 
   if (pt_rome_laser != nullptr) {
     int nlaser = pt_rome_laser->GetEntries();
     if ((num_sync_events > nlaser) && (nlaser != 0)) {
       num_sync_events = pt_rome_laser->GetEntries();
+      cout << "num_sync_events = " << num_sync_events << endl;
     }
   }
 
@@ -285,6 +337,15 @@ int main(int argc, char *argv[])
     int nctec = pt_rome_ctec->GetEntries();
     if ((num_sync_events > nctec) && (nctec != 0)) {
       num_sync_events = pt_rome_ctec->GetEntries();
+      cout << "num_sync_events = " << num_sync_events << endl;
+    }
+  }
+
+  if (pt_rome_metro != nullptr) {
+    int nmetro = pt_rome_metro->GetEntries();
+    if ((num_sync_events > nmetro) && (nmetro != 0)) {
+      num_sync_events = pt_rome_metro->GetEntries();
+      cout << "num_sync_events = " << num_sync_events << endl;
     }
   }
 
@@ -299,12 +360,12 @@ int main(int argc, char *argv[])
 
       if (laser_point == string("P1")) {
         laser.phi_2 = laser.phi_1 + gm2::laser_phi_offset_p2_to_p1;
-        // RUN 1014 AND 1018 were labeled as pointing to P1, but actually pointing to P2
-        if (run_number == 1014 || run_number== 1018)
-          {
-            laser.phi_2 = laser.phi_1 ;// don't apply any offset 
-            laser.phi_1 = laser.phi_2 - gm2::laser_phi_offset_p2_to_p1;
-          }
+        // // RUN 1014 AND 1018 were labeled as pointing to P1, but actually pointing to P2
+        // if (run_number == 1014 || run_number== 1018)
+        //   {
+        //     laser.phi_2 = laser.phi_1 ;// don't apply any offset 
+        //     laser.phi_1 = laser.phi_2 - gm2::laser_phi_offset_p2_to_p1;
+        //   }
 
         if (laser.phi_2 >= 360.0) {
           laser.phi_2 -= 360.0;
@@ -322,6 +383,28 @@ int main(int argc, char *argv[])
 
     if (pt_rome_ctec != nullptr) {
       pt_rome_ctec->GetEntry(i);
+    }
+
+    if (pt_rome_metro != nullptr) {
+      pt_rome_metro->GetEntry(i);
+     
+      if (metro.state == 'L') {
+
+        metro.locked = true;
+
+      } else {
+
+        metro.locked = false;
+      }
+
+      if (metro.units == 'T') {
+
+        metro.is_tesla = true;
+
+      } else {
+
+        metro.is_tesla = false;
+      }
     }
 
     pt_sync->Fill();

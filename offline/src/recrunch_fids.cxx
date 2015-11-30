@@ -102,10 +102,14 @@ int main(int argc, char **argv)
   platform_t idata;
   hamar_t laser;
   capacitec_t ctec;
+  metrolab_t metro;
+  sync_flags_t flags;
 
   pt_sync->SetBranchAddress("platform", &idata.sys_clock[0]);
   pt_sync->SetBranchAddress("laser", &laser.midas_time);
   pt_sync->SetBranchAddress("ctec", &ctec.midas_time);
+  pt_sync->SetBranchAddress("metro", &metro.field);
+  pt_sync->SetBranchAddress("flags", &flags.platform_data);
 
   pf_out = new TFile(outfile.c_str(), "recreate");
   platform_t odata;
@@ -114,6 +118,8 @@ int main(int argc, char **argv)
   pt_out->Branch("platform", &odata.sys_clock[0], platform_str);
   pt_out->Branch("laser", &laser.midas_time, hamar_str);
   pt_out->Branch("ctec", &ctec.midas_time, capacitec_str);
+  pt_out->Branch("metro", &metro.field, metrolab_str);
+  pt_out->Branch("flags", &flags.platform_data, sync_flags_str);
 
   // Set the time vector.
   for (int i = 0; i < SHORT_FID_LN; ++i) {
