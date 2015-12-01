@@ -8,6 +8,7 @@ import time
 import copy
 from subprocess import call, Popen
 import hashlib
+import numpy as np
 
 import setproctitle
 import zmq
@@ -234,21 +235,17 @@ def full_scan_job_set(msg):
     jobs = [[]]
 
     job = {}
-    job['name'] = 'fix_probe_remap'
-    job['meta'] = datadir + '/crunched/.processing_metadata.json'
+    job['name'] = 'bundle_full_scan'
+    job['cmd'] = 'bin/bundle_full_scan %i' % run_num
+    job['meta'] = datadir + '/full_scans/.processing_metadata.json'
     job['dir'] = offline_dir
     job['clean'] = None
     job['deps'] = {}
 
-    with open(job['meta']) as f:
-        meta = json.loads(f.read())
+    runfile = datadir + '/full_scans/run_list_full_scan_%05i.txt' % run_num
+    runs = np.genfromtxt(runfile, dtype=np.int)
 
-    job['cmd'] = 'bin/bundle_full_scan '
-    job['cmd'] += 'data/full_scan/full_scan_%05i.root ' % run_num
-    job['cmd'] += 'data/crunched/ '
-
-    for run in meta['runs']:
-        job['cmd'] += '%i ' % run
+    for run in runs:
         job['deps'][datadir + '/crunched/run_%05i.root' % run] = None
 
     job['deps'][offline_dir + '/bin/bundle_full_scan'] = None
