@@ -1,26 +1,28 @@
-/********************************************************************\
+/*****************************************************************************\
 
   file:    bundle_full_scan.cxx
   author:  Matthias W. Smith
 
-  about:   Combine runs the comprise a full scan around the ring.
+  about:   Combine runs the runs that comprise a full scan 
+           around the ring.
 
-\********************************************************************/
+\*****************************************************************************/
 
-//--- std includes -------------------------------------------------//
+//--- std includes ----------------------------------------------------------//
 #include <string>
 #include <ctime>
 #include <cstdio>
 #include <sstream>
 #include <iostream>
+#include <fstream>
 #include <iomanip>
 #include <cassert>
 
-//--- other includes -----------------------------------------------//
+//--- other includes --------------------------------------------------------//
 #include "TFile.h"
 #include "TTree.h"
 
-//--- project includes ---------------------------------------------//
+//--- project includes ------------------------------------------------------//
 #include "shim_dataset.hh"
 
 using namespace std;
@@ -30,10 +32,15 @@ int main(int argc, char *argv[])
 {
   // The data i/o
   string outfile;
+  string runfile;
   string datadir;
+  string str;
   stringstream ss;
+  istringstream iss;
+  ifstream in;
   vector<ShimDataset> dvec;
   vector<int> run_numbers;
+  int full_scan_number;
 
   // Shim structs
   platform_t platform;
@@ -51,26 +58,42 @@ int main(int argc, char *argv[])
   TTree *pt_run;
 
   // Parse the i/o files
-  if (argc < 4) {
+  if (argc < 2) {
     cout << "Insufficent arguments, usage:" << endl;
-    cout << "bundle_full_scan <output-file> <input-data-dir> [run list]\n";
+    cout << "bundle_full_scan <full-scan-number>\n";
     exit(1);
   }
 
-  outfile = string(argv[1]);
-  datadir = string(argv[2]);
+  // Set the output and runfile names based on the full scan number.
+  full_scan_number = stoi(argv[1]);
+  datadir = string("data/crunched/");
 
-  if (datadir[datadir.size() - 1] != '/') {
-    datadir += string("/");
+  ss.str("");
+  ss << "data/full_scans/full_scan_run_" << std::setfill('0');
+  ss << std::setw(5) << full_scan_number << ".root";
+  outfile = ss.str();
+
+  ss.str("");
+  ss << "data/full_scans/run_list_full_scan_" << std::setfill('0');
+  ss << std::setw(5) << full_scan_number << ".txt";
+  runfile = ss.str();
+
+  // Load the run file and parse it into run_numbers vector.
+  in.open(runfile);
+  std::getline(in, str);
+  in.close();
+  iss.str(str);
+
+  while (std::getline(iss, str, ' ')) {
+    run_numbers.push_back(stoi(str.c_str()));
   }
 
-  for (int i = 3; i < argc; ++i) {
+  for (auto &run : run_numbers) {
     ss.str("");
     ss << datadir << "run_" << std::setfill('0') << std::setw(5);
-    ss << stoi(argv[i]) << ".root";
+    ss << run << ".root";
 
     cout << "loading " << ss.str() << endl;
-    run_numbers.push_back(stoi(argv[i]));
     dvec.push_back(ShimDataset(ss.str()));
   }
 
