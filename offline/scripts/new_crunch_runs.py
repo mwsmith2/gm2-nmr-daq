@@ -11,8 +11,7 @@ def main():
 
     info = {}
     info['run'] = 802
-    info['cmd'] = 'DONE'
-    info['opt'] = ''
+    info['type'] = 'normal'
 
     for i in xrange(1, len(sys.argv)):
 
