@@ -10,7 +10,7 @@ from subprocess import call, Popen
 import hashlib
 
 import setproctitle
-import zmq.green as zmq
+import zmq
 import gevent
 import midas
 
@@ -35,7 +35,7 @@ worker_sck.connect('tcp://127.0.0.1:44445')
 
 # Socket to query the scheduler.
 answer_sck = context.socket(zmq.REP)
-answer_sck.connect('tcp://127.0.0.1:44446')
+answer_sck.bind('tcp://127.0.0.1:44446')
 
 job_queue = {}
 req_queue = []
@@ -73,7 +73,11 @@ def main():
 
         if nevents[2]:
             while (answer_sck.poll(timeout=20)):
-                req_queue.append(answer_sck.recv_json())
+                try:
+                    req_queue.append(answer_sck.recv_json())
+
+                except(zmq.error.ZMQError):
+                    continue
         
         if all(n == 0 for n in nevents):
             parse_jobs()
@@ -85,117 +89,172 @@ def main():
 def parse_jobs():
     global msg_queue
     global job_queue
-    
+
     for msg in msg_queue:
 
-        run_num = msg['run']
-        job_queue[run_num] = [[], [], [], []]
-        
-        # Add ROME jobs first
-        cmd_prefix = "./midanalyzer.exe -i romeConfig.xml -r "
-        cmd_suffix = " -m offline -p 0 -q"
-        rome_dir = offline_dir + '/rome-analyzers'
+        if msg['type'] == 'normal':
 
-        job = {}
-        job['meta'] = datadir + '/rome/.processing_metadata.json'
-        job['cmd'] = cmd_prefix + str(run_num) + cmd_suffix
-        job['clean'] = 'rm histos%05i.root run%05i.root'
+            try:
+                job_queue[msg['run']]
 
-        if run_num < 787:
-            job['dir'] = rome_dir + '/sync'
-            job['name'] = 'sync'
-
-        else:
-            job['dir'] = rome_dir + '/sync_ext_ltrk'
-            job['name'] = 'sync_ext_ltrk'
-
-        job['deps'] = {}
-        job['deps'][job['dir'] + '/midanalyzer.exe'] = None
-        job_queue[run_num][0].append(job)
-
-        job = copy.copy(job)
-        job['name'] = 'ctec'
-        job['dir'] = rome_dir + '/ctec'
-        job['deps'] = {}
-        job['deps'][job['dir'] + '/midanalyzer.exe'] = None
-        job_queue[run_num][0].append(job)
-
-        job = copy.copy(job)
-        job['name'] = 'metroloab'
-        job['dir'] = rome_dir + '/metrolab'
-        job['deps'] = {}
-        job['deps'][job['dir'] + '/midanalyzer.exe'] = None
-        job_queue[run_num][0].append(job)
-
-        job = copy.copy(job)
-        job['name'] = 'slowcont'
-        job['dir'] = rome_dir + '/slowcont'
-        job['deps'] = {}
-        job['deps'][job['dir'] + '/midanalyzer.exe'] = None
-        job_queue[run_num][0].append(job)
-
-        job = copy.copy(job)
-        job['name'] = 'tilt'
-        job['dir'] = rome_dir + '/tilt'
-        job['deps'] = {}
-        job['deps'][job['dir'] + '/midanalyzer.exe'] = None
-        job_queue[run_num][0].append(job)
-
-        # Make sure run attributes are extracted.
-        job = {}
-        job['name'] = 'extract_run_attr'
-        job['dir'] = offline_dir
-        job['cmd'] = 'python scripts/extract_run_attr.py %i' % run_num
-        job['clean'] = None
-        job['meta'] = datadir + '/crunched/.processing_metadata.json'
-        job['deps'] = {}
-        job_queue[run_num][0].append(job)
-
-        # Now the data bundling job.
-        job = {}
-        job['name'] = 'shim_data_bundler'
-        job['cmd'] = 'bin/shim_data_bundler %i' % run_num
-        job['clean'] = None
-        job['dir'] = offline_dir
-        job['meta'] = datadir + '/shim/.processing_metadata.json'
-        job['deps'] = {}
-        job['deps'][offline_dir + '/bin/shim_data_bundler'] = None
-
-        for f in glob.glob('data/rome/*%05i.root' % run_num):
-            job['deps'][f] = None
-
-        for f in glob.glob('data/root/*%05i.root' % run_num):
-            job['deps'][f] = None
+            except(KeyError):
+                job_queue[msg['run']] = []
             
-        job_queue[run_num][1].append(job)
+            for jobs in normal_job_set(msg):
+                job_queue[msg['run']].append(jobs)
 
-        # Now reprocess the nmr platform data.
-        job = {}
-        job['name'] = 'crunched'
-        job['dir'] = offline_dir
-        job['cmd'] = 'bin/recrunch_fids data/shim/run_%05i.root' % run_num
-        job['clean'] = None
-        job['meta'] = datadir + '/crunched/.processing_metadata.json'
-        job['deps'] = {}
-        job['deps'][offline_dir + '/bin/recrunch_fids'] = None
-        job['deps'][datadir + '/shim/run_%05i.root' % run_num] = None
-        job_queue[run_num][2].append(job)
+        if msg['type'] == 'full_scan':
 
-        # Finally apply fixes.
-        job = {}
-        job['name'] = 'fix_probe_remap'
-        job['dir'] = offline_dir
-        job['cmd'] = 'bin/fix_run_probe_map '
-        job['cmd'] += 'data/crunched/run_%05i.root' % run_num
-        job['cmd'] += 'data/crunched/ %i' % run_num
-        job['clean'] = None
-        job['meta'] = datadir + '/crunched/.processing_metadata.json'
-        job['deps'] = {}
-        job['deps'][offline_dir + '/bin/recrunch_fids'] = None
-        job['deps'][datadir + '/shim/run_%05i.root' % run_num] = None
-        job_queue[run_num][3].append(job)
+            try:
+                job_queue[msg['run']]
+
+            except(KeyError):
+                job_queue[msg['run']] = []
+            
+            for jobs in full_scan_job_set(msg):
+                job_queue[msg['run']].append(jobs)
 
         msg_queue.remove(msg)
+
+
+def normal_job_set(msg):
+
+    run_num = msg['run']
+    jobs = [[], [], [], []]
+        
+    # Add ROME jobs first
+    cmd_prefix = "./midanalyzer.exe -i romeConfig.xml -r "
+    cmd_suffix = " -m offline -p 0 -q"
+    rome_dir = offline_dir + '/rome-analyzers'
+
+    job = {}
+    job['meta'] = datadir + '/rome/.processing_metadata.json'
+    job['cmd'] = cmd_prefix + str(run_num) + cmd_suffix
+    job['clean'] = 'rm histos%05i.root run%05i.root'
+
+    if run_num < 787:
+        job['dir'] = rome_dir + '/sync'
+        job['name'] = 'sync'
+
+    else:
+        job['dir'] = rome_dir + '/sync_ext_ltrk'
+        job['name'] = 'sync_ext_ltrk'
+
+    job['deps'] = {}
+    job['deps'][job['dir'] + '/midanalyzer.exe'] = None
+    jobs[0].append(job)
+
+    job = copy.copy(job)
+    job['name'] = 'ctec'
+    job['dir'] = rome_dir + '/ctec'
+    job['deps'] = {}
+    job['deps'][job['dir'] + '/midanalyzer.exe'] = None
+    jobs[0].append(job)
+    
+    job = copy.copy(job)
+    job['name'] = 'metrolab'
+    job['dir'] = rome_dir + '/metrolab'
+    job['deps'] = {}
+    job['deps'][job['dir'] + '/midanalyzer.exe'] = None
+    jobs[0].append(job)
+    
+    job = copy.copy(job)
+    job['name'] = 'slowcont'
+    job['dir'] = rome_dir + '/slowcont'
+    job['deps'] = {}
+    job['deps'][job['dir'] + '/midanalyzer.exe'] = None
+    jobs[0].append(job)
+
+    job = copy.copy(job)
+    job['name'] = 'tilt'
+    job['dir'] = rome_dir + '/tilt'
+    job['deps'] = {}
+    job['deps'][job['dir'] + '/midanalyzer.exe'] = None
+    jobs[0].append(job)
+    
+    # Make sure run attributes are extracted.
+    job = {}
+    job['name'] = 'extract_run_attr'
+    job['dir'] = offline_dir
+    job['cmd'] = 'python scripts/extract_run_attr.py %i' % run_num
+    job['clean'] = None
+    job['meta'] = datadir + '/crunched/.processing_metadata.json'
+    job['deps'] = {}
+    jobs[0].append(job)
+    
+    # Now the data bundling job.
+    job = {}
+    job['name'] = 'shim_data_bundler'
+    job['cmd'] = 'bin/shim_data_bundler %i' % run_num
+    job['clean'] = None
+    job['dir'] = offline_dir
+    job['meta'] = datadir + '/shim/.processing_metadata.json'
+    job['deps'] = {}
+    job['deps'][offline_dir + '/bin/shim_data_bundler'] = None
+
+    for f in glob.glob('data/rome/*%05i.root' % run_num):
+        job['deps'][f] = None
+
+    for f in glob.glob('data/root/*%05i.root' % run_num):
+        job['deps'][f] = None
+            
+    jobs[1].append(job)
+
+    # Now reprocess the nmr platform data.
+    job = {}
+    job['name'] = 'crunched'
+    job['dir'] = offline_dir
+    job['cmd'] = 'bin/recrunch_fids data/shim/run_%05i.root' % run_num
+    job['clean'] = None
+    job['meta'] = datadir + '/crunched/.processing_metadata.json'
+    job['deps'] = {}
+    job['deps'][offline_dir + '/bin/recrunch_fids'] = None
+    job['deps'][datadir + '/shim/run_%05i.root' % run_num] = None
+    jobs[2].append(job)
+
+    # Finally apply fixes.
+    job = {}
+    job['name'] = 'fix_probe_remap'
+    job['dir'] = offline_dir
+    job['cmd'] = 'bin/fix_run_probe_map '
+    job['cmd'] += 'data/crunched/run_%05i.root' % run_num
+    job['cmd'] += 'data/crunched/ %i' % run_num
+    job['clean'] = None
+    job['meta'] = datadir + '/crunched/.processing_metadata.json'
+    job['deps'] = {}
+    job['deps'][offline_dir + '/bin/recrunch_fids'] = None
+    job['deps'][datadir + '/shim/run_%05i.root' % run_num] = None
+    jobs[3].append(job)
+
+    return jobs
+
+def full_scan_job_set(msg):
+
+    run_num = msg['run']
+    jobs = [[]]
+
+    job = {}
+    job['name'] = 'fix_probe_remap'
+    job['meta'] = datadir + '/crunched/.processing_metadata.json'
+    job['dir'] = offline_dir
+    job['clean'] = None
+    job['deps'] = {}
+
+    with open(job['meta']) as f:
+        meta = json.loads(f.read())
+
+    job['cmd'] = 'bin/bundle_full_scan '
+    job['cmd'] += 'data/full_scan/full_scan_%05i.root ' % run_num
+    job['cmd'] += 'data/crunched/ '
+
+    for run in meta['runs']:
+        job['cmd'] += '%i ' % run
+        job['deps'][datadir + '/crunched/run_%05i.root' % run] = None
+
+    job['deps'][offline_dir + '/bin/bundle_full_scan'] = None
+    jobs[0].append(job)
+        
+    return jobs
 
 
 def check_job(run_num, job):
@@ -245,6 +304,20 @@ def check_job(run_num, job):
     else:
         return True
 
+def check_job_set(run_num, job_set):
+    
+    for jobs in job_set:
+
+        for job in jobs:
+
+            if check_job(run_num, job) == True:
+                return True
+
+            else:
+                pass
+
+    return False
+
 
 def spawn_jobs():
     global job_queue
@@ -266,11 +339,14 @@ def spawn_jobs():
         if len(job_queue[run]) == 0:
             del job_queue[run]
             continue
+        
+        if len(workers) > nworkers:
+            return
 
         for job in job_queue[run][0]:
 
             # Make sure the job isn't running already.
-            print [worker[2]['name'] for worker in workers]
+            print [(worker[1], worker[2]['name']) for worker in workers]
             if job in [worker[2] for worker in workers]:
                 continue
 
@@ -314,11 +390,13 @@ def write_reps():
         
         rep = {}
 
-        if req['type'] == 'job':
+        if req['type'] == 'check':
             
-            if check_job(req['body']):
-                rep['result'] = True
-
+            if req['body']['type'] == 'normal':
+                job_set = normal_job_set(req['body']['msg'])
+                run_num = req['body']['msg']['run']
+                rep['result'] = check_job_set(run_num, job_set)
+            
             else:
                 rep['result'] = False
 
@@ -328,12 +406,18 @@ def write_reps():
                 rep['result'] = nworkers
             
             elif req['body'] == 'njobs':
-                req['result'] = len(job_queue)
+                rep['result'] = len(job_queue)
             
             else:
-                req['result'] = None
+                rep['result'] = None
 
-        answer.send_json(req)
+        try:
+            answer_sck.send_json(rep)
+
+        except(zmq.error.ZMQError):
+            pass
+
+        req_queue.remove(req)
             
 
 def write_logs():
