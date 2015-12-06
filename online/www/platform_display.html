@@ -5,6 +5,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
 <script src="https://rawgithub.com/d3/d3-plugins/master/cubehelix/cubehelix.js"></script>
 <script src="http://square.github.com/cubism/cubism.v1.min.js?1.0.0"></script>
+<script src="mhttpd.js"></script>
 <style>
 .axis {
   font: 10px sans-serif;
@@ -433,6 +434,10 @@ test_data = {
             var val = Math.random() <= 0.9;
             data[i].health = alpha * val + (1.0 - alpha) * data[i].health;
         }
+        ph = ODBGet("Custom/Data/shim-platform/health", "%f", 0.0, 25, "TID_WORD");
+        for (var i = 0; i < data.length; ++i) {
+            data[i].health = alpha * ph[i] + (1.0 - alpha) * data[i].health;
+        } 
         platform_probes.data(data).transition('platform-color')
             .duration(500)
             .style('fill', function(d, i) {
