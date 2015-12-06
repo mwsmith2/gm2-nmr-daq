@@ -46,8 +46,10 @@ int main(int argc, char *argv[])
   platform_t platform;
   hamar_t laser;
   capacitec_t ctec;
+  sync_flags_t flags;
   scs2000_t envi;
   tilt_sensor_t tilt;
+  metrolab_t mlab;
   int run_number;
 
   // ROOT stuff
@@ -55,6 +57,7 @@ int main(int argc, char *argv[])
   TTree *pt_sync;
   TTree *pt_envi;
   TTree *pt_tilt;
+  TTree *pt_mlab;
   TTree *pt_run;
 
   // Parse the i/o files
@@ -102,11 +105,13 @@ int main(int argc, char *argv[])
   pt_sync = new TTree("t_sync", "Synchronous Shim Data");
   pt_envi = new TTree("t_envi", "Asynchronous SCS200 Data");
   pt_tilt = new TTree("t_tilt", "Asynchronous Tilt Sensor Data");
+  pt_mlab = new TTree("t_mlab", "Asynchronous Metrolab Data");
 
   // Attach the branches to the new output.
   pt_sync->Branch("platform", &platform, gm2::platform_str);
   pt_sync->Branch("laser", &laser, gm2::hamar_str);
   pt_sync->Branch("ctec", &ctec, gm2::capacitec_str);
+  pt_sync->Branch("flags", &flags, gm2::sync_flags_str);
   pt_sync->Branch("run_number", &run_number, "run_number/I");
 
   pt_envi->Branch("envi", &envi, gm2::scs2000_str);
@@ -114,6 +119,9 @@ int main(int argc, char *argv[])
 
   pt_tilt->Branch("tilt", &tilt, gm2::tilt_sensor_str);
   pt_tilt->Branch("run_number", &run_number, "run_number/I");
+
+  pt_mlab->Branch("mlab", &mlab, gm2::metrolab_str);
+  pt_mlab->Branch("run_number", &run_number, "run_number/I");
 
   for (int idx = 0; idx < dvec.size(); ++idx) {
 
@@ -123,6 +131,7 @@ int main(int argc, char *argv[])
       platform = dvec[idx][i].platform;
       laser = dvec[idx][i].laser;
       ctec = dvec[idx][i].ctec;
+      flags = dvec[idx][i].flags;
       run_number = run_numbers[idx];
 
       pt_sync->Fill();
@@ -144,11 +153,20 @@ int main(int argc, char *argv[])
 
       pt_tilt->Fill();
     }    
+
+    for (int i = 0; i < dvec[idx].GetMlabEntries(); ++i) {
+      
+      mlab = dvec[idx][i].mlab;
+      run_number = run_numbers[idx];
+
+      pt_mlab->Fill();
+    }    
   }
 
   pt_sync->Write();  
   pt_envi->Write();
   pt_tilt->Write();
+  pt_mlab->Write();
 
   pf->Write();
   pf->Close();
