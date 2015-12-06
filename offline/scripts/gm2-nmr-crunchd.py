@@ -57,9 +57,9 @@ def main():
     while True:
         jobs = []
 
-        jobs.append(gevent.spawn(crunch_sck.poll, timeout=250))
-        jobs.append(gevent.spawn(logger_sck.poll, timeout=250))
-        jobs.append(gevent.spawn(answer_sck.poll, timeout=250))
+        jobs.append(gevent.spawn(crunch_sck.poll, timeout=100))
+        jobs.append(gevent.spawn(logger_sck.poll, timeout=100))
+        jobs.append(gevent.spawn(answer_sck.poll, timeout=100))
         gevent.joinall(jobs)
 
         nevents = [job.value for job in jobs]
@@ -122,6 +122,7 @@ def normal_job_set(msg):
 
     run_num = msg['run']
     jobs = [[], [], [], []]
+    new_dep = {'time': None, 'md5': None}
         
     # Add ROME jobs first
     cmd_prefix = "./midanalyzer.exe -i romeConfig.xml -r "
@@ -142,35 +143,35 @@ def normal_job_set(msg):
         job['name'] = 'sync_ext_ltrk'
 
     job['deps'] = {}
-    job['deps'][job['dir'] + '/midanalyzer.exe'] = None
+    job['deps'][job['dir'] + '/midanalyzer.exe'] = new_dep
     jobs[0].append(job)
 
     job = copy.copy(job)
     job['name'] = 'ctec'
     job['dir'] = rome_dir + '/ctec'
     job['deps'] = {}
-    job['deps'][job['dir'] + '/midanalyzer.exe'] = None
+    job['deps'][job['dir'] + '/midanalyzer.exe'] = new_dep
     jobs[0].append(job)
     
     job = copy.copy(job)
     job['name'] = 'metrolab'
     job['dir'] = rome_dir + '/metrolab'
     job['deps'] = {}
-    job['deps'][job['dir'] + '/midanalyzer.exe'] = None
+    job['deps'][job['dir'] + '/midanalyzer.exe'] = new_dep
     jobs[0].append(job)
     
     job = copy.copy(job)
     job['name'] = 'slowcont'
     job['dir'] = rome_dir + '/slowcont'
     job['deps'] = {}
-    job['deps'][job['dir'] + '/midanalyzer.exe'] = None
+    job['deps'][job['dir'] + '/midanalyzer.exe'] = new_dep
     jobs[0].append(job)
 
     job = copy.copy(job)
     job['name'] = 'tilt'
     job['dir'] = rome_dir + '/tilt'
     job['deps'] = {}
-    job['deps'][job['dir'] + '/midanalyzer.exe'] = None
+    job['deps'][job['dir'] + '/midanalyzer.exe'] = new_dep
     jobs[0].append(job)
     
     # Make sure run attributes are extracted.
@@ -191,13 +192,13 @@ def normal_job_set(msg):
     job['dir'] = offline_dir
     job['meta'] = datadir + '/shim/.processing_metadata.json'
     job['deps'] = {}
-    job['deps'][offline_dir + '/bin/shim_data_bundler'] = None
+    job['deps'][offline_dir + '/bin/shim_data_bundler'] = new_dep
 
     for f in glob.glob('data/rome/*%05i.root' % run_num):
-        job['deps'][f] = None
+        job['deps'][f] = new_dep
 
     for f in glob.glob('data/root/*%05i.root' % run_num):
-        job['deps'][f] = None
+        job['deps'][f] = new_dep
             
     jobs[1].append(job)
 
@@ -209,8 +210,8 @@ def normal_job_set(msg):
     job['clean'] = None
     job['meta'] = datadir + '/crunched/.processing_metadata.json'
     job['deps'] = {}
-    job['deps'][offline_dir + '/bin/recrunch_fids'] = None
-    job['deps'][datadir + '/shim/run_%05i.root' % run_num] = None
+    job['deps'][offline_dir + '/bin/recrunch_fids'] = new_dep
+    job['deps'][datadir + '/shim/run_%05i.root' % run_num] = new_dep
     jobs[2].append(job)
 
     # Finally apply fixes.
@@ -223,8 +224,8 @@ def normal_job_set(msg):
     job['clean'] = None
     job['meta'] = datadir + '/crunched/.processing_metadata.json'
     job['deps'] = {}
-    job['deps'][offline_dir + '/bin/recrunch_fids'] = None
-    job['deps'][datadir + '/shim/run_%05i.root' % run_num] = None
+    job['deps'][offline_dir + '/bin/recrunch_fids'] = new_dep
+    job['deps'][datadir + '/shim/run_%05i.root' % run_num] = new_dep
     jobs[3].append(job)
 
     return jobs
@@ -233,6 +234,7 @@ def full_scan_job_set(msg):
 
     run_num = msg['run']
     jobs = [[]]
+    new_dep = {'time': None, 'md5': None}
 
     job = {}
     job['name'] = 'bundle_full_scan'
@@ -246,9 +248,9 @@ def full_scan_job_set(msg):
     runs = np.genfromtxt(runfile, dtype=np.int)
 
     for run in runs:
-        job['deps'][datadir + '/crunched/run_%05i.root' % run] = None
+        job['deps'][datadir + '/crunched/run_%05i.root' % run] = new_dep
 
-    job['deps'][offline_dir + '/bin/bundle_full_scan'] = None
+    job['deps'][offline_dir + '/bin/bundle_full_scan'] = new_dep
     jobs[0].append(job)
         
     return jobs
@@ -257,12 +259,6 @@ def full_scan_job_set(msg):
 def check_job(run_num, job):
 
     run_key = str(run_num).zfill(5)
-
-    for fkey in job['deps'].keys():
-        with open(fkey) as f:
-            md5sum = hashlib.md5(f.read()).hexdigest()
-
-        job['deps'][fkey] = md5sum
             
     try:
         f = open(job['meta'], 'r')
@@ -280,26 +276,83 @@ def check_job(run_num, job):
             metadata = json.load(f)[run_key][job['name']]
 
         except(KeyError):
-            print 'Failed to load metadata for run %s.' % run_key
+            print 'Failed to load job metadata for run %s.' % run_key
+
+            for fkey in job['deps'].keys():
+
+                # Add the modification time stamp
+                s = os.stat(fkey)
+                job['deps'][fkey]['time'] = s.st_mtime
+
+                # Compute the check sum.
+                with open(fkey) as f:
+                    md5sum = hashlib.md5(f.read()).hexdigest()
+            
+                    job['deps'][fkey]['md5'] = md5sum
+
             return True
 
     for fkey in job['deps'].keys():
 
+        # Open a handle for filestats
+        s = os.stat(fkey)
+
+        # Make sure the dependency isn't new.
         try:
-            if metadata['deps'][fkey] != job['deps'][fkey]:
-                print 'Check sum did not match, reanalyzing.'
-                metadata['attempted'] = False
+            metadata['deps'][fkey]
 
         except(KeyError):
             print 'A new dependency has been added, reanalyzing.'
-            metadata['attempted'] = False            
+            metadata['attempted'] = False
+
+            # Add the modification time stamp
+            job['deps'][fkey]['time'] = s.st_mtime
+
+            # Compute the check sum.
+            with open(fkey) as f:
+                md5sum = hashlib.md5(f.read()).hexdigest()
+            
+            job['deps'][fkey]['md5'] = md5sum
+            continue
+
+        # Next check the timestamp.
+        if s.st_mtime != metadata['deps'][fkey]['time']:
+            print 'File modification time changed. Computing checksum.'
+            job['deps'][fkey]['time'] = s.st_mtime
+
+            # Compute the check sum to see if the file really changed.
+            with open(fkey) as f:
+                md5sum = hashlib.md5(f.read()).hexdigest()
+            
+            job['deps'][fkey]['md5'] = md5sum
+
+            if metadata['deps'][fkey]['md5'] != md5sum:
+                metadata['attempted'] = False
+
+            else:
+                metadata['attempted'] = True
+
+        else:
+            # The files haven't changed.
+            job['deps'][fkey] = metadata['deps'][fkey]
 
     if metadata['attempted']:
         print 'Already ran %s for run %s' % (job['name'], run_key)
+
+        # Update the metadata just in case.
+        msg = {}
+        msg['info'] = job['meta']
+        msg['run'] = str(run_num).zfill(5)
+        msg['log'] = {}
+        msg['log'][job['name']] = {'attempted': True}
+        msg['log'][job['name']]['deps'] = job['deps']
+        worker_sck.send(json.dumps(msg))
+
         return False
 
     else:
         return True
+
 
 def check_job_set(run_num, job_set):
     
