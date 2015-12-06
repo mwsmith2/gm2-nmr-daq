@@ -69,7 +69,7 @@ def main():
         if len(sys.argv) > 2:
             for i in range(2, len(sys.argv)):
                 run = int(sys.argv[i])
-                runfile = datadir + 'full_scans/run_list%05i.txt' % run
+                runfile = datadir + 'full_scans/run_list_full_scan_%05i.txt' % run
                 runfiles.append(runfile)
 
         # If not, check all of them.
