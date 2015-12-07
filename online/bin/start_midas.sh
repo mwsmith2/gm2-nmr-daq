@@ -20,7 +20,8 @@ for mu in "${MIDAS_UTIL[@]}"; do
             screen -S "${EXPT}.mserver" -p 0 -rX stuff "$cmd";;
         
         'mhttpd')
-            cmd="mhttpd  -e $EXPT $addresslist --mg $MHTTPD_PORT$(printf \\r)"
+            cmd="mhttpd -e $EXPT $addresslist --http $MHTTPD_HTTP"
+            cmd="$cmd --https $MHTTPD_HTTPS $(printf \\r)"
             screen -dmS "${EXPT}.mhttpd"
             screen -S "${EXPT}.mhttpd" -p 0 -rX stuff "$cmd";;
         
