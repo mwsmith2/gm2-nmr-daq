@@ -6,10 +6,12 @@ import json
 import glob
 import time
 import copy
-from subprocess import call, Popen
+import logging as log
 import hashlib
-import numpy as np
 
+from subprocess import call, Popen
+
+import numpy as np
 import setproctitle
 import zmq
 import gevent
@@ -47,51 +49,71 @@ workers = []
 
 def main():
 
-    # Move into the offline directory.
-    os.chdir(offline_dir)
-
     # Set the process name, so that we check if it's running.
     setproctitle.setproctitle('gm2-nmr-crunchd')
 
+    # Move into the offline directory.
+    os.chdir(offline_dir)
+
+    # Configure the log file.
+    if len(sys.argv) > 1:
+        log.basicConfig(filename=sys.argv[1],
+                        format='[%(asctime)s]: %(levelname)s, %(message)s',
+                        level=log.INFO)
+
+    else:
+        log.basicConfig(filename='crunchd.log',
+                        format='[%(asctime)s]: %(levelname)s, %(message)s',
+                        level=log.INFO)
+
+    log.info('gm2-nmr-crunchd has started')
+
+    polltime = 20
+        
     # Now process jobs as they come.
     while True:
         jobs = []
 
-        jobs.append(gevent.spawn(crunch_sck.poll, timeout=100))
-        jobs.append(gevent.spawn(logger_sck.poll, timeout=100))
-        jobs.append(gevent.spawn(answer_sck.poll, timeout=100))
+        jobs.append(gevent.spawn(crunch_sck.poll, timeout=polltime))
+        jobs.append(gevent.spawn(logger_sck.poll, timeout=polltime))
+        jobs.append(gevent.spawn(answer_sck.poll, timeout=polltime))
         gevent.joinall(jobs)
-
+        
+        # Put number of messages into an array.
         nevents = [job.value for job in jobs]
 
+        # Get all messages for each socket.
         if nevents[0]:
-            while (crunch_sck.poll(timeout=20)):
+            while (crunch_sck.poll(timeout=polltime)):
                 msg_queue.append(crunch_sck.recv_json())
         
         if nevents[1]:
-            while (logger_sck.poll(timeout=20)):
+            while (logger_sck.poll(timeout=polltime)):
                 log_queue.append(logger_sck.recv_json())
 
         if nevents[2]:
-            while (answer_sck.poll(timeout=20)):
+            while (answer_sck.poll(timeout=polltime)):
                 try:
                     req_queue.append(answer_sck.recv_json())
 
                 except(zmq.error.ZMQError):
                     continue
         
-        if all(n == 0 for n in nevents):
-            parse_jobs()
-            spawn_jobs()
-            write_reps()
-            write_logs()
+        # Start working on some of the jobs.
+        parse_jobs()
+        spawn_jobs()
+        write_reps()
+        write_logs()
 
 
 def parse_jobs():
     global msg_queue
     global job_queue
 
-    for msg in msg_queue:
+    # Process the first 10
+    maxcount = 10
+
+    for count, msg in enumerate(msg_queue):
 
         if msg['type'] == 'normal':
 
@@ -115,10 +137,16 @@ def parse_jobs():
             for jobs in full_scan_job_set(msg):
                 job_queue[msg['run']].append(jobs)
 
+        # Remove the processed message.
         msg_queue.remove(msg)
+
+        # Break afer a max count of messages.
+        if count >= maxcount:
+            break
 
 
 def normal_job_set(msg):
+    """Generate the set of jobs associated with normal runs."""
 
     run_num = msg['run']
     jobs = [[], [], [], []]
@@ -234,7 +262,7 @@ def full_scan_job_set(msg):
 
     run_num = msg['run']
     jobs = [[]]
-    new_dep = {'time': None, 'md5': None}
+    new_dep = {'time': -1, 'md5': -1}
 
     job = {}
     job['name'] = 'bundle_full_scan'
@@ -265,7 +293,7 @@ def check_job(run_num, job):
         f.close()
 
     except(IOError):
-        print '%s did not exist, creating it.' % job['meta']
+        log.info('%s did not exist, creating it' % job['meta'])
         f = open(job['meta'], 'w')
         f.write(json.dumps({}))
         f.close()
@@ -276,7 +304,7 @@ def check_job(run_num, job):
             metadata = json.load(f)[run_key][job['name']]
 
         except(KeyError):
-            print 'Failed to load job metadata for run %s.' % run_key
+            log.info('failed to load job metadata for run %s' % run_key)
 
             for fkey in job['deps'].keys():
 
@@ -302,7 +330,7 @@ def check_job(run_num, job):
             metadata['deps'][fkey]
 
         except(KeyError):
-            print 'A new dependency has been added, reanalyzing.'
+            log.info('new dependency, %s, reanalyzing' % fkey)
             metadata['attempted'] = False
 
             # Add the modification time stamp
@@ -317,7 +345,8 @@ def check_job(run_num, job):
 
         # Next check the timestamp.
         if s.st_mtime != metadata['deps'][fkey]['time']:
-            print 'File modification time changed. Computing checksum.'
+            log.info('current file: %s' % fkey)
+            log.info('last modification time changed. Computing checksum')
             job['deps'][fkey]['time'] = s.st_mtime
 
             # Compute the check sum to see if the file really changed.
@@ -327,6 +356,7 @@ def check_job(run_num, job):
             job['deps'][fkey]['md5'] = md5sum
 
             if metadata['deps'][fkey]['md5'] != md5sum:
+                log.info('Checksum did not match, reanalyzing')
                 metadata['attempted'] = False
 
             else:
@@ -337,7 +367,7 @@ def check_job(run_num, job):
             job['deps'][fkey] = metadata['deps'][fkey]
 
     if metadata['attempted']:
-        print 'Already ran %s for run %s' % (job['name'], run_key)
+        log.info('already ran %s for run %s' % (job['name'], run_key))
 
         # Update the metadata just in case.
         msg = {}
@@ -377,6 +407,8 @@ def spawn_jobs():
         if worker[0].poll() is not None:
             job_queue[worker[1]][0].remove(worker[2])
             workers.remove(worker)
+            # Log when workers change
+            log.info([(w[1], w[2]['name']) for w in workers])
 
     if len(workers) >= nworkers:
         return
@@ -396,14 +428,13 @@ def spawn_jobs():
         for job in job_queue[run][0]:
 
             # Make sure the job isn't running already.
-            print [(worker[1], worker[2]['name']) for worker in workers]
             if job in [worker[2] for worker in workers]:
                 continue
 
             logdir = odb.get_value('/Logger/Log dir').rstrip()
             fdump = open(logdir + '/crunchd.dump', 'a')
 
-            print "Starting job %s for run %05i." % (job['name'], int(run))
+            log.info("Starting job %s for run %05i." % (job['name'], int(run)))
             
             if check_job(run, job) == True:
 
@@ -416,6 +447,9 @@ def spawn_jobs():
                                shell=True)
 
                 workers.append((worker, run, job))
+
+                # Log when workers change
+                log.info([(w[1], w[2]['name']) for w in workers])
 
             else:
                 job_queue[run][0].remove(job)
@@ -436,7 +470,10 @@ def spawn_jobs():
 def write_reps():
     """Write replies back for queries to on answer socket."""
 
-    for req in req_queue:
+    # Process the first 10
+    maxcount = 10
+
+    for count, req in enumerate(req_queue):
         
         rep = {}
 
@@ -468,13 +505,19 @@ def write_reps():
             pass
 
         req_queue.remove(req)
+
+        if count > maxcount:
+            break
             
 
 def write_logs():
     """Write data to the log file for crunchd."""
     global log_queue
 
-    for msg in log_queue:
+    # Process the first 10
+    maxcount = 10
+    
+    for count, msg in enumerate(log_queue):
         
         loginfo = {}
 
@@ -501,6 +544,9 @@ def write_logs():
             f.write(json.dumps(metadata, indent=2, sort_keys=True))
 
         log_queue.remove(msg)
+
+        if count > maxcount:
+            break
 
 
 if __name__ == '__main__':
