@@ -9,7 +9,7 @@ then
     echo "gm2-nmr-crunchd is running."
 else
     echo "Restarting gm2-nmr-crunchd."
-    python scripts/gm2-nmr-crunchd.py &>> ${1} &
+    python scripts/gm2-nmr-crunchd.py ${1} &
 fi
 
 # end script
