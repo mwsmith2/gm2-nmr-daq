@@ -14,10 +14,10 @@ def main():
     # Create the ZMQ sockets that talk to the job scheduler.
     ctx = zmq.Context()
     job_sck = ctx.socket(zmq.PUSH)
-    job_sck.connect('tcp://localhost:44444')
+    job_sck.connect('tcp://127.0.0.1:44444')
 
     req_sck = ctx.socket(zmq.REQ)
-    req_sck.connect('tcp://localhost:44446')
+    req_sck.connect('tcp://127.0.0.1:44446')
 
     # Grab the data directory from the experiment's ODB.
     odb = midas.ODB('gm2-nmr')
