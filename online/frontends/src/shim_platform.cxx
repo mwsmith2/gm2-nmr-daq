@@ -145,6 +145,8 @@ std::atomic<bool> thread_live;
 std::thread trigger_thread;
 std::mutex data_mutex;
 
+boost::property_tree::ptree conf;
+
 daq::shim_platform_st data; // st = short trace
 daq::EventManagerTrgSeq *event_manager;
 daq::SyncClient *readout_listener;
@@ -164,8 +166,6 @@ void trigger_loop();
 //--- Frontend Init -------------------------------------------------//
 INT frontend_init() 
 {
-  printf("\t\t\tInitializing the frontend via frontend_init()\n");
-  
   //DATA part
   string conf_dir;
   string conf_file;
@@ -173,62 +173,89 @@ INT frontend_init()
   INT status, tmp;
   char str[256], filename[256];
   int size;
-  
+
   // Get the config directory and file.
   cm_get_experiment_database(&hDB, NULL);
-  db_find_key(hDB, 0, "Params/config-dir", &hkey);
-    
-  if (hkey) {
-    size = sizeof(str);
-    db_get_data(hDB, hkey, str, &size, TID_STRING);
-    if (str[strlen(str) - 1] != DIR_SEPARATOR) {
-      strcat(str, DIR_SEPARATOR_STR);
-    }
-  }
 
-  conf_dir = std::string(str);
-
-  db_find_key(hDB, 0, "Params/config-file/shim-platform", &hkey);
+  // Load the config from the ODB as json format.
+  size = 0x1000;
+  int bytes_written = 0;
+  char tmp_file[128];
+  char *json_buf = new char[0x1000];
+  boost::property_tree::ptree pt;
+  std::stringstream ss;  
+  db_find_key(hDB, 0, "Params/json/shim-platform", &hkey);
+  
   if (hkey) {
-    size = sizeof(str);
-    db_get_data(hDB, hkey, str, &size, TID_STRING);
-    
-    conf_file = conf_dir + std::string(str);
-    
+    db_copy_json_values(hDB, hkey, &json_buf, &size, &bytes_written);
+
   } else {
 
-    conf_file = conf_dir + std::string("fnal/fe_shim_platform.json");
+    cm_msg(MERROR, frontend_name, "failed to load configuration from ODB");
+    exit(1);
   }
+
+  // Store it in a property tree.
+  ss << json_buf;
+  boost::property_tree::read_json(ss, conf);
+
+  // Save each config to a temp file and before going to the Event Manager.
+  // First, trg_seq_file
+  snprintf(tmp_file, 128, "/tmp/gm2-nmr-config_XXXXXX.json");
+  mkstemps(tmp_file, 5);
+  conf_file = std::string(tmp_file);
+
+  // Copy the json, and set to the temp file.
+  pt = conf.get_child("trg_seq_file");
+  conf.erase("trg_seq_file");
+  conf.put<std::string>("trg_seq_file", conf_file);
+  boost::property_tree::write_json(conf_file, pt);
+
+  // Now the mux configuration
+  snprintf(tmp_file, 128, "/tmp/gm2-nmr-config_XXXXXX.json");
+  mkstemps(tmp_file, 5);
+  conf_file = std::string(tmp_file);
+
+  // Copy the json, and set to the temp file.
+  pt = conf.get_child("mux_conf_file");
+  conf.erase("mux_conf_file");
+  conf.put<std::string>("mux_conf_file",  conf_file);
+  boost::property_tree::write_json(conf_file, pt);
+
+  // And the fid params.
+  snprintf(tmp_file, 128, "/tmp/gm2-nmr-config_XXXXXX.json");
+  mkstemps(tmp_file, 5);
+  conf_file = std::string(tmp_file);
+
+  // Copy the json, and set to the temp file.
+  pt = conf.get_child("fid_conf_file");
+  conf.erase("fid_conf_file");
+  conf.put<std::string>("fid_conf_file", conf_file);
+  boost::property_tree::write_json(conf_file, pt);
+
+  // And finally the stepper motor.
+  snprintf(tmp_file, 128, "/tmp/gm2-nmr-config_XXXXXX.json");
+  mkstemps(tmp_file, 5);
+  conf_file = std::string(tmp_file);
+
+  // Copy the json, and set to the temp file.
+  pt = conf.get_child("stepper_motor_file");
+  conf.erase("stepper_motor_file");
+  conf.put<std::string>("stepper_motor_file", conf_file);
+  boost::property_tree::write_json(conf_file, pt);
+
+  // Now save the config to a temp file and feed it to the Event Manager.
+  snprintf(tmp_file, 128, "/tmp/gm2-nmr-config_XXXXXX.json");
+  mkstemps(tmp_file, 5);
+  conf_file = std::string(tmp_file);
+  boost::property_tree::write_json(conf_file, conf);
 
   // Set up the stepper motor.
   event_manager = new daq::EventManagerTrgSeq(conf_file, nprobes);
 
-  db_find_key(hDB, 0, "Params/config-file/stepper-motor", &hkey);
-  if (hkey) {
-    size = sizeof(str);
-    db_get_data(hDB, hkey, str, &size, TID_STRING);
-    
-    conf_file = conf_dir + std::string(str);
-    
-  } else {
+  if (conf.get<std::string>("stepper_type") == "INO") {
 
-    conf_file = conf_dir + std::string("fnal/stepper_motor.json");
-  }
-
-  db_find_key(hDB, 0, "Params/stepper-motor/type", &hkey);
-  if (hkey) {
-    printf("\t\t\tfound the stepper-motor type key \n");
-    size = sizeof(str);
-    db_get_data(hDB, hkey, str, &size, TID_STRING);
-    
-    if (std::string(str) == "INO") {
-      printf("\t\tIdentified that we are supposed to use the INO stepper motor\n");
-      ino_stepper_type = true;
-
-    } else {
-      printf("\t\tIdentified that we are supposed to use some other type of motor: %s \n",str);
-      ino_stepper_type = false;
-    }
+    ino_stepper_type = true;
     
   } else {
 
@@ -236,11 +263,13 @@ INT frontend_init()
   }
 
   if (ino_stepper_type) {
-    printf("trying to initialize InoStepperMotor based on %s\n",conf_file.c_str());
+
+    std::string conf_file = conf.get<std::string>("stepper_motor_file");
     ino_stepper = new daq::InoStepperMotor(conf_file);
 
   } else {
 
+    std::string conf_file = conf.get<std::string>("stepper_motor_file");
     dio_stepper = new daq::DioStepperMotor(0x0, daq::BOARD_B, conf_file);
   }
 
@@ -270,35 +299,20 @@ INT frontend_init()
   stepper_listener = new daq::SyncClient(trigger_addr, trigger_port+30);
 
   // Load the steppper motor params.
-  db_find_key(hDB, 0, "/Params/stepper-motor", &hkey);
-
-  if (hkey) { 
-    
-    // Doubles first.
-    size = sizeof(step_size);
-    db_get_value(hDB, hkey, "step_size", 
-                 &step_size, &size, TID_DOUBLE, false);
-
-    db_get_value(hDB, hkey, "event_rate_limit", 
-                 &event_rate_limit, &size, TID_DOUBLE, false);
-
-    // Now ints.
-    db_get_value(hDB, hkey, "num_steps", &num_steps, &size, TID_INT, false);
-    db_get_value(hDB, hkey, "num_shots", &num_shots, &size, TID_INT, false);
-
-    // And finally the bool.
-    BOOL tmp;
-    size = sizeof(tmp);
-    db_get_value(hDB, hkey, "use_stepper", 
-                 &tmp, &size, TID_BOOL, false);
-    use_stepper = tmp;
-  }
+  step_size = conf.get<double>("step_size");
+  event_rate_limit = conf.get<double>("event_rate_limit");
+  num_steps = conf.get<int>("num_steps");
+  num_shots = conf.get<int>("num_shots");
+  use_stepper = conf.get<bool>("use_stepper");
 
   thread_live = true;
   run_in_progress = false;
   ready_to_move = false;
 
   trigger_thread = std::thread(::trigger_loop);
+
+  // Delete the buffer.
+  delete json_buf;
 
   return SUCCESS;
 }
@@ -394,34 +408,14 @@ INT begin_of_run(INT run_number, char *error)
   readout_listener->SetReady();
   stepper_listener->UnsetReady(); // Make sure the stepper is not set yet
 
-  // Reload the step structure.
-  db_find_key(hDB, 0, "/Params/stepper-motor", &hkey);
-
-  if (hkey) { 
-    
-    // Doubles first.
-    size = sizeof(step_size);
-    db_get_value(hDB, hkey, "step_size", 
-                 &step_size, &size, TID_DOUBLE, false);
-
-    db_get_value(hDB, hkey, "event_rate_limit", 
-                 &event_rate_limit, &size, TID_DOUBLE, false);
-
-    // Now ints.
-    db_get_value(hDB, hkey, "num_steps", &num_steps, &size, TID_INT, false);
-    db_get_value(hDB, hkey, "num_shots", &num_shots, &size, TID_INT, false);
-
-    if (num_steps < 1) {
-      num_steps = 3000000; // basically infinite.
-    }
-
-    // And finally the bool.
-    BOOL tmp;
-    size = sizeof(tmp);
-    db_get_value(hDB, hkey, "use_stepper", 
-                 &tmp, &size, TID_BOOL, false);
-
-    use_stepper = tmp;
+  step_size = conf.get<double>("step_size");
+  event_rate_limit = conf.get<double>("event_rate_limit");
+  num_steps = conf.get<int>("num_steps");
+  num_shots = conf.get<int>("num_shots");
+  use_stepper = conf.get<bool>("use_stepper");
+  
+  if (num_steps < 1) {
+    num_steps = 3000000; // basically infinite.
   }
 
   cm_msg(MINFO, frontend_name, "begin_of_run completed");
