@@ -262,7 +262,7 @@ def full_scan_job_set(msg):
 
     run_num = msg['run']
     jobs = [[]]
-    new_dep = {'time': -1, 'md5': -1}
+    new_dep = {'time': None, 'md5': None}
 
     job = {}
     job['name'] = 'bundle_full_scan'
