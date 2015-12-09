@@ -221,13 +221,8 @@ def normal_job_set(msg):
     job['meta'] = datadir + '/shim/.processing_metadata.json'
     job['deps'] = {}
     job['deps'][offline_dir + '/bin/shim_data_bundler'] = new_dep
-
-    for f in glob.glob('data/rome/*%05i.root' % run_num):
-        job['deps'][f] = new_dep
-
-    for f in glob.glob('data/root/*%05i.root' % run_num):
-        job['deps'][f] = new_dep
-            
+    job['deps']['data/rome/*%05i.root' % run_num] = new_dep
+    job['deps']['data/root/*%05i.root' % run_num] = new_dep
     jobs[1].append(job)
 
     # Now reprocess the nmr platform data.
@@ -297,6 +292,16 @@ def check_job(run_num, job):
         f = open(job['meta'], 'w')
         f.write(json.dumps({}))
         f.close()
+
+    # Fill out dependency globs
+    for fkey in job['deps'].keys():
+
+        if '*' in fkey:
+            del job['deps'][fkey]
+
+            log.debug('expanding glob %s' % fkey)
+            for f in glob.glob(fkey):
+                job['deps'][f] = {'time': None, 'md5': None}
 
     with open(job['meta']) as f:
 
