@@ -6,7 +6,7 @@ import json
 def main():
     ctx = zmq.Context()
     sck = ctx.socket(zmq.REQ)
-    sck.connect('tcp://127.0.0.1:44446')
+    sck.connect('tcp://127.0.1.1:44446')
     time.sleep(0.01)
 
     info = {}

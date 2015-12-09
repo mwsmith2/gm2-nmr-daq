@@ -26,19 +26,19 @@ offline_dir = os.path.abspath(os.path.dirname(__file__) + '/..')
 
 # Set up the zmq socket for data.
 crunch_sck = context.socket(zmq.PULL)
-crunch_sck.bind('tcp://127.0.0.1:44444')
+crunch_sck.bind('tcp://127.0.1.1:44444')
 
 # Set up the zmq socket for logging.
 logger_sck = context.socket(zmq.PULL)
-logger_sck.bind('tcp://127.0.0.1:44445')
+logger_sck.bind('tcp://127.0.1.1:44445')
 
 # Worker socket to send job results.
 worker_sck = context.socket(zmq.PUSH)
-worker_sck.connect('tcp://127.0.0.1:44445')
+worker_sck.connect('tcp://127.0.1.1:44445')
 
 # Socket to query the scheduler.
 answer_sck = context.socket(zmq.REP)
-answer_sck.bind('tcp://127.0.0.1:44446')
+answer_sck.bind('tcp://127.0.1.1:44446')
 
 job_queue = {}
 req_queue = []
