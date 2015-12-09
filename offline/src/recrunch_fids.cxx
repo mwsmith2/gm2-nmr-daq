@@ -104,7 +104,6 @@ int main(int argc, char **argv)
   platform_t idata;
   hamar_t laser;
   capacitec_t ctec;
-  metrolab_t mlab;
   sync_flags_t flags;
 
   pt_sync->SetBranchAddress("platform", &idata.sys_clock[0]);
@@ -119,7 +118,6 @@ int main(int argc, char **argv)
   pt_out->Branch("platform", &odata.sys_clock[0], platform_str);
   pt_out->Branch("laser", &laser.midas_time, hamar_str);
   pt_out->Branch("ctec", &ctec.midas_time, capacitec_str);
-  pt_out->Branch("mlab", &mlab.field, metrolab_str);
   pt_out->Branch("flags", &flags.platform_data, sync_flags_str);
 
   // Set the time vector.

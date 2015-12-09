@@ -320,16 +320,30 @@ int main(int argc, char *argv[])
   }
 
   int num_sync_events = 0;
-  cout << "num_sync_events = " << num_sync_events << endl;
-  
+
   if (pt_platform != nullptr) {
-    num_sync_events = pt_platform->GetEntries();
-    cout << "num_sync_events = " << num_sync_events << endl;
+
+    int nplatform = pt_platform->GetEntries();
+
+    if (nplatform == 0) {
+
+      cout << "Platform Data is nil." << endl;
+
+    } else {
+
+      num_sync_events = pt_platform->GetEntries();
+      cout << "num_sync_events = " << num_sync_events << endl;
+    }
   }
 
   if (pt_rome_laser != nullptr) {
     int nlaser = pt_rome_laser->GetEntries();
-    if ((num_sync_events > nlaser) && (nlaser != 0)) {
+
+    if (nlaser == 0) {
+      cout << "Laser Data is nil." << endl;
+
+    } else if ((num_sync_events == 0) || (num_sync_events > nlaser)) {
+      
       num_sync_events = pt_rome_laser->GetEntries();
       cout << "num_sync_events = " << num_sync_events << endl;
     }
@@ -337,7 +351,12 @@ int main(int argc, char *argv[])
 
   if (pt_rome_ctec != nullptr) {
     int nctec = pt_rome_ctec->GetEntries();
-    if ((num_sync_events > nctec) && (nctec != 0)) {
+
+    if (nctec == 0) {
+      cout << "Capacitec Data is nil." << endl;
+
+    } else if ((num_sync_events == 0) || (num_sync_events > nctec)) {
+
       num_sync_events = pt_rome_ctec->GetEntries();
       cout << "num_sync_events = " << num_sync_events << endl;
     }
