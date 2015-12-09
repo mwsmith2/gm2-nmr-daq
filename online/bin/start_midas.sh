@@ -6,7 +6,7 @@ source $(dirname $(readlink -f $0))/../../common/.expt-env
 odbedit -e $EXPT -c clean
 addresslist="-a $EXPT_IP -a localhost"
 
-for addr in $EXT_IP; do
+for addr in "${EXT_IP[@]}"; do
     addresslist="$addresslist -a $addr"
 done
 
@@ -15,7 +15,7 @@ for mu in "${MIDAS_UTIL[@]}"; do
 
     case $mu in
         'mserver')
-            cmd="mserver -p $MSERVER_PORT$(printf \\r)"
+            cmd="mserver -e $EXPT -p $MSERVER_PORT$(printf \\r)"
             screen -dmS "${EXPT}.mserver"
             screen -S "${EXPT}.mserver" -p 0 -rX stuff "$cmd";;
         
