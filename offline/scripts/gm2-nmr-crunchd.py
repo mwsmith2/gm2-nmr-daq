@@ -242,7 +242,7 @@ def normal_job_set(msg):
     job['name'] = 'fix_probe_remap'
     job['dir'] = offline_dir
     job['cmd'] = 'bin/fix_run_probe_map '
-    job['cmd'] += 'data/crunched/run_%05i.root' % run_num
+    job['cmd'] += 'data/crunched/run_%05i.root ' % run_num
     job['cmd'] += 'data/crunched/ %i' % run_num
     job['clean'] = None
     job['meta'] = datadir + '/crunched/.processing_metadata.json'
