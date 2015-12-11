@@ -24,6 +24,7 @@
 
 //--- project includes ------------------------------------------------------//
 #include "shim_dataset.hh"
+#include "shim_constants.hh"
 
 using namespace std;
 using namespace gm2;
@@ -72,13 +73,13 @@ int main(int argc, char *argv[])
   datadir = string("data/crunched/");
 
   ss.str("");
-  ss << "data/full_scans/full_scan_run_" << std::setfill('0');
-  ss << std::setw(5) << full_scan_number << ".root";
+  ss << "data/bundles/full_scan_" << std::setfill('0');
+  ss << std::setw(3) << full_scan_number << ".root";
   outfile = ss.str();
 
   ss.str("");
-  ss << "data/full_scans/run_list_full_scan_" << std::setfill('0');
-  ss << std::setw(5) << full_scan_number << ".txt";
+  ss << "data/bundles/run_list_full_scan_" << std::setfill('0');
+  ss << std::setw(3) << full_scan_number << ".txt";
   runfile = ss.str();
 
   // Load the run file and parse it into run_numbers vector.
@@ -125,6 +126,33 @@ int main(int argc, char *argv[])
 
   for (int idx = 0; idx < dvec.size(); ++idx) {
 
+    static double phi0 = 0.0;
+    static double dphi = 0.0;
+      
+    // If there is no laser data, we want to interpolate.
+    if (idx == 0) {
+      
+      double phi_i = dvec[idx+1][0].laser.phi_2;
+      double phi_f = dvec[idx+1][dvec[idx+1].GetSyncEntries() - 1].laser.phi_2;
+      dphi = (phi_f - phi_i) / dvec[idx+1].GetSyncEntries();
+      phi0 = phi_i - dvec[idx].GetSyncEntries() * dphi;
+      
+    } else if (idx == dvec.size() - 1) {
+      
+      double phi_i = dvec[idx-1][0].laser.phi_2;
+      double phi_f = dvec[idx-1][dvec[idx-1].GetSyncEntries() - 1].laser.phi_2;
+      dphi = (phi_f - phi_i) / dvec[idx-1].GetSyncEntries();
+      phi0 = phi_f;
+      
+    } else {
+      
+      double phi_i = dvec[idx-1][dvec[idx-1].GetSyncEntries()-1].laser.phi_2;
+      double phi_f = dvec[idx+1][0].laser.phi_2;
+      
+      dphi = (phi_f - phi_i) / dvec[idx].GetSyncEntries();
+      phi0 = phi_i;
+    }
+    
     // Loop over the sync variables.
     for (int i = 0; i < dvec[idx].GetSyncEntries(); ++i) {
  
@@ -133,6 +161,11 @@ int main(int argc, char *argv[])
       ctec = dvec[idx][i].ctec;
       flags = dvec[idx][i].flags;
       run_number = run_numbers[idx];
+
+      if (!(dvec[idx][0].flags.laser_p1 || dvec[idx][0].flags.laser_p2)) {
+        laser.phi_2 = phi0 + i * dphi;
+        laser.phi_1 = phi0 + i * dphi - gm2::laser_phi_offset;
+      }
 
       pt_sync->Fill();
     }
@@ -161,6 +194,8 @@ int main(int argc, char *argv[])
 
       pt_mlab->Fill();
     }    
+
+    printf("Done bundling run %05i\n", run_number);;
   }
 
   pt_sync->Write();  
