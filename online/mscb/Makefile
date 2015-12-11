@@ -88,7 +88,7 @@ CFLAGS = -g -Wall -I$(INC_DIR) -I$(DRV_DIR) -I$(MSCB_DIR) -I$(MXML_DIR) $(ROOTCF
 LDFLAGS = 
 AR = ar
 
-all: analyzer 
+all: analyzer mscb_fe mscb_fe2
 #all: scfe mscb_fe
 
 DataLibraryDict.o: DataLibraryDict.cpp
