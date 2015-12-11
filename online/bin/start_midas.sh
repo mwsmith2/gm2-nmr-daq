@@ -15,12 +15,12 @@ for mu in "${MIDAS_UTIL[@]}"; do
 
     case $mu in
         'mserver')
-            cmd="mserver -p $MSERVER_PORT$(printf \\r)"
+            cmd="mserver -p $MSERVER_PORT -e $EXPT $(printf \\r)"
             screen -dmS "${EXPT}.mserver"
             screen -S "${EXPT}.mserver" -p 0 -rX stuff "$cmd";;
         
         'mhttpd')
-            cmd="mhttpd  -e $EXPT $addresslist --mg $MHTTPD_PORT$(printf \\r)"
+            cmd="mhttpd  -e $EXPT $addresslist --nomg --oldserver $MHTTPD_PORT$(printf \\r)"
             screen -dmS "${EXPT}.mhttpd"
             screen -S "${EXPT}.mhttpd" -p 0 -rX stuff "$cmd";;
         
