@@ -45,6 +45,18 @@ int main(int argc, char *argv[])
   gm2::tilt_sensor_t tilt;
   gm2::sync_flags_t flags;
 
+  // Initialize the flags, since they aren't set to false automatically.
+  flags.platform_data = false;
+  flags.laser_data = false;
+  flags.ctec_data = false;
+  flags.mlab_data = false;
+  flags.envi_data = false;
+  flags.tilt_data = false;
+  flags.laser_p1 = false;
+  flags.laser_p2 = false;
+  flags.laser_swap = false;
+  flags.missing_probe19 = false;
+
   // Initialize the times to check for bad data.
   for (int i = 0; i < SHIM_PLATFORM_CH; ++i) {
     platform.sys_clock[i] = 0;
@@ -81,7 +93,11 @@ int main(int argc, char *argv[])
   TTree *pt_mlab = nullptr;
 
   // All the program needs is a run number, and optionally a data dir.
-  assert(argc > 0);
+  if (argc < 2) {
+    cout << "Insufficent arguments, usage:" << endl;
+    cout << "./shim_data_bundler <run-number> [data-dir]" << endl;
+    exit(1);
+  }
   run_number = std::stoi(argv[1]);
 
   if (argc > 2) {
@@ -189,6 +205,10 @@ int main(int argc, char *argv[])
   pt_envi->Branch("envi", &envi, gm2::scs2000_str);
   pt_tilt->Branch("tilt", &tilt, gm2::tilt_sensor_str);
   pt_mlab->Branch("mlab", &mlab, gm2::metrolab_str);
+
+  if (run_number < 1475) {
+    flags.missing_probe19 = true;
+  }
 
   // Attach to the data files if they exist.
   if (pt_rome_laser != nullptr) {
@@ -386,12 +406,11 @@ int main(int argc, char *argv[])
 
       } else if (laser_point == string("P2")) {
         laser.phi_1 = laser.phi_2 - gm2::laser_phi_offset_p2_to_p1;
-        
 
         if (laser.phi_1 <= 0.0) {
           laser.phi_1 += 360.0;
         }
-      }        
+      }
     }
 
     if (pt_rome_ctec != nullptr) {
