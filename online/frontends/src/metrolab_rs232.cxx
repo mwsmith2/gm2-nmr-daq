@@ -13,6 +13,7 @@ About:  A simple frontend to communicate with the Metrolab via RS232 and
 
 // ---std includes -----------------------------------------------//
 #include <termios.h>
+#include <fcntl.h>
 #include <sys/socket.h>
 #include <string>
 #include <iostream>
