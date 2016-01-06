@@ -1,6 +1,6 @@
 /********************************************************************\
 
-  file:    fix_full_scan_probe_map.cxx
+  file:    fix_run_probe_map.cxx
   author:  Matthias W. Smith
 
   about:   Combine runs that comprise a full scan around the ring,
@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
   stringstream ss;
   int run_number;
 
-  // Shim structs
+  // shim structs
   platform_t platform;
   hamar_t laser;
   capacitec_t ctec;
@@ -72,11 +72,6 @@ int main(int argc, char *argv[])
   ss << datadir << "run_" << std::setfill('0') << std::setw(5);
   ss << stoi(argv[3]) << ".root";
 
-  if (stoi(argv[3]) >= 1475) {
-    cout << "This fix only applies to runs 1-1475." << endl;
-    exit(1);
-  }
-
   ShimDataset d(ss.str());
 
   cout << "loading " << ss.str() << endl;
@@ -104,46 +99,116 @@ int main(int argc, char *argv[])
   // Loop over the sync variables.
   for (int i = 0; i < d.GetSyncEntries(); ++i) {
 
-    platform = d[i].platform; 
-    platform_t p = d[i].platform; 
+    if (run_number < 1475) {
 
-    for (int j = 0; j < SHIM_PLATFORM_CH; ++j) {
+      platform = d[i].platform; 
+      platform_t p = d[i].platform; 
 
-      switch (j) 
-        {
-        case 2:
-          copy_platform_ch(platform, j, p, 8);
-          break;
-        case 3:
-          copy_platform_ch(platform, j, p, 20);
-          break;
-        case 6:
-          copy_platform_ch(platform, j, p, 3);
-          break;
-        case 7:
-          copy_platform_ch(platform, j, p, 10);
-          break;
-        case 8:
-          copy_platform_ch(platform, j, p, 18);
-          break;
-        case 10:
-          copy_platform_ch(platform, j, p, 14);
-          break;
-        case 14:
-          copy_platform_ch(platform, j, p, 6);
-          break;
-        case 17:
-          copy_platform_ch(platform, j, p, 7);
-          break;
-        case 18:
-          copy_platform_ch(platform, j, p_blank, 0);
-          break;
-        case 20:
-          copy_platform_ch(platform, j, p, 17);
-          break;
-        default:
-          break;
-        }
+      for (int j = 0; j < SHIM_PLATFORM_CH; ++j) {
+
+        switch (j) 
+          {
+          case 2:
+            copy_platform_ch(platform, j, p, 8);
+            break;
+          case 3:
+            copy_platform_ch(platform, j, p, 20);
+            break;
+          case 6:
+            copy_platform_ch(platform, j, p, 3);
+            break;
+          case 7:
+            copy_platform_ch(platform, j, p, 10);
+            break;
+          case 8:
+            copy_platform_ch(platform, j, p, 18);
+            break;
+          case 10:
+            copy_platform_ch(platform, j, p, 14);
+            break;
+          case 14:
+            copy_platform_ch(platform, j, p, 6);
+            break;
+          case 17:
+            copy_platform_ch(platform, j, p, 7);
+            break;
+          case 18:
+            copy_platform_ch(platform, j, p_blank, 0);
+            break;
+          case 20:
+            copy_platform_ch(platform, j, p, 17);
+            break;
+          default:
+            break;
+          }
+      }
+    } else if (run_number == 1654) {
+      
+      // This run had an off by one problem in the sequencing,
+      // so I'm hardcoding the permutation back.
+
+      cout << "Remapping sequence for run 1654" << endl;
+
+      platform = d[i].platform; 
+      platform_t p = d[i].platform; 
+
+      // copy_platform_ch(platform, 0, p, 4);
+      // copy_platform_ch(platform, 1, p, 16);
+      // copy_platform_ch(platform, 2, p, 1);
+      // copy_platform_ch(platform, 3, p, 2);
+      // copy_platform_ch(platform, 4, p, 3);
+      // copy_platform_ch(platform, 5, p, 24);
+      // copy_platform_ch(platform, 6, p, 5);
+      // copy_platform_ch(platform, 7, p, 6);
+      // copy_platform_ch(platform, 8, p, 7);
+      // copy_platform_ch(platform, 9, p, 27);
+      // copy_platform_ch(platform, 10, p, 9);
+      // copy_platform_ch(platform, 11, p, 10);
+      // copy_platform_ch(platform, 12, p, 11);
+      // copy_platform_ch(platform, 13, p, 12);
+      // copy_platform_ch(platform, 14, p, 13);
+      // copy_platform_ch(platform, 15, p, 14);
+      // copy_platform_ch(platform, 16, p, 15);
+      // copy_platform_ch(platform, 17, p, 26);
+      // copy_platform_ch(platform, 18, p, 17);
+      // copy_platform_ch(platform, 19, p, 18);
+      // copy_platform_ch(platform, 20, p, 19);
+      // copy_platform_ch(platform, 21, p, 20);
+      // copy_platform_ch(platform, 22, p, 21);
+      // copy_platform_ch(platform, 23, p, 22);
+      // copy_platform_ch(platform, 24, p, 23);
+      // copy_platform_ch(platform, 25, p, 8);
+      // copy_platform_ch(platform, 26, p, 25);
+      // copy_platform_ch(platform, 27, p, 0);
+
+      copy_platform_ch(platform, 0, p, 27);
+      copy_platform_ch(platform, 1, p, 2);
+      copy_platform_ch(platform, 2, p, 3);
+      copy_platform_ch(platform, 3, p, 4);
+      copy_platform_ch(platform, 4, p, 0);
+      copy_platform_ch(platform, 5, p, 6);
+      copy_platform_ch(platform, 6, p, 7);
+      copy_platform_ch(platform, 7, p, 8);
+      copy_platform_ch(platform, 8, p, 25);
+      copy_platform_ch(platform, 9, p, 10);
+      copy_platform_ch(platform, 10, p, 11);
+      copy_platform_ch(platform, 11, p, 12);
+      copy_platform_ch(platform, 12, p, 13);
+      copy_platform_ch(platform, 13, p, 14);
+      copy_platform_ch(platform, 14, p, 15);
+      copy_platform_ch(platform, 15, p, 16);
+      copy_platform_ch(platform, 16, p, 1);
+      copy_platform_ch(platform, 17, p, 18);
+      copy_platform_ch(platform, 18, p, 19);
+      copy_platform_ch(platform, 19, p, 20);
+      copy_platform_ch(platform, 20, p, 21);
+      copy_platform_ch(platform, 21, p, 22);
+      copy_platform_ch(platform, 22, p, 23);
+      copy_platform_ch(platform, 23, p, 24);
+      copy_platform_ch(platform, 24, p, 5);
+      copy_platform_ch(platform, 25, p, 26);
+      copy_platform_ch(platform, 26, p, 17);
+      copy_platform_ch(platform, 27, p, 9);
     }
       
     laser = d[i].laser;
