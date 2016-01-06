@@ -213,6 +213,8 @@ int main(int argc, char *argv[])
   // Attach to the data files if they exist.
   if (pt_rome_laser != nullptr) {
 
+    cout << "Found ROME data for laser" << endl;
+
     flags.laser_data = true;
     
     if (run_number < 787) {
@@ -301,8 +303,9 @@ int main(int argc, char *argv[])
 
   if (pt_rome_mlab != nullptr) {
 
-    flags.mlab_data = true;
+    cout << "Found ROME data for metrolab" << endl;
 
+    flags.mlab_data = true;
     pt_rome_mlab->SetBranchAddress("Timestamp", &mlab.midas_time);
     pt_rome_mlab->SetBranchAddress("Mtr1", &mlab.field);
     pt_rome_mlab->SetBranchAddress("Mtr0", &mlab.state);
@@ -310,11 +313,17 @@ int main(int argc, char *argv[])
   }
 
   if (pt_platform != nullptr) {
+
+    cout << "Found ROOT data for shim platform" << endl;
+
     flags.platform_data = true;
     pt_platform->SetBranchAddress("shim_platform", &platform.sys_clock[0]);
   }
 
   if (pt_rome_envi != nullptr) {
+
+    cout << "Found ROME data for Environment" << endl;
+
     flags.envi_data = true;
     pt_rome_envi->SetBranchAddress("Timestamp", &envi.midas_time);
     pt_rome_envi->SetBranchAddress("Temp0", &envi.temp[0]);
@@ -332,6 +341,9 @@ int main(int argc, char *argv[])
   }
   
   if (pt_rome_tilt != nullptr) {
+
+    cout << "Found ROME data for Tilt Sensor" << endl;
+
     flags.tilt_data = true;
     pt_rome_tilt->SetBranchAddress("Timestamp", &tilt.midas_time);
     pt_rome_tilt->SetBranchAddress("Tilt0", &tilt.temp);
@@ -347,7 +359,7 @@ int main(int argc, char *argv[])
 
     if (nplatform == 0) {
 
-      cout << "Platform Data is nil." << endl;
+      cout << "Platform TTree is empty." << endl;
 
     } else {
 
@@ -360,7 +372,7 @@ int main(int argc, char *argv[])
     int nlaser = pt_rome_laser->GetEntries();
 
     if (nlaser == 0) {
-      cout << "Laser Data is nil." << endl;
+      cout << "Laser TTree is empty." << endl;
 
     } else if ((num_sync_events == 0) || (num_sync_events > nlaser)) {
       
@@ -373,7 +385,7 @@ int main(int argc, char *argv[])
     int nctec = pt_rome_ctec->GetEntries();
 
     if (nctec == 0) {
-      cout << "Capacitec Data is nil." << endl;
+      cout << "Capacitec TTree is empty." << endl;
 
     } else if ((num_sync_events == 0) || (num_sync_events > nctec)) {
 
@@ -393,12 +405,6 @@ int main(int argc, char *argv[])
 
       if (laser_point == string("P1")) {
         laser.phi_2 = laser.phi_1 + gm2::laser_phi_offset_p2_to_p1;
-        // // RUN 1014 AND 1018 were labeled as pointing to P1, but actually pointing to P2
-        // if (run_number == 1014 || run_number== 1018)
-        //   {
-        //     laser.phi_2 = laser.phi_1 ;// don't apply any offset 
-        //     laser.phi_1 = laser.phi_2 - gm2::laser_phi_offset_p2_to_p1;
-        //   }
 
         if (laser.phi_2 >= 360.0) {
           laser.phi_2 -= 360.0;
@@ -419,6 +425,8 @@ int main(int argc, char *argv[])
 
     pt_sync->Fill();
   }
+ 
+  cout << "Finished bundling sync TTree." << endl;
 
   if (pt_rome_envi != nullptr) {
     for (int i = 0; i < pt_rome_envi->GetEntries(); ++i) {
@@ -427,11 +435,15 @@ int main(int argc, char *argv[])
     }
   }
 
+
   if (pt_rome_tilt != nullptr) {
+
     for (int i = 0; i < pt_rome_tilt->GetEntries(); ++i) {
       pt_rome_tilt->GetEntry(i);
       pt_tilt->Fill();
     }
+
+    cout << "Finished bundling tilt TTree." << endl;
   }
 
 
@@ -459,6 +471,7 @@ int main(int argc, char *argv[])
       
       pt_mlab->Fill();
     }
+    cout << "Finished bundling mlab TTree." << endl;
   }
 
   pf_all->Write();
