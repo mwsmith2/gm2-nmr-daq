@@ -32,7 +32,7 @@ def main():
         print "Adding new full scan."
 
         run_num = 1
-        runfile_glob = datadir + '/full_scans/run_list*%05i.txt'
+        runfile_glob = datadir + '/bundles/run_list_full_scan*%03i.txt'
 
         while len(glob.glob(runfile_glob % run_num)):
             run_num += 1
@@ -48,7 +48,7 @@ def main():
         print 'Next full scan is run number %i.' % run_num
         print 'Writing the run list.'
     
-        runfile = datadir + '/full_scans/run_list_full_scan_%05i.txt'
+        runfile = datadir + '/bundles/run_list_full_scan_%03i.txt'
         runfile = runfile % run_num
 
         with open(runfile, 'w') as f:
@@ -69,12 +69,12 @@ def main():
         if len(sys.argv) > 2:
             for i in range(2, len(sys.argv)):
                 run = int(sys.argv[i])
-                runfile = datadir + 'full_scans/run_list_full_scan_%05i.txt' % run
+                runfile = datadir + 'bundles/run_list_full_scan_%03i.txt' % run
                 runfiles.append(runfile)
 
         # If not, check all of them.
         else:
-            runfiles = glob.glob(datadir + 'full_scans/run_list*.txt')
+            runfiles = glob.glob(datadir + 'bundles/run_list*.txt')
 
         runfiles.sort()
         runfiles.reverse()
