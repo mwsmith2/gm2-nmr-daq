@@ -42,8 +42,9 @@ def main():
             
         
     # Update all runs given
-    else:
-        for i in xrange(1, len(sys.argv)):
+    elif sys.argv[1] == 'crunch':
+
+        for i in xrange(2, len(sys.argv)):
 
             try:
                 info['run'] = int(sys.argv[i])
@@ -53,6 +54,13 @@ def main():
                 continue
 
             rc = sck.send_json(info)
+
+    elif sys.argv[1] == 'reset':
+        
+        print 'Reset not yet implemented.'
+
+    else:
+        print 'Unrecognized command.'
 
 
 if __name__ == '__main__':
