@@ -165,7 +165,7 @@ int main(int argc, char **argv)
         wf[i] = idata.trace[ch][i];
       }
 
-      fid::FID myfid(wf, tm);
+      fid::Fid myfid(wf, tm);
 
       // Make sure we've allocated space for the frequency array.
 
