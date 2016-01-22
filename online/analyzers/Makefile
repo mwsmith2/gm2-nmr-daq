@@ -38,7 +38,7 @@ ROOTLIBS = $(shell root-config --libs)
 
 # Libraries && include flags
 LIB = -L$(LIB_DIR) -Lpkg/lib -L/usr/lib64/mysql
-LIB += -lmidas-shared -lfid -lmysqlclient -lsqlite3
+LIB += -lmidas-shared -lfid -lmysqlclient -lsqlite3 -lboost_system
 CFLAGS += -I$(INC_DIR) -Ipkg/include -Iinclude -Wl,-rpath,/usr/local/lib
 
 # Set compilers

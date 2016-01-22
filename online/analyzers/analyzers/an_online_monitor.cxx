@@ -365,7 +365,7 @@ void plot_waveforms_loop()
                   &platform_data.trace[ch + 1][0], 
                   wf.begin());
 
-        auto myfid = fid::FID(wf, tm);
+        fid::Fid myfid(wf, tm);
         
         sprintf(name, "shim_platform_ch%02i_wf", ch);
         sprintf(title, "Channel %i Trace", ch);
@@ -378,9 +378,9 @@ void plot_waveforms_loop()
                           myfid.fftfreq()[myfid.fftfreq().size() - 1]);
         
         // One histogram gets the waveform and another with the fft power.
-        for (idx = 0; idx < myfid.power().size(); ++idx){
+        for (idx = 0; idx < myfid.psd().size(); ++idx){
           ph_wfm->SetBinContent(idx, myfid.wf()[idx]);
-          ph_fft->SetBinContent(idx, myfid.power()[idx]);
+          ph_fft->SetBinContent(idx, myfid.psd()[idx]);
         }
         
         // The waveform has more samples.
@@ -432,7 +432,7 @@ void plot_waveforms_loop()
                   &fixed_data.trace[ch + 1][0],
                   wf.begin());
         
-        auto myfid = fid::FID(wf, tm);
+        fid::Fid myfid(wf, tm);
         
         sprintf(name, "shim_fixed_ch%02i_wf", ch);
         sprintf(title, "NMR Probe %i Trace", ch + 1);
@@ -445,9 +445,9 @@ void plot_waveforms_loop()
                           myfid.fftfreq()[myfid.fftfreq().size() - 1]);
         
         // One histogram gets the waveform and another with the fft power.
-        for (idx = 0; idx < myfid.power().size(); ++idx){
+        for (idx = 0; idx < myfid.psd().size(); ++idx){
           ph_wfm->SetBinContent(idx, myfid.wf()[idx]);
-          ph_fft->SetBinContent(idx, myfid.power()[idx]);
+          ph_fft->SetBinContent(idx, myfid.psd()[idx]);
         }
         
         // The waveform has more samples.
