@@ -18,6 +18,7 @@ About:  A simple frontend to communicate with the tilt sensors via RS232 and
 #include <iostream>
 #include <sstream>
 #include <stdio.h>
+#include <fcntl.h>
 using namespace std;
 
 //--- other includes -----------------------------------------------//          
