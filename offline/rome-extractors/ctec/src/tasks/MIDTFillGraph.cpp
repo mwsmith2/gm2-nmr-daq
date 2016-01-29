@@ -61,7 +61,6 @@ float cap[4];
 
 static TFile *fTreeFile = NULL;
 static TTree *fEventTree = NULL;
-static TBranch *fEventBranch = NULL;
 
 ClassImp(MIDTFillGraph)
 
@@ -74,7 +73,7 @@ void MIDTFillGraph::Init()
 void MIDTFillGraph::BeginOfRun()
 {
    TString treeFile = "data-out/cap_tree_run";
-   treeFile += Form("%05i",gAnalyzer->GetODB()->GetRunNumber(),"");
+   treeFile += Form("%05i", gAnalyzer->GetODB()->GetRunNumber());
    treeFile += ".root";
 
    fTreeFile = TFile::Open(treeFile.Data(), "RECREATE");   
@@ -83,7 +82,7 @@ void MIDTFillGraph::BeginOfRun()
    fEventTree->SetAutoSave(300000000); // autosave when 300 Mbyte written.
    fEventTree->SetMaxVirtualSize(300000000); // 300 Mbyte
 
-   //set branches.  should generalize to use var like nTempChan, nCapacChan, etc.
+   //set branches.
    fEventTree->Branch("Timestamp",&tStamp,"Timestamp/I");
    fEventTree->Branch("cap_0",&cap[0],"Cap0/F");
    fEventTree->Branch("cap_1",&cap[1],"Cap1/F");
@@ -94,74 +93,23 @@ void MIDTFillGraph::BeginOfRun()
 //______________________________________________________________________________
 void MIDTFillGraph::Event()
 {
+  if (gAnalyzer->GetMidasDAQ()->GetCTECBankEntries() > 0) {
 
-  gStyle->SetStatH(0.2);
-  gStyle->SetStatW(0.6);
-  gStyle->SetCanvasColor(0);
-  gStyle->SetTitleFillColor(0);
-  gStyle->SetTitleBorderSize(0);
-  gStyle->SetStatColor(0);
-  gStyle->SetHistLineWidth(0);
-
-   if (IsMyGraphActive()) {
-	  
-	  tStamp = gAnalyzer->GetActiveDAQ()->GetTimeStamp();
-          //cout<<" time "<<tStamp<<" ltrk entries: "<<gAnalyzer->GetMidasDAQ()->GetCTECBankEntries()<<endl;     
-          //cout<<" NChannels "<<gAnalyzer->GetGSP()->GetNChannels()<<endl;
- 
-      for (Int_t i = 0; i < gAnalyzer->GetMidasDAQ()->GetCTECBankEntries(); i++) {
-         //cout<<"i is "<<i<<" out of "<<gAnalyzer->GetMidasDAQ()->GetCTECBankEntries()<<" value "<<gAnalyzer->GetMidasDAQ()->GetCTECBankAt(i)<<endl;
-         GetMyGraphAt(i)->SetPoint(GetMyGraphAt(i)->GetN(),gAnalyzer->GetActiveDAQ()->GetTimeStamp(),gAnalyzer->GetMidasDAQ()->GetCTECBankAt(i));
-
-         if (i < gAnalyzer->GetGSP()->GetNChannels()) {//loop is redundant?
-            //GetMyGraphAt(i)->SetPoint(GetMyGraphAt(i)->GetN(),gAnalyzer->GetActiveDAQ()->GetTimeStamp(),gAnalyzer->GetMidasDAQ()->GetCTECBankAt(i));
-            GetMyGraphAt(i)->SetMarkerStyle(20);
-            GetMyGraphAt(i)->SetMarkerColor(kRed);
-            GetMyGraphAt(i)->SetLineColor(kBlue);
-            GetMyGraphAt(i)->GetXaxis()->SetTimeDisplay(1);
-            GetMyGraphAt(i)->GetXaxis()->SetTimeFormat("#splitline{%H:%M}{%d/%m} %F 1970-01-01 00:00:00");
-            GetMyGraphAt(i)->GetXaxis()->SetTitle("");
-            GetMyGraphAt(i)->GetYaxis()->SetTitle("ADC counts");
-            GetMyGraphAt(i)->SetTitle(Form("Run #%d",gAnalyzer->GetODB()->GetRunNumber()));
-            GetMyGraphAt(i)->GetYaxis()->CenterTitle(1);
-            GetMyGraphAt(i)->GetXaxis()->SetLabelOffset(0.02);
-            GetMyGraphAt(i)->GetXaxis()->SetTitleSize(0.05);
-	        
-	        //tree stuff
-	        cap[i] = gAnalyzer->GetMidasDAQ()->GetCTECBankAt(i);
-	                 
-         }
-      }
-      
-      if (gAnalyzer->GetMidasDAQ()->GetCTECBankEntries() > 0) {
-         fEventTree->Fill();
-      }
-   }
+    //tree stuff      
+    tStamp = gAnalyzer->GetActiveDAQ()->GetTimeStamp();
+    
+    for (int i = 0; i < gAnalyzer->GetMidasDAQ()->GetCTECBankEntries(); i++)
+      cap[i] = gAnalyzer->GetMidasDAQ()->GetCTECBankAt(i);
+    
+    fEventTree->Fill();
+  }
 }
 
 //______________________________________________________________________________
 void MIDTFillGraph::EndOfRun()
 {
-
-TGraph *graphs[gAnalyzer->GetMidasDAQ()->GetCTECBankEntries()];
-int n = 0;
-for (int i=0; i<gAnalyzer->GetMidasDAQ()->GetCTECBankEntries(); i++){
-  graphs[i] = new TGraph();
-  for (int k=0; k<GetMyGraphAt(i)->GetN(); k++)
-    graphs[i]->SetPoint(k,GetMyGraphAt(i)->GetX()[k],GetMyGraphAt(i)->GetY()[k]);
-}
-
-   fTreeFile->cd();
-
-for (int i=0; i<gAnalyzer->GetMidasDAQ()->GetCTECBankEntries(); i++){
-   if (i==0) graphs[i]->Write("cap_0");
-   if (i==1) graphs[i]->Write("cap_1");
-   if (i==2) graphs[i]->Write("cap_2");
-   if (i==3) graphs[i]->Write("cap_3");
-}
-fTreeFile->Write();
-fTreeFile->Close();
-
+  fTreeFile->Write();
+  fTreeFile->Close();
 }
 
 //______________________________________________________________________________
