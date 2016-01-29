@@ -355,7 +355,7 @@ void plot_waveforms_loop()
       
       // Set up the time vector.
       for (idx = 0; idx < SHORT_FID_LN; idx++){
-        tm[idx] = idx * 0.0001;  // @10 MHz, t = [0ms, 10ms]
+        tm[idx] = idx * 0.001;  // @1 MHz, t = [0ms, 10ms]
       }
 
       // Copy and analyze each channel's FID separately.
@@ -559,9 +559,9 @@ void merge_data_loop()
 
       pf_final->Write();
 
-      delete pf_final;
-      delete pf_shim_platform;
-      delete pf_shim_fixed;
+      pf_final->Close();
+      pf_shim_platform->Close();
+      pf_shim_fixed->Close();
 
       // Make sure the file was written and clean up.
       pf_final = new TFile(filename);
@@ -572,7 +572,7 @@ void merge_data_loop()
         system(cmd);
       }
     
-      delete pf_final;
+      pf_final->Close();
 
       ::new_run_to_process = false;
     }
