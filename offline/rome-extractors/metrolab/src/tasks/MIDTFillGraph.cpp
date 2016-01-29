@@ -96,62 +96,29 @@ void MIDTFillGraph::BeginOfRun()
 //______________________________________________________________________________
 void MIDTFillGraph::Event()
 {
-
-  gStyle->SetStatH(0.2);
-  gStyle->SetStatW(0.6);
-  gStyle->SetCanvasColor(0);
-  gStyle->SetTitleFillColor(0);
-  gStyle->SetTitleBorderSize(0);
-  gStyle->SetStatColor(0);
-  gStyle->SetHistLineWidth(0);
-
-   if (IsMyGraphActive()) {
+  if (IsMyGraphActive()) {
 	  
-	  tStamp = gAnalyzer->GetActiveDAQ()->GetTimeStamp();
+    tStamp = gAnalyzer->GetActiveDAQ()->GetTimeStamp();
 
-          //cout<<" tstamp "<<tStamp<<" number of inpt entries "<<gAnalyzer->GetMidasDAQ()->GetMTR2BankEntries()<<" number of tilt entries "<<gAnalyzer->GetMidasDAQ()->GetMTR2BankEntries()<<endl;     
+    int N = gAnalyzer->GetMidasDAQ()->GetMTR2BankEntries();
 
-      for (Int_t i = 0; i < gAnalyzer->GetMidasDAQ()->GetMTR2BankEntries(); i++) {
-         GetMyGraphAt(i)->SetPoint(GetMyGraphAt(i)->GetN(),gAnalyzer->GetActiveDAQ()->GetTimeStamp(),gAnalyzer->GetMidasDAQ()->GetMTR2BankAt(i));
+    for (Int_t i = 0; i < N; ++i) {
+      if (i==0) status = (int)gAnalyzer->GetMidasDAQ()->GetMTR2BankAt(i);
+      if (i==1) fld = gAnalyzer->GetMidasDAQ()->GetMTR2BankAt(i)+1.45;
+      if (i==2) unit = (int)gAnalyzer->GetMidasDAQ()->GetMTR2BankAt(i);
+    }
 
-         if (i < gAnalyzer->GetGSP()->GetNChannels()) {//loop is redundant?
-            //GetMyGraphAt(i)->SetPoint(GetMyGraphAt(i)->GetN(),gAnalyzer->GetActiveDAQ()->GetTimeStamp(),gAnalyzer->GetMidasDAQ()->GetMTR2BankAt(i));
-            GetMyGraphAt(i)->SetMarkerStyle(20);
-            GetMyGraphAt(i)->SetMarkerColor(kRed);
-            GetMyGraphAt(i)->SetLineColor(kBlue);
-            GetMyGraphAt(i)->GetXaxis()->SetTimeDisplay(1);
-            GetMyGraphAt(i)->GetXaxis()->SetTimeFormat("#splitline{%H:%M}{%d/%m} %F 1970-01-01 00:00:00");
-            GetMyGraphAt(i)->GetXaxis()->SetTitle("");
-            GetMyGraphAt(i)->GetYaxis()->SetTitle("ADC counts");
-            GetMyGraphAt(i)->SetTitle(Form("Run #%d",gAnalyzer->GetODB()->GetRunNumber()));
-            GetMyGraphAt(i)->GetYaxis()->CenterTitle(1);
-            GetMyGraphAt(i)->GetXaxis()->SetLabelOffset(0.02);
-            GetMyGraphAt(i)->GetXaxis()->SetTitleSize(0.05);
-	        
-	        //tree stuff
-                if (i==0) status = (int)gAnalyzer->GetMidasDAQ()->GetMTR2BankAt(i);
-                if (i==1) fld = gAnalyzer->GetMidasDAQ()->GetMTR2BankAt(i)+1.45;
-                if (i==2) unit = (int)gAnalyzer->GetMidasDAQ()->GetMTR2BankAt(i);
-
-
-         }
-      }
-
-      if (gAnalyzer->GetMidasDAQ()->GetMTR2BankEntries() > 0) {
-        fEventTree->Fill();
-      }
-   }
+    if (gAnalyzer->GetMidasDAQ()->GetMTR2BankEntries() > 0) {
+      fEventTree->Fill();
+    }
+  }
 }
 
 //______________________________________________________________________________
 void MIDTFillGraph::EndOfRun()
 {
-
-fTreeFile->cd();
-
-fTreeFile->Write();
-fTreeFile->Close();
-
+  fTreeFile->Write();
+  fTreeFile->Close();
 }
 
 //______________________________________________________________________________
