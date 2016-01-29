@@ -355,7 +355,7 @@ void plot_waveforms_loop()
       
       // Set up the time vector.
       for (idx = 0; idx < SHORT_FID_LN; idx++){
-        tm[idx] = idx * 0.0001;  // @10 MHz, t = [0ms, 10ms]
+        tm[idx] = idx * 0.001;  // @1 MHz, t = [0ms, 10ms]
       }
 
       // Copy and analyze each channel's FID separately.
@@ -365,7 +365,7 @@ void plot_waveforms_loop()
                   &platform_data.trace[ch + 1][0], 
                   wf.begin());
 
-        auto myfid = fid::FID(wf, tm);
+        fid::Fid myfid(wf, tm);
         
         sprintf(name, "shim_platform_ch%02i_wf", ch);
         sprintf(title, "Channel %i Trace", ch);
@@ -378,9 +378,9 @@ void plot_waveforms_loop()
                           myfid.fftfreq()[myfid.fftfreq().size() - 1]);
         
         // One histogram gets the waveform and another with the fft power.
-        for (idx = 0; idx < myfid.power().size(); ++idx){
+        for (idx = 0; idx < myfid.psd().size(); ++idx){
           ph_wfm->SetBinContent(idx, myfid.wf()[idx]);
-          ph_fft->SetBinContent(idx, myfid.power()[idx]);
+          ph_fft->SetBinContent(idx, myfid.psd()[idx]);
         }
         
         // The waveform has more samples.
@@ -432,7 +432,7 @@ void plot_waveforms_loop()
                   &fixed_data.trace[ch + 1][0],
                   wf.begin());
         
-        auto myfid = fid::FID(wf, tm);
+        fid::Fid myfid(wf, tm);
         
         sprintf(name, "shim_fixed_ch%02i_wf", ch);
         sprintf(title, "NMR Probe %i Trace", ch + 1);
@@ -445,9 +445,9 @@ void plot_waveforms_loop()
                           myfid.fftfreq()[myfid.fftfreq().size() - 1]);
         
         // One histogram gets the waveform and another with the fft power.
-        for (idx = 0; idx < myfid.power().size(); ++idx){
+        for (idx = 0; idx < myfid.psd().size(); ++idx){
           ph_wfm->SetBinContent(idx, myfid.wf()[idx]);
-          ph_fft->SetBinContent(idx, myfid.power()[idx]);
+          ph_fft->SetBinContent(idx, myfid.psd()[idx]);
         }
         
         // The waveform has more samples.
@@ -559,9 +559,9 @@ void merge_data_loop()
 
       pf_final->Write();
 
-      delete pf_final;
-      delete pf_shim_platform;
-      delete pf_shim_fixed;
+      pf_final->Close();
+      pf_shim_platform->Close();
+      pf_shim_fixed->Close();
 
       // Make sure the file was written and clean up.
       pf_final = new TFile(filename);
@@ -572,7 +572,7 @@ void merge_data_loop()
         system(cmd);
       }
     
-      delete pf_final;
+      pf_final->Close();
 
       ::new_run_to_process = false;
     }

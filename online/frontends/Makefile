@@ -36,7 +36,7 @@ WXFLAGS = $(shell wx-config --cxxflags)
 # Libraries && include flags
 LIB = -L$(LIB_DIR) -L$(NMR_DIR)/lib -L/usr/lib64/mysql
 LIB += -lmidas-shared -lmysqlclient -lsqlite3 -lCAENDigitizer -lusb-1.0
-LIB += -ljson_spirit -lfid -luwlab -lcurl
+LIB += -ljson_spirit -lfid -luwlab -lcurl -lboost_system
 CFLAGS += -I$(INC_DIR) -I$(NMR_DIR)/include -I$(NMR_DIR)/include/drs
 CFLAGS += -Wl,-rpath,/usr/local/lib
 

@@ -25,6 +25,7 @@ endif
 
 LIBS = -Wl,-rpath,/usr/local/lib
 LIBS += -L/usr/local/lib -lfftw3 -lm -lboost_filesystem -lboost_system -lfid
+LIBS += -Lcore/lib -lgm2fieldcore
 
 FLAGS += $(shell root-config --cflags) -Iinclude -Icore/include -Icore
 LIBS  += $(shell root-config --libs)

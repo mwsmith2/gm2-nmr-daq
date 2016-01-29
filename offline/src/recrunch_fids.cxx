@@ -8,7 +8,7 @@ about: The program runs on a shim data in a specific format
 
 usage:
 
-./generate_basic_plots <input-file> [output-dir]
+./recrunch_fids <run-number> [output-dir]
 
 \*===========================================================================*/
 
@@ -50,9 +50,12 @@ int main(int argc, char **argv)
   std::vector<double> wf(SHORT_FID_LN, 0.0);
   std::vector<double> tm(SHORT_FID_LN, 0.0);
 
+  int run_number;
   string datafile;
   string outfile;
+  string datadir;
   string outdir;
+  stringstream ss;
 
   // ROOT variables.
   TFile *pf_in;
@@ -69,16 +72,30 @@ int main(int argc, char **argv)
   
   if (argc < 2) {
     cout << "Insufficent arguments, usage:" << endl;
-    cout << "recrunch_fids <input-file> [output-dir]" << endl;
+    cout << "./shim_data_bundler <run-number> [input-dir] [output-dir]";
+    cout << endl;
     exit(1);
   }
 
-  datafile = string(argv[1]);
+  run_number = stoi(argv[1]);
 
-  // Set output directory.
+  // Set input directory.
   if (argc > 2) {
 
-    outdir = string(argv[2]);
+    datadir = string(argv[2]);
+    if (datadir[datadir.size() -1 ] != '/') {
+      datadir += string("/");
+    }
+
+  } else {
+
+    datadir = string("data/shim/");
+  }
+
+  // Set output directory.
+  if (argc > 3) {
+
+    outdir = string(argv[3]);
     if (outdir[outdir.size() -1 ] != '/') {
       outdir += string("/");
     }
@@ -88,13 +105,20 @@ int main(int argc, char **argv)
     outdir = string("data/crunched/");
   }
 
-  auto fname = boost::filesystem::path(datafile).filename().string();
-  outfile = outdir + fname;
+  // Now set the input file.
+  ss.str("");
+  ss << datadir << "/run_" << std::setfill('0') << std::setw(5);
+  ss << run_number << ".root";
+  datafile = ss.str();
 
-  // Make sure it is a root file.
-  assert (datafile.find_last_of(".root") == datafile.size() - 1);
+  // And set the output file.
+  ss.str("");
+  ss << outdir << "/run_" << std::setfill('0') << std::setw(5);
+  ss << run_number << ".root";
+  outfile = ss.str();
+
+  // Load the input file.
   pf_in = new TFile(datafile.c_str(), "read");
-
   pt_sync = (TTree *)pf_in->Get("t_sync");
   pt_envi = (TTree *)pf_in->Get("t_envi");
   pt_tilt = (TTree *)pf_in->Get("t_tilt");
@@ -104,7 +128,6 @@ int main(int argc, char **argv)
   platform_t idata;
   hamar_t laser;
   capacitec_t ctec;
-  metrolab_t mlab;
   sync_flags_t flags;
 
   pt_sync->SetBranchAddress("platform", &idata.sys_clock[0]);
@@ -119,7 +142,6 @@ int main(int argc, char **argv)
   pt_out->Branch("platform", &odata.sys_clock[0], platform_str);
   pt_out->Branch("laser", &laser.midas_time, hamar_str);
   pt_out->Branch("ctec", &ctec.midas_time, capacitec_str);
-  pt_out->Branch("mlab", &mlab.field, metrolab_str);
   pt_out->Branch("flags", &flags.platform_data, sync_flags_str);
 
   // Set the time vector.
@@ -143,7 +165,7 @@ int main(int argc, char **argv)
         wf[i] = idata.trace[ch][i];
       }
 
-      fid::FID myfid(wf, tm);
+      fid::Fid myfid(wf, tm);
 
       // Make sure we've allocated space for the frequency array.
 
@@ -173,7 +195,6 @@ int main(int argc, char **argv)
 
       cout << endl << "Results for entry " << idx << ", " << ch << endl;
       cout << myfid.GetFreq("PH") << ", " << myfid.GetFreq("ZC") << endl;
-      myfid.PrintDiagnosticInfo();
     }
 
     pt_out->Fill();    

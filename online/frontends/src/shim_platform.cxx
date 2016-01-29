@@ -572,7 +572,7 @@ INT read_platform_event(char *pevent, INT off)
       data.trace[idx][n] = wf[n];
     }
 
-    fid::FID myfid(tm, wf);
+    fid::Fid myfid(tm, wf);
     
     // Make sure we got an FID signal
     if (myfid.isgood()) {
@@ -584,7 +584,7 @@ INT read_platform_event(char *pevent, INT off)
       
     } else {
       
-      myfid.PrintDiagnosticInfo();
+      myfid.DiagnosticInfo();
       data.freq[idx] = -1.0;
       data.ferr[idx] = -1.0;
       data.snr[idx] = -1.0;

@@ -8,7 +8,7 @@ def main():
     # Open the ZMQ socket that talks to the job scheduler.
     ctx = zmq.Context()
     sck = ctx.socket(zmq.PUSH)
-    sck.connect('tcp://localhost:44444')
+    sck.connect('tcp://127.0.1.1:44444')
 
     # Get the data directory
     odb = midas.ODB('gm2-nmr')
@@ -42,8 +42,9 @@ def main():
             
         
     # Update all runs given
-    else:
-        for i in xrange(1, len(sys.argv)):
+    elif sys.argv[1] == 'crunch':
+
+        for i in xrange(2, len(sys.argv)):
 
             try:
                 info['run'] = int(sys.argv[i])
@@ -53,6 +54,13 @@ def main():
                 continue
 
             rc = sck.send_json(info)
+
+    elif sys.argv[1] == 'reset':
+        
+        print 'Reset not yet implemented.'
+
+    else:
+        print 'Unrecognized command.'
 
 
 if __name__ == '__main__':

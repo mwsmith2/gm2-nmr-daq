@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
 
       cout << endl << "Results for entry " << idx << ", " << ch << endl;
       cout << myfid.GetFreq() << ", " << myfid.GetFreq() << endl;
-      myfid.PrintDiagnosticInfo();
+      myfid.DiagnosticInfo();
     }
 
     pt_out->Fill();    
