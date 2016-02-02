@@ -153,9 +153,9 @@ def normal_job_set(msg):
     new_dep = {'time': None, 'md5': None}
         
     # Add ROME jobs first
-    cmd_prefix = "./midanalyzer.exe -i romeConfig.xml -r "
+    cmd_prefix = "./midanalyzer.exe -b -i romeConfig.xml -r "
     cmd_suffix = " -m offline -p 0 -q"
-    rome_dir = offline_dir + '/rome-analyzers'
+    rome_dir = offline_dir + '/rome-extractors'
 
     job = {}
     job['meta'] = datadir + '/rome/.processing_metadata.json'
