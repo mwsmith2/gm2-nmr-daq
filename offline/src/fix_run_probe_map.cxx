@@ -209,8 +209,13 @@ int main(int argc, char *argv[])
       copy_platform_ch(platform, 25, p, 26);
       copy_platform_ch(platform, 26, p, 17);
       copy_platform_ch(platform, 27, p, 9);
+
+    } else {
+
+      // Simply copy the data.
+      platform = d[i].platform; 
     }
-      
+
     laser = d[i].laser;
     ctec = d[i].ctec;
     flags = d[i].flags;
