@@ -62,7 +62,6 @@ float capac[4];
 
 static TFile *fTreeFile = NULL;
 static TTree *fEventTree = NULL;
-static TBranch *fEventBranch = NULL;
 
 ClassImp(MIDTFillGraph)
 
@@ -75,7 +74,7 @@ void MIDTFillGraph::Init()
 void MIDTFillGraph::BeginOfRun()
 {
    TString treeFile = "data-out/sc_tree_run";
-   treeFile += Form("%05i",gAnalyzer->GetODB()->GetRunNumber(),"");
+   treeFile += Form("%05i",gAnalyzer->GetODB()->GetRunNumber());
    treeFile += ".root";
 
    fTreeFile = TFile::Open(treeFile.Data(), "RECREATE");   
@@ -103,70 +102,34 @@ void MIDTFillGraph::BeginOfRun()
 //______________________________________________________________________________
 void MIDTFillGraph::Event()
 {
-
-  gStyle->SetStatH(0.2);
-  gStyle->SetStatW(0.6);
-  gStyle->SetCanvasColor(0);
-  gStyle->SetTitleFillColor(0);
-  gStyle->SetTitleBorderSize(0);
-  gStyle->SetStatColor(0);
-  gStyle->SetHistLineWidth(0);
-
-   if (IsMyGraphActive()) {
+  if (IsMyGraphActive()) {
 	  
-	  tStamp = gAnalyzer->GetActiveDAQ()->GetTimeStamp();
-      
-      for (Int_t i = 0; i < gAnalyzer->GetMidasDAQ()->GetINPTBankEntries(); i++) {
-         GetMyGraphAt(i)->SetPoint(GetMyGraphAt(i)->GetN(),gAnalyzer->GetActiveDAQ()->GetTimeStamp(),gAnalyzer->GetMidasDAQ()->GetINPTBankAt(i));
+    //tree stuff
+    tStamp = gAnalyzer->GetActiveDAQ()->GetTimeStamp();
+    
+    int N = gAnalyzer->GetMidasDAQ()->GetINPTBankEntries();
 
-         if (i < gAnalyzer->GetGSP()->GetNChannels()) {//loop is redundant?
-            //GetMyGraphAt(i)->SetPoint(GetMyGraphAt(i)->GetN(),gAnalyzer->GetActiveDAQ()->GetTimeStamp(),gAnalyzer->GetMidasDAQ()->GetINPTBankAt(i));
-            GetMyGraphAt(i)->SetMarkerStyle(20);
-            GetMyGraphAt(i)->SetMarkerColor(kRed);
-            GetMyGraphAt(i)->SetLineColor(kBlue);
-            GetMyGraphAt(i)->GetXaxis()->SetTimeDisplay(1);
-            GetMyGraphAt(i)->GetXaxis()->SetTimeFormat("#splitline{%H:%M}{%d/%m} %F 1970-01-01 00:00:00");
-            GetMyGraphAt(i)->GetXaxis()->SetTitle("");
-            GetMyGraphAt(i)->GetYaxis()->SetTitle("ADC counts");
-            GetMyGraphAt(i)->SetTitle(Form("Run #%d",gAnalyzer->GetODB()->GetRunNumber()));
-            GetMyGraphAt(i)->GetYaxis()->CenterTitle(1);
-            GetMyGraphAt(i)->GetXaxis()->SetLabelOffset(0.02);
-            GetMyGraphAt(i)->GetXaxis()->SetTitleSize(0.05);
-	        
-	        //tree stuff
-	        if (i<8) temp[i] = gAnalyzer->GetMidasDAQ()->GetINPTBankAt(i);
-	        else capac[i-8] = gAnalyzer->GetMidasDAQ()->GetINPTBankAt(i);
-	                 
-         }
-      }
+    for (Int_t i = 0; i < N; i++) {
 
-      if (gAnalyzer->GetMidasDAQ()->GetINPTBankEntries() > 0) {
-        fEventTree->Fill();
+      if (i < 8) {
+        temp[i] = gAnalyzer->GetMidasDAQ()->GetINPTBankAt(i);
+      } else {
+        capac[i-8] = gAnalyzer->GetMidasDAQ()->GetINPTBankAt(i);
       }
-   }
+    }
+
+    if (gAnalyzer->GetMidasDAQ()->GetINPTBankEntries() > 0) {
+      fEventTree->Fill();
+    }
+  }
 }
 
 //______________________________________________________________________________
 void MIDTFillGraph::EndOfRun()
 {
-
-TGraph *graphs[gAnalyzer->GetMidasDAQ()->GetINPTBankEntries()];
-int n = 0;
-for (int i=0; i<gAnalyzer->GetMidasDAQ()->GetINPTBankEntries(); i++){
-  graphs[i] = new TGraph();
-  for (int k=0; k<GetMyGraphAt(i)->GetN(); k++)
-    graphs[i]->SetPoint(k,GetMyGraphAt(i)->GetX()[k],GetMyGraphAt(i)->GetY()[k]);
-}
-
-   fTreeFile->cd();
-
-for (int i=0; i<gAnalyzer->GetMidasDAQ()->GetINPTBankEntries(); i++){
-	if (i<8) graphs[i]->Write(Form("temperature_%d",i+1));
-	else graphs[i]->Write(Form("capacitec_%d",i+1-8));
-}	
-fTreeFile->Write();
-fTreeFile->Close();
-
+  fTreeFile->cd();
+  fTreeFile->Write();
+  fTreeFile->Close();
 }
 
 //______________________________________________________________________________
