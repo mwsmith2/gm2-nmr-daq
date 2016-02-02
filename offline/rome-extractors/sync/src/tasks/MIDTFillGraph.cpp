@@ -61,7 +61,6 @@ float laser[3];
 
 static TFile *fTreeFile = NULL;
 static TTree *fEventTree = NULL;
-static TBranch *fEventBranch = NULL;
 
 ClassImp(MIDTFillGraph)
 
@@ -74,7 +73,7 @@ void MIDTFillGraph::Init()
 void MIDTFillGraph::BeginOfRun()
 {
    TString treeFile = "data-out/laser_tree_run";
-   treeFile += Form("%05i",gAnalyzer->GetODB()->GetRunNumber(),"");
+   treeFile += Form("%05i",gAnalyzer->GetODB()->GetRunNumber());
    treeFile += ".root";
 
    fTreeFile = TFile::Open(treeFile.Data(), "RECREATE");   
@@ -83,7 +82,7 @@ void MIDTFillGraph::BeginOfRun()
    fEventTree->SetAutoSave(300000000); // autosave when 300 Mbyte written.
    fEventTree->SetMaxVirtualSize(300000000); // 300 Mbyte
 
-   //set branches.  should generalize to use var like nTempChan, nCapacChan, etc.
+   // Set branches.
    fEventTree->Branch("Timestamp",&tStamp,"Timestamp/I");
    fEventTree->Branch("position_rad",&laser[0],"Laser0/F");
    fEventTree->Branch("position_height",&laser[1],"Laser1/F");
@@ -93,73 +92,29 @@ void MIDTFillGraph::BeginOfRun()
 //______________________________________________________________________________
 void MIDTFillGraph::Event()
 {
+  if (IsMyGraphActive()) {
 
-  gStyle->SetStatH(0.2);
-  gStyle->SetStatW(0.6);
-  gStyle->SetCanvasColor(0);
-  gStyle->SetTitleFillColor(0);
-  gStyle->SetTitleBorderSize(0);
-  gStyle->SetStatColor(0);
-  gStyle->SetHistLineWidth(0);
+    // Tree stuff
+    tStamp = gAnalyzer->GetActiveDAQ()->GetTimeStamp();
 
-   if (IsMyGraphActive()) {
-	  
-	  tStamp = gAnalyzer->GetActiveDAQ()->GetTimeStamp();
-          //cout<<" time "<<tStamp<<" ltrk entries: "<<gAnalyzer->GetMidasDAQ()->GetLTRKBankEntries()<<endl;     
-          //cout<<" NChannels "<<gAnalyzer->GetGSP()->GetNChannels()<<endl;
+    int N = gAnalyzer->GetMidasDAQ()->GetLTRKBankEntries();
  
-      for (Int_t i = 0; i < gAnalyzer->GetMidasDAQ()->GetLTRKBankEntries(); i++) {
-         //cout<<"i is "<<i<<" out of "<<gAnalyzer->GetMidasDAQ()->GetLTRKBankEntries()<<" value "<<gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(i)<<endl;
-         GetMyGraphAt(i)->SetPoint(GetMyGraphAt(i)->GetN(),gAnalyzer->GetActiveDAQ()->GetTimeStamp(),gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(i));
+    for (int i = 0; i < N; i++) {
+      laser[i] = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(i);
+    }
 
-         if (i < gAnalyzer->GetGSP()->GetNChannels()) {//loop is redundant?
-            //GetMyGraphAt(i)->SetPoint(GetMyGraphAt(i)->GetN(),gAnalyzer->GetActiveDAQ()->GetTimeStamp(),gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(i));
-            GetMyGraphAt(i)->SetMarkerStyle(20);
-            GetMyGraphAt(i)->SetMarkerColor(kRed);
-            GetMyGraphAt(i)->SetLineColor(kBlue);
-            GetMyGraphAt(i)->GetXaxis()->SetTimeDisplay(1);
-            GetMyGraphAt(i)->GetXaxis()->SetTimeFormat("#splitline{%H:%M}{%d/%m} %F 1970-01-01 00:00:00");
-            GetMyGraphAt(i)->GetXaxis()->SetTitle("");
-            GetMyGraphAt(i)->GetYaxis()->SetTitle("ADC counts");
-            GetMyGraphAt(i)->SetTitle(Form("Run #%d",gAnalyzer->GetODB()->GetRunNumber()));
-            GetMyGraphAt(i)->GetYaxis()->CenterTitle(1);
-            GetMyGraphAt(i)->GetXaxis()->SetLabelOffset(0.02);
-            GetMyGraphAt(i)->GetXaxis()->SetTitleSize(0.05);
-	        
-	        //tree stuff
-	        laser[i] = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(i);
-	                 
-         }
-      }
-
-      if (gAnalyzer->GetMidasDAQ()->GetLTRKBankEntries() > 0) {
-        fEventTree->Fill();
-      }
-   }
+    if (gAnalyzer->GetMidasDAQ()->GetLTRKBankEntries() > 0) {
+      fEventTree->Fill();
+    }
+  }
 }
 
 //______________________________________________________________________________
 void MIDTFillGraph::EndOfRun()
 {
-
-TGraph *graphs[gAnalyzer->GetMidasDAQ()->GetLTRKBankEntries()];
-int n = 0;
-for (int i=0; i<gAnalyzer->GetMidasDAQ()->GetLTRKBankEntries(); i++){
-  graphs[i] = new TGraph();
-  for (int k=0; k<GetMyGraphAt(i)->GetN(); k++)
-    graphs[i]->SetPoint(k,GetMyGraphAt(i)->GetX()[k],GetMyGraphAt(i)->GetY()[k]);
-}
-
-   fTreeFile->cd();
-
-for (int i=0; i<gAnalyzer->GetMidasDAQ()->GetLTRKBankEntries(); i++){
-   if (i==0) graphs[i]->Write("position_r");
-   if (i==1) graphs[i]->Write("position_y");
-   if (i==2) graphs[i]->Write("position_azim");
-}
-fTreeFile->Write();
-fTreeFile->Close();
-
+  fTreeFile->cd();
+  fTreeFile->Write();
+  fTreeFile->Close();
 }
 
 //______________________________________________________________________________
