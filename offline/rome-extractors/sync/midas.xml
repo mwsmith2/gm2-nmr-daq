@@ -1,0 +1,113 @@
+<ROMEFrameworkDefinition xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="c:/rome/rome.xsd">
+	<Experiment>
+		<ExperimentShortCut>MID</ExperimentShortCut>
+		<ProgramName>Analyzer</ProgramName>
+		<ConfigClassSuffix>Conf</ConfigClassSuffix>
+	</Experiment>
+	<Folders>
+		<Folder>
+			<FolderName>Data</FolderName>
+			<Field>
+				<FieldName>ADC</FieldName>
+				<FieldType>Int_t</FieldType>
+				<ArraySize>vector</ArraySize>
+				<FieldComment>ADC Values</FieldComment>
+			</Field>
+			<Field>
+				<FieldName>TDC</FieldName>
+				<FieldType>Int_t</FieldType>
+				<ArraySize>vector</ArraySize>
+				<FieldComment>TDC Values</FieldComment>
+			</Field>
+		</Folder>
+		<Folder>
+			<FolderName>ODB</FolderName>
+			<DataBaseAccess>true</DataBaseAccess>
+			<Field>
+				<FieldName>RunNumber</FieldName>
+				<FieldType>Int_t</FieldType>
+				<FieldComment>Runinfo/Run number</FieldComment>
+				<DataBaseName>odb</DataBaseName>
+				<DataBasePath>"/Runinfo/Run number"</DataBasePath>
+			</Field>
+			<Field>
+				<FieldName>StartTime</FieldName>
+				<FieldType>ROMEString</FieldType>
+				<FieldComment>Runinfo/Start time</FieldComment>
+				<DataBaseName>odb</DataBaseName>
+				<DataBasePath>"/Runinfo/Start time"</DataBasePath>
+			</Field>
+		</Folder>
+	</Folders>
+	<Trees>
+		<Tree>
+			<TreeName>run</TreeName>
+			<Branch>
+				<BranchName>Data</BranchName>
+				<RelatedFolder>Data</RelatedFolder>
+			</Branch>
+		</Tree>
+	</Trees>
+	<Tasks>
+                <Task>
+                        <TaskName>FillGraph</TaskName>
+                        <Graph>
+                                <GraphName>MyGraph</GraphName>
+                                <GraphFolderName>mygraph</GraphFolderName>
+                                <GraphArraySize>gAnalyzer->GetGSP()->GetNChannels()</GraphArraySize>
+                                <GraphType>TGraph</GraphType>
+                        </Graph>
+		</Task>
+	</Tasks>
+	<Tabs>
+		<!-- This shows an example of manual program of a histogram window
+				You	need to program GUI parts using ROOT GUI classes.
+				You can design flexibly -->
+                <Tab>
+                        <TabName>Position_summary</TabName>
+                        <TabTitle>Position_summary</TabTitle>
+                </Tab>
+                <Tab>
+                        <TabName>Radius</TabName>
+                        <TabTitle>Radius</TabTitle>
+                </Tab>
+                <Tab>
+                        <TabName>Height</TabName>
+                        <TabTitle>Height</TabTitle>
+                </Tab>
+                <Tab>
+                        <TabName>Azimuth</TabName>
+                        <TabTitle>Azimuth</TabTitle>
+                </Tab>
+
+	</Tabs>
+	<GlobalSteeringParameters>
+		<SteeringParameterField>
+			<SPFieldName>NChannels</SPFieldName>
+			<SPFieldType>int</SPFieldType>
+			<SPFieldInitialization>3</SPFieldInitialization>
+			<SPFieldComment>Array size of LTRK bank</SPFieldComment>
+		</SteeringParameterField>
+	</GlobalSteeringParameters>
+	<Tree>
+		<TreeName>run</TreeName>
+		<Branch>
+			<BranchName>data</BranchName>
+			<RelatedFolder>Data</RelatedFolder>
+		</Branch>
+	</Tree>
+	<MidasBanks>
+		<EventDefinition>
+			<EventName>Laser</EventName>
+			<EventID>10</EventID>
+			<EventTriggerMask>-1</EventTriggerMask>
+			<EventSamplingRate>2</EventSamplingRate>
+			<Banks>
+				<Bank>
+					<BankName>LTRK</BankName>
+					<BankType>Double_t</BankType>
+				</Bank>
+			</Banks>
+		</EventDefinition>
+	</MidasBanks>
+</ROMEFrameworkDefinition>
