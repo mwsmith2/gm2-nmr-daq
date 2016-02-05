@@ -29,6 +29,11 @@ def main():
             last_crunch += 1
 
         current_run = int(odb.get_value('/Runinfo/Run number'))
+        current_status = int(odb.get_value('/Runinfo/State'))
+
+        # If the experiment isn't running, bump the run number
+        if current_status == 1:
+            current_run += 1
 
         print last_crunch, current_run
 
