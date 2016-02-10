@@ -80,7 +80,7 @@ def main():
         runfiles.reverse()
 
         for runfile in runfiles:
-            scan_idx = int(runfile[-9:-4])
+            scan_idx = int(runfile[-7:-4])
             runlist = np.genfromtxt(runfile, dtype=np.int).tolist()
 
             # Submit all the jobs that the full scan depends on.
