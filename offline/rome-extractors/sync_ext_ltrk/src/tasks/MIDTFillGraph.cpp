@@ -101,9 +101,27 @@ void MIDTFillGraph::Event()
     tStamp = gAnalyzer->GetActiveDAQ()->GetTimeStamp();
 
     int N = gAnalyzer->GetMidasDAQ()->GetLTRKBankEntries();
+    bool laser_in_inches = false;
     
     for (int i = 0; i < N; ++i) {
       laser[i] = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(i);
+
+      // Check if the laser is reporting in inches.
+      if (i % 3 == 0) {
+        if ((laser[i] >= 272.0) && (laser[i] <= 280.0)) {
+          laser_in_inches = true;
+        }
+      }
+
+      // Apply corrections for angle range and inches->meters.
+      if (i % 3 == 1) {
+
+        laser[i] =  fmod(laser[i], 360.0);
+
+      } else if (laser_in_inches) {
+
+        laser[i] *= 0.025380710659898477;
+      }
     }
 
     if (gAnalyzer->GetMidasDAQ()->GetLTRKBankEntries() > 0) {
