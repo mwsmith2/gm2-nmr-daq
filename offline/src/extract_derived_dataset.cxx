@@ -128,7 +128,6 @@ int main(int argc, char *argv[])
 
   for (int idx = 0; idx < index->GetN(); ++idx) {
 
-    printf("t_sync Entry %i\n", idx);
     pt_sync->GetEntry(index->GetIndex()[idx]);
 
     // Copy the old data that needs to be saved.
@@ -148,7 +147,6 @@ int main(int argc, char *argv[])
     // Interpolate the envi TTree.
     scs2000_t envi_0;
 
-    printf("t_envi Entry %i\n", idx);
     pt_envi->GetEntry(j++);
     while (ienvi.midas_time < t && j < pt_envi->GetEntries()) {
       envi_0 = ienvi;
@@ -173,7 +171,6 @@ int main(int argc, char *argv[])
     j = 0;
     tilt_sensor_t tilt_0;
 
-   printf("t_tilt Entry %i\n", idx);
    pt_tilt->GetEntry(j++);
     while (itilt.midas_time < t && j < pt_tilt->GetEntries()) {
       tilt_0 = itilt;
@@ -193,7 +190,6 @@ int main(int argc, char *argv[])
     j = 0;
     metrolab_t mlab_0;
 
-    printf("t_mlab Entry %i\n", idx);
     pt_mlab->GetEntry(j++);
     while (imlab.midas_time < t && j < pt_mlab->GetEntries()) {
       mlab_0 = imlab;
