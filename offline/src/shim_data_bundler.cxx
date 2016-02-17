@@ -26,6 +26,7 @@ using std::endl;
 #include "TFile.h"
 
 //--- project includes ---------------------------------------------//
+#include "shim_constants.hh"
 #include "shim_structs.hh"
 
 int main(int argc, char *argv[])
@@ -398,6 +399,24 @@ int main(int argc, char *argv[])
     
     if (pt_platform != nullptr) {
       pt_platform->GetEntry(i);
+
+      // Check if the first event is empty as it sometimes is.
+      if (i == 0) {
+
+        bool is_empty = true;
+
+        for (int j = 0; j < SHIM_PLATFORM_CH; ++j) {
+          for (int n = 0; n < SHORT_FID_LN; ++n) {
+            is_empty &= (platform.trace[j][n] == 0);
+
+            if (!is_empty) break;
+          }
+
+          if (!is_empty) break;
+        }
+
+        if (!is_empty) continue;
+      }
     }
 
     if (pt_rome_laser != nullptr) {
