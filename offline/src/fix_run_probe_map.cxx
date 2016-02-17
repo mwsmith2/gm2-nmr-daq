@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
   pt_sync->Branch("platform", &platform, gm2::platform_str);
   pt_sync->Branch("laser", &laser, gm2::hamar_str);
   pt_sync->Branch("ctec", &ctec, gm2::capacitec_str);
-  pt_sync->Branch("flags", &ctec, gm2::sync_flags_str);
+  pt_sync->Branch("flags", &flags, gm2::sync_flags_str);
   pt_envi->Branch("envi", &envi, gm2::scs2000_str);
   pt_tilt->Branch("tilt", &tilt, gm2::tilt_sensor_str);
   pt_mlab->Branch("mlab", &mlab, gm2::metrolab_str);
