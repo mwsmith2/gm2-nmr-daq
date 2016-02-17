@@ -23,6 +23,7 @@ usage:
 #include <boost/filesystem.hpp>
 #include "TFile.h"
 #include "TTree.h"
+#include "TTreeIndex.h"
 #include "TCanvas.h"
 
 //--- project includes ------------------------------------------------------//
@@ -112,7 +113,7 @@ int main(int argc, char *argv[])
   pf_out = new TFile(outfile.c_str(), "recreate");
   pt_out = new TTree("t", "Derived Shim Data");
 
-  // Attach the branches to the final output
+  // Attach the branches to the final output.
   pt_out->Branch("field", &ofield, gm2::field_str);
   pt_out->Branch("laser", &olaser, gm2::hamar_str);
   pt_out->Branch("ctec", &octec, gm2::capacitec_str);
@@ -121,10 +122,14 @@ int main(int argc, char *argv[])
   pt_out->Branch("tilt", &otilt, gm2::tilt_sensor_str);
   pt_out->Branch("mlab", &omlab, gm2::metrolab_str);
 
-  // Go through the data.
-  for (int idx = 0; idx < pt_sync->GetEntries(); ++idx) {
+  // Go through the data, and sort by azimuth.
+  int n = pt_sync->BuildIndex("10000*laser.phi_2", "Entry$");
+  TTreeIndex *index = (TTreeIndex *)pt_sync->GetTreeIndex();
 
-    pt_sync->GetEntry(idx);
+  for (int idx = 0; idx < index->GetN(); ++idx) {
+
+    printf("t_sync Entry %i\n", idx);
+    pt_sync->GetEntry(index->GetIndex()[idx]);
 
     // Copy the old data that needs to be saved.
     olaser = ilaser;
@@ -136,20 +141,6 @@ int main(int argc, char *argv[])
     octec.outer_up *= 127;
     octec.outer_lo *= 127;
 
-    // Now trim down the field data.
-    for (int i = 0; i < SHIM_PLATFORM_CH; ++i) {
-      ofield.sys_clock[i] = iplatform.sys_clock[i];
-      ofield.freq[i] = iplatform.freq[i];
-      ofield.snr[i] = iplatform.snr[i];
-      ofield.len[i] = iplatform.len[i];
-    }
-
-    auto mp = fit_multipoles(iplatform);
-
-    for (int i = 0; i < num_multipoles; ++i) {
-      ofield.multipole[i] = mp[i] / field_khz_to_ppm;
-    }
-
     // Set the time for interpolations.
     int j = 0;
     double t = ictec.midas_time;
@@ -157,6 +148,7 @@ int main(int argc, char *argv[])
     // Interpolate the envi TTree.
     scs2000_t envi_0;
 
+    printf("t_envi Entry %i\n", idx);
     pt_envi->GetEntry(j++);
     while (ienvi.midas_time < t && j < pt_envi->GetEntries()) {
       envi_0 = ienvi;
@@ -181,7 +173,8 @@ int main(int argc, char *argv[])
     j = 0;
     tilt_sensor_t tilt_0;
 
-    pt_tilt->GetEntry(j++);
+   printf("t_tilt Entry %i\n", idx);
+   pt_tilt->GetEntry(j++);
     while (itilt.midas_time < t && j < pt_tilt->GetEntries()) {
       tilt_0 = itilt;
       pt_tilt->GetEntry(j++);
@@ -200,6 +193,7 @@ int main(int argc, char *argv[])
     j = 0;
     metrolab_t mlab_0;
 
+    printf("t_mlab Entry %i\n", idx);
     pt_mlab->GetEntry(j++);
     while (imlab.midas_time < t && j < pt_mlab->GetEntries()) {
       mlab_0 = imlab;
@@ -212,6 +206,20 @@ int main(int argc, char *argv[])
     omlab = imlab;
     omlab.midas_time = t;
     omlab.field = w0 * mlab_0.field + w1 * imlab.field;
+
+    // Now trim down and record the field data.
+    for (int i = 0; i < SHIM_PLATFORM_CH; ++i) {
+      ofield.sys_clock[i] = iplatform.sys_clock[i];
+      ofield.freq[i] = iplatform.freq[i];
+      ofield.snr[i] = iplatform.snr[i];
+      ofield.len[i] = iplatform.len[i];
+    }
+
+    auto mp = fit_multipoles(iplatform);
+
+    for (int i = 0; i < num_multipoles; ++i) {
+      ofield.multipole[i] = mp[i] / field_khz_to_ppm;
+    }
 
     pt_out->Fill();
   }
