@@ -62,7 +62,8 @@ def main():
         args = (old_point, old_swap, correct_point, correct_swap)
         f.write('(%s, %s) -> (%s, %s)\n' % args)
 
-    subprocess.call(['python', 'scripts/reset_run_data.py', str(run_number)])
+    # This script no longer works.
+    # subprocess.call(['python', 'scripts/reset_run_data.py', str(run_number)])
     
 
 if __name__ == '__main__':
