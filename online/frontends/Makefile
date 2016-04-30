@@ -17,7 +17,7 @@ MODULES = $(patsubst src/%.cxx,%,$(wildcard src/*.cxx))
 OSFLAGS = -DOS_LINUX -DHAVE_USB -DHAVE_LIBUSB10 -Dextname
 CFLAGS = -g -fpermissive
 CXXFLAGS = -std=c++0x 
-LIBS = -lm -lz -lpthread -lfftw3 -lzmq -lodbc -lrt
+LIBS = -lm -lz -lpthread -lfftw3 -lzmq -lodbc -lrt -lyocto -lyapi
 
 ROOTFLAGS = $(shell root-config --cflags)
 ROOTLIBS = $(shell root-config --libs)
