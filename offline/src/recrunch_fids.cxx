@@ -62,6 +62,7 @@ int main(int argc, char **argv)
   TTree *pt_sync;
   TTree *pt_envi;
   TTree *pt_tilt;
+  TTree *pt_hall;
   TTree *pt_mlab;
 
   TFile *pf_out;
@@ -122,6 +123,7 @@ int main(int argc, char **argv)
   pt_sync = (TTree *)pf_in->Get("t_sync");
   pt_envi = (TTree *)pf_in->Get("t_envi");
   pt_tilt = (TTree *)pf_in->Get("t_tilt");
+  pt_hall = (TTree *)pf_in->Get("t_hall");
   pt_mlab = (TTree *)pf_in->Get("t_mlab");
 
   // Attach the appropriate branches/leaves.
@@ -206,8 +208,11 @@ int main(int argc, char **argv)
   TTree *pt_async_1 = pt_tilt->CloneTree();
   pt_async_1->Write();
 
-  TTree *pt_async_2 = pt_mlab->CloneTree();
+  TTree *pt_async_2 = pt_hall->CloneTree();
   pt_async_2->Write();
+
+  TTree *pt_async_3 = pt_mlab->CloneTree();
+  pt_async_3->Write();
 
   pf_out->Write();
   pf_out->Close();

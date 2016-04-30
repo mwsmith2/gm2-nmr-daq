@@ -50,6 +50,7 @@ int main(int argc, char *argv[])
   metrolab_t imlab;
   scs2000_t ienvi;
   tilt_sensor_t itilt;
+  hall_platform_t ihall;
   sync_flags_t iflags;
 
   field_t ofield;
@@ -58,6 +59,7 @@ int main(int argc, char *argv[])
   metrolab_t omlab;
   scs2000_t oenvi;
   tilt_sensor_t otilt;
+  hall_platform_t ohall;
   sync_flags_t oflags;
 
   // And the ROOT variables.
@@ -65,6 +67,7 @@ int main(int argc, char *argv[])
   TTree *pt_sync;
   TTree *pt_envi;
   TTree *pt_tilt;
+  TTree *pt_hall;
   TTree *pt_mlab;
 
   TFile *pf_out;
@@ -106,6 +109,9 @@ int main(int argc, char *argv[])
   pt_tilt = (TTree *)pf_in->Get("t_tilt");
   pt_tilt->SetBranchAddress("tilt", &itilt.midas_time);
 
+  pt_hall = (TTree *)pf_in->Get("t_hall");
+  pt_hall->SetBranchAddress("hall", &ihall.volt);
+
   pt_mlab = (TTree *)pf_in->Get("t_mlab");
   pt_mlab->SetBranchAddress("mlab", &imlab.field);
 
@@ -120,6 +126,7 @@ int main(int argc, char *argv[])
   pt_out->Branch("flags", &oflags.platform_data, gm2::sync_flags_str);
   pt_out->Branch("envi", &oenvi, gm2::scs2000_str);
   pt_out->Branch("tilt", &otilt, gm2::tilt_sensor_str);
+  pt_out->Branch("hall", &ohall, gm2::hall_platform_str);
   pt_out->Branch("mlab", &omlab, gm2::metrolab_str);
 
   // Go through the data, and sort by azimuth.
@@ -186,6 +193,22 @@ int main(int argc, char *argv[])
     otilt.phi = w0 * tilt_0.phi + w1 * itilt.phi;
     otilt.rad = w0 * tilt_0.rad + w1 * itilt.rad;
 
+    hall_platform_t hall_0;
+    
+    pt_hall->GetEntry(j++);
+    while (ihall.midas_time < t && j < pt_hall->GetEntries()) {
+      hall_0 = ihall;
+      pt_hall->GetEntry(j++);
+    }
+
+    w0 = (t - hall_0.midas_time) / (ihall.midas_time - hall_0.midas_time);
+    w1 = 1 - w0;
+
+    ohall.midas_time = t;
+
+    ohall.volt = w0 * hall_0.volt + w1 * ihall.volt;
+    ohall.temp = w0 * hall_0.temp + w1 * ihall.temp;
+
     // Interpolate the metrolab TTree.
     j = 0;
     metrolab_t mlab_0;
@@ -209,6 +232,16 @@ int main(int argc, char *argv[])
       ofield.freq[i] = iplatform.freq[i];
       ofield.snr[i] = iplatform.snr[i];
       ofield.len[i] = iplatform.len[i];
+    }
+
+    // Fill in probe 19 with average of closest probes.
+    if (oflags.missing_probe19) {
+      ofield.freq[18] = 0.296 * ofield.freq[19];
+      ofield.freq[18] += 0.296 * ofield.freq[17];
+      ofield.freq[18] += 0.204 * ofield.freq[6];
+      ofield.freq[18] += 0.204 * ofield.freq[5];
+
+      iplatform.freq[18] = ofield.freq[18];
     }
 
     auto mp = fit_multipoles(iplatform);

@@ -44,6 +44,7 @@ int main(int argc, char *argv[])
   gm2::metrolab_t mlab;
   gm2::scs2000_t envi;
   gm2::tilt_sensor_t tilt;
+  gm2::hall_platform_t hall;
   gm2::sync_flags_t flags;
 
   // Initialize the flags, since they aren't set to false automatically.
@@ -53,6 +54,7 @@ int main(int argc, char *argv[])
   flags.mlab_data = false;
   flags.envi_data = false;
   flags.tilt_data = false;
+  flags.hall_data = false;
   flags.laser_p1 = false;
   flags.laser_p2 = false;
   flags.laser_swap = false;
@@ -67,6 +69,7 @@ int main(int argc, char *argv[])
   mlab.midas_time = 0;
   envi.midas_time = 0;
   tilt.midas_time = 0;
+  hall.midas_time = 0;
 
   // And the ROOT variables.
   TFile *pf_platform = nullptr;
@@ -84,6 +87,9 @@ int main(int argc, char *argv[])
   TFile *pf_rome_tilt = nullptr;
   TTree *pt_rome_tilt = nullptr;
 
+  TFile *pf_rome_hall = nullptr;
+  TTree *pt_rome_hall = nullptr;
+
   TFile *pf_rome_mlab = nullptr;
   TTree *pt_rome_mlab = nullptr;
 
@@ -91,6 +97,7 @@ int main(int argc, char *argv[])
   TTree *pt_sync = nullptr;
   TTree *pt_envi = nullptr;
   TTree *pt_tilt = nullptr;
+  TTree *pt_hall = nullptr;
   TTree *pt_mlab = nullptr;
 
   // All the program needs is a run number, and optionally a data dir.
@@ -167,6 +174,16 @@ int main(int argc, char *argv[])
     pt_rome_tilt = (TTree *)pf_rome_tilt->Get("g2tilt");
   }
 
+  // And the hall probe platform data.
+  ss.str("");
+  ss << datadir << "rome/hall_probe_tree_run" << std::setfill('0');
+  ss << std::setw(5) << run_number << ".root";
+  pf_rome_hall = new TFile(ss.str().c_str(), "read");
+
+  if (!pf_rome_hall->IsZombie()) {
+    pt_rome_hall = (TTree *)pf_rome_hall->Get("g2hall_platform");
+  }
+
   // And the metrolab data.
   ss.str("");
   ss << datadir << "rome/metrolab_tree_run" << std::setfill('0');
@@ -196,6 +213,7 @@ int main(int argc, char *argv[])
   pt_sync = new TTree("t_sync", "Synchronous Shim Data");
   pt_envi = new TTree("t_envi", "Asynchronous SCS200 Data");
   pt_tilt = new TTree("t_tilt", "Asynchronous Tilt Sensor Data");
+  pt_hall = new TTree("t_hall", "Asynchronous Hall Prob Platform Data");
   pt_mlab = new TTree("t_mlab", "Asynchronous Metrolab Data");
 
   // Attach the branches to the final output
@@ -205,6 +223,7 @@ int main(int argc, char *argv[])
   pt_sync->Branch("flags", &flags.platform_data, gm2::sync_flags_str);
   pt_envi->Branch("envi", &envi, gm2::scs2000_str);
   pt_tilt->Branch("tilt", &tilt, gm2::tilt_sensor_str);
+  pt_hall->Branch("hall", &hall, gm2::hall_platform_str);
   pt_mlab->Branch("mlab", &mlab, gm2::metrolab_str);
 
   if (run_number < 1475) {
@@ -352,6 +371,16 @@ int main(int argc, char *argv[])
     pt_rome_tilt->SetBranchAddress("Tilt2", &tilt.rad);
   }
 
+  if (pt_rome_hall != nullptr) {
+
+    cout << "Found ROME data for Hall Probe Platform" << endl;
+
+    flags.hall_data = true;
+    pt_rome_hall->SetBranchAddress("Timestamp", &hall.midas_time);
+    pt_rome_hall->SetBranchAddress("HallPlatform0", &hall.temp);
+    pt_rome_hall->SetBranchAddress("HallPlatform1", &hall.volt);
+  }
+
   int num_sync_events = 0;
 
   if (pt_platform != nullptr) {
@@ -465,6 +494,16 @@ int main(int argc, char *argv[])
     cout << "Finished bundling tilt TTree." << endl;
   }
 
+  if (pt_rome_hall != nullptr) {
+
+    for (int i = 0; i < pt_rome_hall->GetEntries(); ++i) {
+      pt_rome_hall->GetEntry(i);
+      pt_hall->Fill();
+    }
+
+    cout << "Finished bundling hall TTree." << endl;
+  }
+
 
   if (pt_rome_mlab != nullptr) {
     for (int i = 0; i < pt_rome_mlab->GetEntries(); ++i) {
@@ -500,7 +539,7 @@ int main(int argc, char *argv[])
   pf_rome_ctec->Close();
   pf_rome_envi->Close();
   pf_rome_tilt->Close();
-  pf_rome_tilt->Close();
+  pf_rome_hall->Close();
   pf_platform->Close();
 
   return 0;

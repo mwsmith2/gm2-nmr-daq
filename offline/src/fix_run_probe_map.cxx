@@ -43,6 +43,7 @@ int main(int argc, char *argv[])
   capacitec_t ctec;
   scs2000_t envi;
   tilt_sensor_t tilt;
+  hall_platform_t hall;
   metrolab_t mlab;
   sync_flags_t flags;
 
@@ -51,6 +52,7 @@ int main(int argc, char *argv[])
   TTree *pt_sync;
   TTree *pt_envi;
   TTree *pt_tilt;
+  TTree *pt_hall;
   TTree *pt_mlab;
   TTree *pt_run;
 
@@ -82,6 +84,7 @@ int main(int argc, char *argv[])
   pt_sync = new TTree("t_sync", "Synchronous Shim Data");
   pt_envi = new TTree("t_envi", "Asynchronous SCS200 Data");
   pt_tilt = new TTree("t_tilt", "Asynchronous Tilt Sensor Data");
+  pt_hall = new TTree("t_hall", "Asynchronous Hall Probe Platform Data");
   pt_mlab = new TTree("t_mlab", "Asynchronous Metrolab Data");
 
   // Attach the branches to the new output.
@@ -91,6 +94,7 @@ int main(int argc, char *argv[])
   pt_sync->Branch("flags", &flags, gm2::sync_flags_str);
   pt_envi->Branch("envi", &envi, gm2::scs2000_str);
   pt_tilt->Branch("tilt", &tilt, gm2::tilt_sensor_str);
+  pt_hall->Branch("hall", &hall, gm2::hall_platform_str);
   pt_mlab->Branch("mlab", &mlab, gm2::metrolab_str);
 
   platform_t p_blank; // Used to substitute probe index 18
@@ -235,6 +239,12 @@ int main(int argc, char *argv[])
     pt_tilt->Fill();
   }    
 
+  for (int i = 0; i < d.GetHallEntries(); ++i) {
+      
+    hall = d[i].hall;
+    pt_hall->Fill();
+  }    
+
   for (int i = 0; i < d.GetMlabEntries(); ++i) {
       
     mlab = d[i].mlab;
@@ -245,6 +255,7 @@ int main(int argc, char *argv[])
   pt_sync->Write();  
   pt_envi->Write();
   pt_tilt->Write();
+  pt_hall->Write();
   pt_mlab->Write();
 
   pf->Write();
