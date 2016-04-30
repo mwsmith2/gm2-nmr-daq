@@ -78,15 +78,15 @@ extern "C" {
   EQUIPMENT equipment[] = 
     {
       {"fast-sync-trigger", // equipment name 
-       { 10, 0,          // event ID, trigger mask 
-         "BUF1",      // event buffer 
+       { 10, 0,         // event ID, trigger mask 
+         "BUF1",        // event buffer 
          EQ_POLLED,     // equipment type 
          0,             // not used 
          "MIDAS",       // format 
          TRUE,          // enabled 
          RO_RUNNING |   // read only when running 
          RO_ODB,        // and update ODB 
-         100,           // poll for 50ms 
+         10,            // poll for 10ms 
          0,             // stop run after this event limit 
          0,             // number of sub events 
          0,             // don't log history 
@@ -220,6 +220,7 @@ INT frontend_loop()
 
 INT poll_event(INT source, INT count, BOOL test) {
   unsigned int i;
+  static int poll_number = 0;
 
   // fake calibration
   if (test) {
@@ -228,8 +229,15 @@ INT poll_event(INT source, INT count, BOOL test) {
     }
     return 0;
   }
-    
-  return 1;
+  
+  if (poll_number++ % 100 == 0) {
+
+    return 1;
+
+  } else {
+
+    return 0;
+  }
 }
 
 //--- Interrupt configuration ---------------------------------------*/
@@ -253,6 +261,8 @@ INT interrupt_configure(INT cmd, INT source, PTYPE adr)
 
 INT read_trigger_event(char *pevent, INT off)
 {
+  return 0;
+
   DWORD *pdata;
 
   // And MIDAS output.

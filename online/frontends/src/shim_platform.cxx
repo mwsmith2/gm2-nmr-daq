@@ -89,7 +89,7 @@ extern "C" {
          "MIDAS",       // format 
          TRUE,          // enabled 
          RO_RUNNING,    // read only when running 
-         100,            // poll for 10ms 
+         10,            // poll for 10ms 
          0,             // stop run after this event limit 
          0,             // number of sub events 
          0,             // don't log history 
