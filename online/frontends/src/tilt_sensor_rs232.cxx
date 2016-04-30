@@ -84,10 +84,10 @@ extern "C" {
         TRUE,          // enabled
         RO_ALWAYS |    // read only when running
         RO_ODB,        // and update ODB
-        2000,          // read every 2s
+        1000,          // read every 2s
         0,             // stop run after this event limit                      
         0,             // number of sub events
-        0,             // don't log history
+        1,             // don't log history
         "", "", "",
        },
 
