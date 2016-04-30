@@ -371,11 +371,17 @@ void plot_waveforms_loop()
         sprintf(title, "Channel %i Trace", ch);
         ph_wfm = new TH1F(name, title, SHORT_FID_LN, myfid.tm()[0], 
                           myfid.tm()[myfid.tm().size() - 1]);
-      
+
+        // Make sure ROOT lets us delete completely.
+        ph_wfm->SetDirectory(0);
+        
         sprintf(name, "shim_platform_ch%02i_fft", ch);
         sprintf(title, "Channel %i Fourier Transform", ch);
         ph_fft = new TH1F(name, title, SHORT_FID_LN, myfid.fftfreq()[0], 
                           myfid.fftfreq()[myfid.fftfreq().size() - 1]);
+
+        // Make sure ROOT lets us delete completely.
+        ph_fft->SetDirectory(0);
         
         // One histogram gets the waveform and another with the fft power.
         for (idx = 0; idx < myfid.psd().size(); ++idx){
@@ -438,11 +444,17 @@ void plot_waveforms_loop()
         sprintf(title, "NMR Probe %i Trace", ch + 1);
         ph_wfm = new TH1F(name, title, SHORT_FID_LN, myfid.tm()[0], 
                           myfid.tm()[myfid.tm().size() - 1]);
+
+        // Make sure ROOT lets us delete completely.
+        ph_wfm->SetDirectory(0);
         
         sprintf(name, "shim_fixed_ch%02i_fft", ch);
         sprintf(title, "NMR Probe %i Fourier Transform", ch + 1);
         ph_fft = new TH1F(name, title, SHORT_FID_LN, myfid.fftfreq()[0], 
                           myfid.fftfreq()[myfid.fftfreq().size() - 1]);
+        
+        // Make sure ROOT lets us delete completely.
+        ph_fft->SetDirectory(0);
         
         // One histogram gets the waveform and another with the fft power.
         for (idx = 0; idx < myfid.psd().size(); ++idx){
