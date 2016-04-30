@@ -201,6 +201,13 @@ def normal_job_set(msg):
     job['deps'] = {}
     job['deps'][job['dir'] + '/midanalyzer.exe'] = new_dep
     jobs[0].append(job)
+
+    job = copy.copy(job)
+    job['name'] = 'hall_probe_platform'
+    job['dir'] = rome_dir + '/hall_probe_platform'
+    job['deps'] = {}
+    job['deps'][job['dir'] + '/midanalyzer.exe'] = new_dep
+    jobs[0].append(job)
     
     # Make sure run attributes are extracted.
     job = {}
@@ -250,6 +257,19 @@ def normal_job_set(msg):
     job['deps'][offline_dir + '/bin/recrunch_fids'] = new_dep
     job['deps'][datadir + '/shim/run_%05i.root' % run_num] = new_dep
     jobs[3].append(job)
+
+    # Automatically generate extracted dataset
+    job = {}
+    job['name'] = 'extracted'
+    job['dir'] = offline_dir
+    job['cmd'] = 'bin/extract_derived_dataset'
+    job['cmd'] += 'data/crunched/run_%i.root' % run_num
+    job['clean'] = None
+    job['meta'] = datadir + '/extracted/.processing_metadata.json'
+    job['deps'] = {}
+    job['deps'][offline_dir + '/bin/extract_derived_dataset'] = new_dep
+    job['deps'][datadir + '/crunched/run_%05i.root' % run_num] = new_dep
+    jobs[2].append(job)
 
     return jobs
 
