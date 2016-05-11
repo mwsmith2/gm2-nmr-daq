@@ -56,6 +56,7 @@
 #include "TMath.h"
 #include <vector>
 #include "shim_structs.hh"
+#include "shim_transforms.hh"
 #include "fid.h"
 
 const int shim_platform_size = sizeof(gm2::platform_t) / sizeof(uint);
@@ -76,7 +77,7 @@ void MIDTFillGraph_SHPF::Init()
 //______________________________________________________________________________
 void MIDTFillGraph_SHPF::BeginOfRun()
 {
-  TString treeFile = "data-out/platform_run_";
+  TString treeFile = "data-out/platform_tree_";
   treeFile += Form("%05i.root", gAnalyzer->GetODB()->GetRunNumber());
   
   fTreeFile = TFile::Open(treeFile.Data(), "RECREATE");   
@@ -147,6 +148,124 @@ void MIDTFillGraph_SHPF::Event()
           platform.freq_zc[ch] = 0.0;
           platform.ferr_zc[ch] = 0.0;
         }
+      }
+
+      // Now deal with probe mapping issues that we had early on.
+      int run_number = gAnalyzer->GetODB()->GetRunNumber();
+
+      if (run_number < 1475) {
+
+        // Copy the original platform data.
+        gm2::platform_t p = platform; 
+
+        gm2::platform_t p_blank;
+        p_blank.health[0];
+
+        for (int j = 0; j < SHIM_PLATFORM_CH; ++j) {
+
+          switch (j) 
+            {
+            case 2:
+              gm2::platform_copy_channel(platform, j, p, 8);
+              break;
+            case 3:
+              gm2::platform_copy_channel(platform, j, p, 20);
+              break;
+            case 6:
+              gm2::platform_copy_channel(platform, j, p, 3);
+              break;
+            case 7:
+              gm2::platform_copy_channel(platform, j, p, 10);
+              break;
+            case 8:
+              gm2::platform_copy_channel(platform, j, p, 18);
+              break;
+            case 10:
+              gm2::platform_copy_channel(platform, j, p, 14);
+              break;
+            case 14:
+              gm2::platform_copy_channel(platform, j, p, 6);
+              break;
+            case 17:
+              gm2::platform_copy_channel(platform, j, p, 7);
+              break;
+            case 18:
+              gm2::platform_copy_channel(platform, j, p_blank, 0);
+              break;
+            case 20:
+              gm2::platform_copy_channel(platform, j, p, 17);
+              break;
+            default:
+              break;
+            }
+        }
+
+      } else if (run_number == 1654) {
+      
+        // This run had an off by one problem in the sequencing,
+        // so I'm hardcoding the permutation back.
+
+        cout << "Remapping sequence for run 1654" << endl;
+
+        gm2::platform_t p = platform; 
+
+        // gm2::platform_copy_channel(platform, 0, p, 4);
+        // gm2::platform_copy_channel(platform, 1, p, 16);
+        // gm2::platform_copy_channel(platform, 2, p, 1);
+        // gm2::platform_copy_channel(platform, 3, p, 2);
+        // gm2::platform_copy_channel(platform, 4, p, 3);
+        // gm2::platform_copy_channel(platform, 5, p, 24);
+        // gm2::platform_copy_channel(platform, 6, p, 5);
+        // gm2::platform_copy_channel(platform, 7, p, 6);
+        // gm2::platform_copy_channel(platform, 8, p, 7);
+        // gm2::platform_copy_channel(platform, 9, p, 27);
+        // gm2::platform_copy_channel(platform, 10, p, 9);
+        // gm2::platform_copy_channel(platform, 11, p, 10);
+        // gm2::platform_copy_channel(platform, 12, p, 11);
+        // gm2::platform_copy_channel(platform, 13, p, 12);
+        // gm2::platform_copy_channel(platform, 14, p, 13);
+        // gm2::platform_copy_channel(platform, 15, p, 14);
+        // gm2::platform_copy_channel(platform, 16, p, 15);
+        // gm2::platform_copy_channel(platform, 17, p, 26);
+        // gm2::platform_copy_channel(platform, 18, p, 17);
+        // gm2::platform_copy_channel(platform, 19, p, 18);
+        // gm2::platform_copy_channel(platform, 20, p, 19);
+        // gm2::platform_copy_channel(platform, 21, p, 20);
+        // gm2::platform_copy_channel(platform, 22, p, 21);
+        // gm2::platform_copy_channel(platform, 23, p, 22);
+        // gm2::platform_copy_channel(platform, 24, p, 23);
+        // gm2::platform_copy_channel(platform, 25, p, 8);
+        // gm2::platform_copy_channel(platform, 26, p, 25);
+        // gm2::platform_copy_channel(platform, 27, p, 0);
+
+        gm2::platform_copy_channel(platform, 0, p, 27);
+        gm2::platform_copy_channel(platform, 1, p, 2);
+        gm2::platform_copy_channel(platform, 2, p, 3);
+        gm2::platform_copy_channel(platform, 3, p, 4);
+        gm2::platform_copy_channel(platform, 4, p, 0);
+        gm2::platform_copy_channel(platform, 5, p, 6);
+        gm2::platform_copy_channel(platform, 6, p, 7);
+        gm2::platform_copy_channel(platform, 7, p, 8);
+        gm2::platform_copy_channel(platform, 8, p, 25);
+        gm2::platform_copy_channel(platform, 9, p, 10);
+        gm2::platform_copy_channel(platform, 10, p, 11);
+        gm2::platform_copy_channel(platform, 11, p, 12);
+        gm2::platform_copy_channel(platform, 12, p, 13);
+        gm2::platform_copy_channel(platform, 13, p, 14);
+        gm2::platform_copy_channel(platform, 14, p, 15);
+        gm2::platform_copy_channel(platform, 15, p, 16);
+        gm2::platform_copy_channel(platform, 16, p, 1);
+        gm2::platform_copy_channel(platform, 17, p, 18);
+        gm2::platform_copy_channel(platform, 18, p, 19);
+        gm2::platform_copy_channel(platform, 19, p, 20);
+        gm2::platform_copy_channel(platform, 20, p, 21);
+        gm2::platform_copy_channel(platform, 21, p, 22);
+        gm2::platform_copy_channel(platform, 22, p, 23);
+        gm2::platform_copy_channel(platform, 23, p, 24);
+        gm2::platform_copy_channel(platform, 24, p, 5);
+        gm2::platform_copy_channel(platform, 25, p, 26);
+        gm2::platform_copy_channel(platform, 26, p, 17);
+        gm2::platform_copy_channel(platform, 27, p, 9);
       }
 
       // Fill the TTree.

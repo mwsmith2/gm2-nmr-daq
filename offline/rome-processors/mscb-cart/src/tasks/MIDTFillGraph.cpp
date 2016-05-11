@@ -79,7 +79,7 @@ void MIDTFillGraph::BeginOfRun()
    fTreeFile->cd();
 
    fEventTree = new TTree("t_mscb_cart","Slow Control Data From Shim Cart");
-   fEventTree->Branch("mscb_cart", &mscb.midas_time, gm2::mscb_cart_str);
+   fEventTree->Branch("cart", &mscb.midas_time, gm2::mscb_cart_str);
 }
 
 //______________________________________________________________________________

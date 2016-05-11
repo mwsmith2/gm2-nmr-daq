@@ -55,7 +55,7 @@
 
 TFile *fTreeFile = NULL;
 TTree *fEventTree = NULL;
-gm2::mscb_hall_t mscb;
+gm2::mscb_ring_t mscb;
 
 ClassImp(MIDTFillGraph)
 
@@ -67,15 +67,15 @@ void MIDTFillGraph::Init()
 //______________________________________________________________________________
 void MIDTFillGraph::BeginOfRun()
 {
-   TString treeFile = "data-out/mscb_hall_tree_run";
+   TString treeFile = "data-out/mscb_ring_tree_run";
    treeFile += Form("%05i",gAnalyzer->GetODB()->GetRunNumber());
    treeFile += ".root";
 
    fTreeFile = TFile::Open(treeFile.Data(), "RECREATE");   
    fTreeFile->cd();
 
-   fEventTree = new TTree("t_mscb_hall","Slow Control Data");
-   fEventTree->Branch("mscb_hall", &mscb.midas_time, gm2::mscb_hall_str);
+   fEventTree = new TTree("t_mscb_ring","Slow Control Data");
+   fEventTree->Branch("ring", &mscb.midas_time, gm2::mscb_ring_str);
 }
 
 //______________________________________________________________________________

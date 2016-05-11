@@ -96,13 +96,13 @@ void MIDTFillGraph::Event()
     
     if (gAnalyzer->GetMidasDAQ()->GetLTRKBankEntries() > 0) {
       
-      laser.z_1 = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(0);
-      laser.r_1 = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(1);
-      laser.phi_1 = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(2);
+      laser.r_1 = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(0);
+      laser.phi_1 = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(1);
+      laser.z_1 = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(2);
 
-      laser.z_1 = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(3);
-      laser.r_1 = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(4);
-      laser.phi_1 = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(5);
+      laser.r_2 = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(3);
+      laser.phi_2 = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(4);
+      laser.z_2 = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(5);
 
       // Make sure the angles are from [0, 360].
 
