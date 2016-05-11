@@ -39,18 +39,20 @@ int main(int argc, char *argv[])
 
   // shim structs
   platform_t platform;
-  hamar_t laser;
+  laser_t laser;
   capacitec_t ctec;
-  scs2000_t envi;
+  mscb_cart_t cart;
+  mscb_ring_t ring;
   tilt_sensor_t tilt;
-  hall_platform_t hall;
+  hall_probe_t hall;
   metrolab_t mlab;
-  sync_flags_t flags;
+  data_flags_t flags;
 
   // ROOT stuff
   TFile *pf;
   TTree *pt_sync;
-  TTree *pt_envi;
+  TTree *pt_cart;
+  TTree *pt_ring;
   TTree *pt_tilt;
   TTree *pt_hall;
   TTree *pt_mlab;
@@ -82,19 +84,21 @@ int main(int argc, char *argv[])
   // Create a new ROOT file.
   pf = new TFile(outfile.c_str(), "recreate");
   pt_sync = new TTree("t_sync", "Synchronous Shim Data");
-  pt_envi = new TTree("t_envi", "Asynchronous SCS200 Data");
+  pt_cart = new TTree("t_cart", "Asynchronous SCS200 Data");
+  pt_ring = new TTree("t_ring", "Asynchronous SCS200 Data");
   pt_tilt = new TTree("t_tilt", "Asynchronous Tilt Sensor Data");
   pt_hall = new TTree("t_hall", "Asynchronous Hall Probe Platform Data");
   pt_mlab = new TTree("t_mlab", "Asynchronous Metrolab Data");
 
   // Attach the branches to the new output.
   pt_sync->Branch("platform", &platform, gm2::platform_str);
-  pt_sync->Branch("laser", &laser, gm2::hamar_str);
+  pt_sync->Branch("laser", &laser, gm2::laser_str);
   pt_sync->Branch("ctec", &ctec, gm2::capacitec_str);
-  pt_sync->Branch("flags", &flags, gm2::sync_flags_str);
-  pt_envi->Branch("envi", &envi, gm2::scs2000_str);
+  pt_sync->Branch("flags", &flags, gm2::data_flags_str);
+  pt_cart->Branch("cart", &cart, gm2::mscb_cart_str);
+  pt_ring->Branch("ring", &ring, gm2::mscb_ring_str);
   pt_tilt->Branch("tilt", &tilt, gm2::tilt_sensor_str);
-  pt_hall->Branch("hall", &hall, gm2::hall_platform_str);
+  pt_hall->Branch("hall", &hall, gm2::hall_probe_str);
   pt_mlab->Branch("mlab", &mlab, gm2::metrolab_str);
 
   platform_t p_blank; // Used to substitute probe index 18
@@ -227,10 +231,17 @@ int main(int argc, char *argv[])
   }
 
   // And the slow control.
-  for (int i = 0; i < d.GetEnviEntries(); ++i) {
+  for (int i = 0; i < d.GetCartEntries(); ++i) {
       
-    envi = d[i].envi;
-    pt_envi->Fill();
+    cart = d[i].cart;
+    pt_cart->Fill();
+  }    
+
+  // And the slow control.
+  for (int i = 0; i < d.GetRingEntries(); ++i) {
+      
+    ring = d[i].ring;
+    pt_ring->Fill();
   }    
 
   for (int i = 0; i < d.GetTiltEntries(); ++i) {
@@ -253,7 +264,8 @@ int main(int argc, char *argv[])
     
 
   pt_sync->Write();  
-  pt_envi->Write();
+  pt_cart->Write();
+  pt_ring->Write();
   pt_tilt->Write();
   pt_hall->Write();
   pt_mlab->Write();

@@ -2,7 +2,7 @@
 
 author: Matthias W. Smith
 email:  mwsmith2@uw.edu
-date:   2015/09/04
+date:   2016/05/10
 
 about:  The program runs on a crunched file and packages all the data
         with units converted and traces dropped.  A dataset that has
@@ -10,7 +10,7 @@ about:  The program runs on a crunched file and packages all the data
 
 usage:
 
-./extract_derived_dataset <input-file> [output-dir]
+./make_extracted_dataset <input-file> [output-dir]
 
 \*===========================================================================*/
 
@@ -45,27 +45,30 @@ int main(int argc, char *argv[])
 
   // Declare the data structures.
   platform_t iplatform;
-  hamar_t ilaser;
+  laser_t ilaser;
   capacitec_t ictec;
   metrolab_t imlab;
-  scs2000_t ienvi;
+  mscb_cart_t icart;
+  mscb_ring_t iring;
   tilt_sensor_t itilt;
-  hall_platform_t ihall;
-  sync_flags_t iflags;
+  hall_probe_t ihall;
+  data_flags_t iflags;
 
   field_t ofield;
-  hamar_t olaser;
+  laser_t olaser;
   capacitec_t octec;
   metrolab_t omlab;
-  scs2000_t oenvi;
+  mscb_cart_t ocart;
+  mscb_ring_t oring;
   tilt_sensor_t otilt;
-  hall_platform_t ohall;
-  sync_flags_t oflags;
+  hall_probe_t ohall;
+  data_flags_t oflags;
 
   // And the ROOT variables.
   TFile *pf_in;
   TTree *pt_sync;
-  TTree *pt_envi;
+  TTree *pt_cart;
+  TTree *pt_ring;
   TTree *pt_tilt;
   TTree *pt_hall;
   TTree *pt_mlab;
@@ -75,7 +78,7 @@ int main(int argc, char *argv[])
 
   if (argc < 2) {
     cout << "Insufficent arguments, usage:" << endl;
-    cout << "extract_derived_dataset <input-file> [output-dir]" << endl;
+    cout << "make_extracted_dataset <input-file> [output-dir]" << endl;
     exit(1);
   }
 
@@ -103,8 +106,11 @@ int main(int argc, char *argv[])
   pt_sync->SetBranchAddress("flags", &iflags.platform_data);
   pt_sync->SetBranchAddress("laser", &ilaser.midas_time);
 
-  pt_envi = (TTree *)pf_in->Get("t_envi");
-  pt_envi->SetBranchAddress("envi", &ienvi.midas_time);
+  pt_cart = (TTree *)pf_in->Get("t_mscb_cart");
+  pt_cart->SetBranchAddress("cart", &icart.midas_time);
+
+  pt_ring = (TTree *)pf_in->Get("t_mscb_ring");
+  pt_ring->SetBranchAddress("ring", &iring.midas_time);
 
   pt_tilt = (TTree *)pf_in->Get("t_tilt");
   pt_tilt->SetBranchAddress("tilt", &itilt.midas_time);
@@ -121,12 +127,13 @@ int main(int argc, char *argv[])
 
   // Attach the branches to the final output.
   pt_out->Branch("field", &ofield, gm2::field_str);
-  pt_out->Branch("laser", &olaser, gm2::hamar_str);
+  pt_out->Branch("laser", &olaser, gm2::laser_str);
   pt_out->Branch("ctec", &octec, gm2::capacitec_str);
-  pt_out->Branch("flags", &oflags.platform_data, gm2::sync_flags_str);
-  pt_out->Branch("envi", &oenvi, gm2::scs2000_str);
+  pt_out->Branch("flags", &oflags.platform_data, gm2::data_flags_str);
+  pt_out->Branch("cart", &ocart, gm2::mscb_cart_str);
+  pt_out->Branch("ring", &oring, gm2::mscb_ring_str);
   pt_out->Branch("tilt", &otilt, gm2::tilt_sensor_str);
-  pt_out->Branch("hall", &ohall, gm2::hall_platform_str);
+  pt_out->Branch("hall", &ohall, gm2::hall_probe_str);
   pt_out->Branch("mlab", &omlab, gm2::metrolab_str);
 
   // Go through the data, and sort by azimuth.
@@ -150,28 +157,49 @@ int main(int argc, char *argv[])
     // Set the time for interpolations.
     int j = 0;
     double t = ictec.midas_time;
+    double w0 = 0.0;
+    double w1 = 0.0;
 
-    // Interpolate the envi TTree.
-    scs2000_t envi_0;
+    // Interpolate the cart TTree.
+    mscb_cart_t cart_0;
 
-    pt_envi->GetEntry(j++);
-    while (ienvi.midas_time < t && j < pt_envi->GetEntries()) {
-      envi_0 = ienvi;
-      pt_envi->GetEntry(j++);
+    pt_cart->GetEntry(j++);
+    while (icart.midas_time < t && j < pt_cart->GetEntries()) {
+      cart_0 = icart;
+      pt_cart->GetEntry(j++);
     }
 
-    double w0 = (t - envi_0.midas_time) / (ienvi.midas_time - envi_0.midas_time);
-    double w1 = 1 - w0;
+    w0 = (t - cart_0.midas_time) / (icart.midas_time - cart_0.midas_time);
+    w1 = 1 - w0;
 
-    oenvi.midas_time = t;
+    ocart.midas_time = t;
 
     for (int i = 0; i < 8; ++i) {
-      oenvi.temp[i] = w0 * envi_0.temp[i] + w1 * ienvi.temp[i];
+      ocart.temp[i] = w0 * cart_0.temp[i] + w1 * icart.temp[i];
     }
 
     for (int i = 0; i < 4; ++i) {
-      oenvi.ctec[i] = w0 * envi_0.ctec[i] + w1 * ienvi.ctec[i];
-      oenvi.ctec[i] *= 127;
+      ocart.ctec[i] = w0 * cart_0.ctec[i] + w1 * icart.ctec[i];
+      ocart.ctec[i] *= 127;
+    }
+
+
+    // Interpolate the ring TTree.
+    mscb_ring_t ring_0;
+
+    pt_ring->GetEntry(j++);
+    while (iring.midas_time < t && j < pt_ring->GetEntries()) {
+      ring_0 = iring;
+      pt_ring->GetEntry(j++);
+    }
+
+    w0 = (t - ring_0.midas_time) / (iring.midas_time - ring_0.midas_time);
+    w1 = 1 - w0;
+
+    oring.midas_time = t;
+
+    for (int i = 0; i < 12; ++i) {
+      oring.temp[i] = w0 * ring_0.temp[i] + w1 * iring.temp[i];
     }
 
     // Interpolate the tilt sensor TTree.
@@ -193,7 +221,7 @@ int main(int argc, char *argv[])
     otilt.phi = w0 * tilt_0.phi + w1 * itilt.phi;
     otilt.rad = w0 * tilt_0.rad + w1 * itilt.rad;
 
-    hall_platform_t hall_0;
+    hall_probe_t hall_0;
     
     pt_hall->GetEntry(j++);
     while (ihall.midas_time < t && j < pt_hall->GetEntries()) {

@@ -1,27 +1,29 @@
-/********************************************************************\
+/*****************************************************************************\
 
-  file:    bundle_full_scan.cxx
+  file:    make_bundled_dataset.cxx
   author:  Matthias W. Smith
 
-  about:   Combine runs the comprise a full scan around the ring.
+  about:   Combine runs into a single bundle for convenient analysis.
 
-\********************************************************************/
+\*****************************************************************************/
 
-//--- std includes -------------------------------------------------//
+//--- std includes ----------------------------------------------------------//
+#include <cstdio>
 #include <string>
 #include <ctime>
-#include <cstdio>
 #include <sstream>
 #include <iostream>
+#include <fstream>
 #include <iomanip>
-#include <cassert>
+#include <algorithm>
 
-//--- other includes -----------------------------------------------//
+//--- other includes --------------------------------------------------------//
 #include "TFile.h"
 #include "TTree.h"
 
-//--- project includes ---------------------------------------------//
+//--- project includes ------------------------------------------------------//
 #include "shim_dataset.hh"
+#include "shim_constants.hh"
 
 using namespace std;
 using namespace gm2;
@@ -30,22 +32,29 @@ int main(int argc, char *argv[])
 {
   // The data i/o
   string outfile;
+  string runfile;
   string datadir;
+  std::string bundle_type;
+  int bundle_number;
+  bool interp_laser;
+  string str;
   stringstream ss;
+  istringstream iss;
+  ifstream in;
   vector<ShimDataset> dvec;
   vector<int> run_numbers;
+  int run_number;
 
   // Shim structs
   platform_t platform;
   laser_t laser;
   capacitec_t ctec;
+  data_flags_t flags;
   mscb_cart_t cart;
   mscb_ring_t ring;
   tilt_sensor_t tilt;
   hall_probe_t hall;
   metrolab_t mlab;
-  data_flags_t flags;
-  int run_number;
 
   // ROOT stuff
   TFile *pf;
@@ -58,34 +67,64 @@ int main(int argc, char *argv[])
   TTree *pt_run;
 
   // Parse the i/o files
-  if (argc < 4) {
+  if (argc < 2) {
     cout << "Insufficent arguments, usage:" << endl;
-    cout << "bundle_runs <output-file> <input-data-dir> [run list]\n";
+    cout << "make_bundled_dataset <bundle-type> <bundle-number>";
+    cout << "[interpolate-missing-laser] [data-directory] " << endl;;
     exit(1);
   }
 
-  outfile = string(argv[1]);
-  datadir = string(argv[2]);
+  // Set the output and runfile names based on the full scan number.
+  bundle_type = std::string(argv[1]);
+  bundle_number = stoi(argv[2]);
+  datadir = string("data/crunched/");
+  interp_laser = true;
 
-  if (datadir[datadir.size() - 1] != '/') {
-    datadir += string("/");
+  if (argc > 3) {
+    str = std::string(argv[3]);
+    std::transform(str.begin(), str.end(), str.begin(), ::tolower);
+    std::istringstream is(str);
+    is >> std::boolalpha >> interp_laser;
   }
 
-  for (int i = 3; i < argc; ++i) {
+  if (argc > 4) {
+    datadir = std::string(argv[4]);
+  }
+
+  ss.str("");
+  ss << "data/bundles/" << bundle_type << "_" << std::setfill('0');
+  ss << std::setw(3) << bundle_number << ".root";
+  outfile = ss.str();
+
+  ss.str("");
+  ss << "data/bundles/run_list_" << bundle_type << "_" << std::setfill('0');
+  ss << std::setw(3) << bundle_number << ".txt";
+  runfile = ss.str();
+
+  // Load the run file and parse it into run_numbers vector.
+  in.open(runfile);
+  std::getline(in, str);
+  in.close();
+  iss.str(str);
+
+  while (std::getline(iss, str, ' ')) {
+    run_numbers.push_back(stoi(str.c_str()));
+  }
+
+  for (auto &run : run_numbers) {
     ss.str("");
     ss << datadir << "run_" << std::setfill('0') << std::setw(5);
-    ss << stoi(argv[i]) << ".root";
+    ss << run << ".root";
 
     cout << "loading " << ss.str() << endl;
-    run_numbers.push_back(stoi(argv[i]));
     dvec.push_back(ShimDataset(ss.str()));
   }
 
   // Create a new ROOT file.
   pf = new TFile(outfile.c_str(), "recreate");
   pt_sync = new TTree("t_sync", "Synchronous Shim Platform Data");
-  pt_cart = new TTree("t_cart", "Shim Platform MSCB Data");
-  pt_ring = new TTree("t_ring", "Storage Ring MSCB Data");
+  pt_cart = new TTree("t_mscb_cart", "Shim Platform MSCB Data");
+  pt_ring = new TTree("t_mscb_ring", "Storage Ring MSCB Data");
   pt_tilt = new TTree("t_tilt", "Tilt Sensor Data");
   pt_hall = new TTree("t_hall", "Hall Probe Data");
   pt_mlab = new TTree("t_mlab", "Metrolab Data");
@@ -114,6 +153,35 @@ int main(int argc, char *argv[])
 
   for (int idx = 0; idx < dvec.size(); ++idx) {
 
+    static double phi0 = 0.0;
+    static double dphi = 0.0;
+      
+    if (interp_laser) {
+      // If there is no laser data, we want to interpolate.
+      if (idx == 0) {
+      
+        double phi_i = dvec[idx+1][0].laser.phi_2;
+        double phi_f = dvec[idx+1][dvec[idx+1].GetSyncEntries() - 1].laser.phi_2;
+        dphi = (phi_f - phi_i) / dvec[idx+1].GetSyncEntries();
+        phi0 = phi_i - dvec[idx].GetSyncEntries() * dphi;
+      
+      } else if (idx == dvec.size() - 1) {
+      
+        double phi_i = dvec[idx-1][0].laser.phi_2;
+        double phi_f = dvec[idx-1][dvec[idx-1].GetSyncEntries() - 1].laser.phi_2;
+        dphi = (phi_f - phi_i) / dvec[idx-1].GetSyncEntries();
+        phi0 = phi_f;
+      
+      } else {
+      
+        double phi_i = dvec[idx-1][dvec[idx-1].GetSyncEntries()-1].laser.phi_2;
+        double phi_f = dvec[idx+1][0].laser.phi_2;
+      
+        dphi = (phi_f - phi_i) / dvec[idx].GetSyncEntries();
+        phi0 = phi_i;
+      }
+    }
+    
     // Loop over the sync variables.
     for (int i = 0; i < dvec[idx].GetSyncEntries(); ++i) {
  
@@ -123,10 +191,15 @@ int main(int argc, char *argv[])
       flags = dvec[idx][i].flags;
       run_number = run_numbers[idx];
 
+      if (!(dvec[idx][0].flags.laser_p1 || dvec[idx][0].flags.laser_p2) && interp_laser) {
+        laser.phi_2 = phi0 + i * dphi;
+        laser.phi_1 = phi0 + i * dphi - gm2::laser_phi_offset;
+      }
+
       pt_sync->Fill();
     }
 
-    // And the slow control.
+    // And the cart slow control.
     for (int i = 0; i < dvec[idx].GetCartEntries(); ++i) {
       
       cart = dvec[idx][i].cart;
@@ -135,7 +208,7 @@ int main(int argc, char *argv[])
       pt_cart->Fill();
     }    
 
-    // And the slow control.
+    // And the ring slow control.
     for (int i = 0; i < dvec[idx].GetRingEntries(); ++i) {
       
       ring = dvec[idx][i].ring;
@@ -158,7 +231,7 @@ int main(int argc, char *argv[])
       run_number = run_numbers[idx];
 
       pt_hall->Fill();
-    }
+    }    
 
     for (int i = 0; i < dvec[idx].GetMlabEntries(); ++i) {
       
@@ -167,6 +240,8 @@ int main(int argc, char *argv[])
 
       pt_mlab->Fill();
     }    
+
+    printf("Done bundling run %05i\n", run_number);;
   }
 
   pt_sync->Write();  

@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
 
   // Attach the appropriate branches/leaves.
   platform_t idata;
-  hamar_t laser;
+  laser_t laser;
   capacitec_t ctec;
 
   pt_sync->SetBranchAddress("platform", &idata.sys_clock[0]);
@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
 
   pt_out = new TTree("t_sync", "Synchronous Shimming Data");
   pt_out->Branch("platform", &odata.sys_clock[0], platform_str);
-  pt_out->Branch("laser", &laser.midas_time, hamar_str);
+  pt_out->Branch("laser", &laser.midas_time, laser_str);
   pt_out->Branch("ctec", &ctec.midas_time, capacitec_str);
 
   // Set the time vector.

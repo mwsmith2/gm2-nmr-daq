@@ -45,19 +45,23 @@ int main(int argc, char *argv[])
 
   // Shim structs
   platform_t platform;
-  hamar_t laser;
+  laser_t laser;
   capacitec_t ctec;
-  sync_flags_t flags;
-  scs2000_t envi;
+  data_flags_t flags;
+  mscb_cart_t cart;
+  mscb_ring_t ring;
   tilt_sensor_t tilt;
+  hall_probe_t hall;
   metrolab_t mlab;
   int run_number;
 
   // ROOT stuff
   TFile *pf;
   TTree *pt_sync;
-  TTree *pt_envi;
+  TTree *pt_cart;
+  TTree *pt_ring;
   TTree *pt_tilt;
+  TTree *pt_hall;
   TTree *pt_mlab;
   TTree *pt_run;
 
@@ -103,23 +107,31 @@ int main(int argc, char *argv[])
 
   // Create a new ROOT file.
   pf = new TFile(outfile.c_str(), "recreate");
-  pt_sync = new TTree("t_sync", "Synchronous Shim Data");
-  pt_envi = new TTree("t_envi", "Asynchronous SCS200 Data");
-  pt_tilt = new TTree("t_tilt", "Asynchronous Tilt Sensor Data");
-  pt_mlab = new TTree("t_mlab", "Asynchronous Metrolab Data");
+  pt_sync = new TTree("t_sync", "Synchronous Shim Platform Data");
+  pt_cart = new TTree("t_cart", "Shim Platform MSCB Data");
+  pt_ring = new TTree("t_ring", "Storage Ring MSCB Data");
+  pt_tilt = new TTree("t_tilt", "Tilt Sensor Data");
+  pt_hall = new TTree("t_hall", "Hall Probe Data");
+  pt_mlab = new TTree("t_mlab", "Metrolab Data");
 
   // Attach the branches to the new output.
   pt_sync->Branch("platform", &platform, gm2::platform_str);
-  pt_sync->Branch("laser", &laser, gm2::hamar_str);
+  pt_sync->Branch("laser", &laser, gm2::laser_str);
   pt_sync->Branch("ctec", &ctec, gm2::capacitec_str);
-  pt_sync->Branch("flags", &flags, gm2::sync_flags_str);
+  pt_sync->Branch("flags", &flags, gm2::data_flags_str);
   pt_sync->Branch("run_number", &run_number, "run_number/I");
 
-  pt_envi->Branch("envi", &envi, gm2::scs2000_str);
-  pt_envi->Branch("run_number", &run_number, "run_number/I");
+  pt_cart->Branch("cart", &cart, gm2::mscb_cart_str);
+  pt_cart->Branch("run_number", &run_number, "run_number/I");
+
+  pt_ring->Branch("ring", &ring, gm2::mscb_ring_str);
+  pt_ring->Branch("run_number", &run_number, "run_number/I");
 
   pt_tilt->Branch("tilt", &tilt, gm2::tilt_sensor_str);
   pt_tilt->Branch("run_number", &run_number, "run_number/I");
+
+  pt_hall->Branch("hall", &hall, gm2::hall_probe_str);
+  pt_hall->Branch("run_number", &run_number, "run_number/I");
 
   pt_mlab->Branch("mlab", &mlab, gm2::metrolab_str);
   pt_mlab->Branch("run_number", &run_number, "run_number/I");
@@ -170,13 +182,22 @@ int main(int argc, char *argv[])
       pt_sync->Fill();
     }
 
-    // And the slow control.
-    for (int i = 0; i < dvec[idx].GetEnviEntries(); ++i) {
+    // And the cart slow control.
+    for (int i = 0; i < dvec[idx].GetCartEntries(); ++i) {
       
-      envi = dvec[idx][i].envi;
+      cart = dvec[idx][i].cart;
       run_number = run_numbers[idx];
 
-      pt_envi->Fill();
+      pt_cart->Fill();
+    }    
+
+    // And the ring slow control.
+    for (int i = 0; i < dvec[idx].GetRingEntries(); ++i) {
+      
+      ring = dvec[idx][i].ring;
+      run_number = run_numbers[idx];
+
+      pt_ring->Fill();
     }    
 
     for (int i = 0; i < dvec[idx].GetTiltEntries(); ++i) {
@@ -185,6 +206,14 @@ int main(int argc, char *argv[])
       run_number = run_numbers[idx];
 
       pt_tilt->Fill();
+    }    
+
+    for (int i = 0; i < dvec[idx].GetHallEntries(); ++i) {
+      
+      hall = dvec[idx][i].hall;
+      run_number = run_numbers[idx];
+
+      pt_hall->Fill();
     }    
 
     for (int i = 0; i < dvec[idx].GetMlabEntries(); ++i) {
@@ -199,8 +228,10 @@ int main(int argc, char *argv[])
   }
 
   pt_sync->Write();  
-  pt_envi->Write();
+  pt_cart->Write();
+  pt_ring->Write();
   pt_tilt->Write();
+  pt_hall->Write();
   pt_mlab->Write();
 
   pf->Write();

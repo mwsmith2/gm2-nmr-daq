@@ -37,28 +37,31 @@ int main(int argc, char *argv[])
 
   // Structs to connect to trees for comparison tree.
   field_t field_i;
-  hamar_t laser_i;
+  laser_t laser_i;
   capacitec_t ctec_i;
   metrolab_t mlab_i;
-  scs2000_t envi_i;
+  mscb_cart_t cart_i;
+  mscb_ring_t ring_i;
   tilt_sensor_t tilt_i;
-  sync_flags_t flags_i;
+  data_flags_t flags_i;
 
   field_t field_f;
-  hamar_t laser_f;
+  laser_t laser_f;
   capacitec_t ctec_f;
   metrolab_t mlab_f;
-  scs2000_t envi_f;
+  mscb_cart_t cart_f;
+  mscb_ring_t ring_f;
   tilt_sensor_t tilt_f;
-  sync_flags_t flags_f;
+  data_flags_t flags_f;
 
   field_t field_d;
-  hamar_t laser_d;
+  laser_t laser_d;
   capacitec_t ctec_d;
   metrolab_t mlab_d;
-  scs2000_t envi_d;
+  mscb_cart_t cart_d;
+  mscb_ring_t ring_d;
   tilt_sensor_t tilt_d;
-  sync_flags_t flags_d;
+  data_flags_t flags_d;
 
   // And the ROOT variables.
   vector<TFile *>pf_in_vec;
@@ -106,7 +109,8 @@ int main(int argc, char *argv[])
   pt_in_vec[0]->SetBranchAddress("laser", &laser_i);
   pt_in_vec[0]->SetBranchAddress("ctec", &ctec_i);
   pt_in_vec[0]->SetBranchAddress("flags", &flags_d.platform_data);
-  pt_in_vec[0]->SetBranchAddress("envi", &envi_i);
+  pt_in_vec[0]->SetBranchAddress("cart", &cart_i);
+  pt_in_vec[0]->SetBranchAddress("ring", &ring_i);
   pt_in_vec[0]->SetBranchAddress("tilt", &tilt_i);
   pt_in_vec[0]->SetBranchAddress("mlab", &mlab_i);
 
@@ -127,16 +131,18 @@ int main(int argc, char *argv[])
   	pt_in_vec[idx]->SetBranchAddress("laser", &laser_f);
   	pt_in_vec[idx]->SetBranchAddress("ctec", &ctec_f);
   	pt_in_vec[idx]->SetBranchAddress("flags", &flags_d.platform_data);
-  	pt_in_vec[idx]->SetBranchAddress("envi", &envi_f);
+  	pt_in_vec[idx]->SetBranchAddress("ring", &ring_f);
+  	pt_in_vec[idx]->SetBranchAddress("cart", &cart_f);
   	pt_in_vec[idx]->SetBranchAddress("tilt", &tilt_f);
   	pt_in_vec[idx]->SetBranchAddress("mlab", &mlab_f);
 
   	// Attach the branches to the final output
   	pt->Branch("field", &field_d, gm2::field_str);
-  	pt->Branch("laser", &laser_d, gm2::hamar_str);
+  	pt->Branch("laser", &laser_d, gm2::laser_str);
   	pt->Branch("ctec", &ctec_d, gm2::capacitec_str);
-  	pt->Branch("flags", &flags_d.platform_data, gm2::sync_flags_str);
-  	pt->Branch("envi", &envi_d, gm2::scs2000_str);
+  	pt->Branch("flags", &flags_d.platform_data, gm2::data_flags_str);
+  	pt->Branch("cart", &cart_d, gm2::mscb_cart_str);
+  	pt->Branch("ring", &ring_d, gm2::mscb_ring_str);
   	pt->Branch("tilt", &tilt_d, gm2::tilt_sensor_str);
   	pt->Branch("mlab", &mlab_d, gm2::metrolab_str);
 
@@ -153,7 +159,7 @@ int main(int argc, char *argv[])
   	for (int i = 0; i < pt_in_vec[0]->GetEntries(); ++i) {
 
       static double phi, phi_0, phi_1, w0, w1;
-      static hamar_t laser_0;
+      static laser_t laser_0;
 
     	pt_in_vec[0]->GetEntry(i);
 

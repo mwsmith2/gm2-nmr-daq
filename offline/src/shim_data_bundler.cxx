@@ -39,22 +39,24 @@ int main(int argc, char *argv[])
 
   // Declare the data structures.
   gm2::platform_t platform;
-  gm2::hamar_t laser;
+  gm2::laser_t laser;
   gm2::capacitec_t ctec;
   gm2::metrolab_t mlab;
-  gm2::scs2000_t envi;
+  gm2::mscb_cart_t cart;
+  gm2::mscb_ring_t ring;
   gm2::tilt_sensor_t tilt;
-  gm2::hall_platform_t hall;
-  gm2::sync_flags_t flags;
+  gm2::hall_probe_t hall;
+  gm2::data_flags_t flags;
 
   // Initialize the flags, since they aren't set to false automatically.
   flags.platform_data = false;
   flags.laser_data = false;
   flags.ctec_data = false;
   flags.mlab_data = false;
-  flags.envi_data = false;
-  flags.tilt_data = false;
   flags.hall_data = false;
+  flags.tilt_data = false;
+  flags.mscb_cart_data = false;
+  flags.mscb_ring_data = false;
   flags.laser_p1 = false;
   flags.laser_p2 = false;
   flags.laser_swap = false;
@@ -67,7 +69,8 @@ int main(int argc, char *argv[])
   laser.midas_time = 0;
   ctec.midas_time = 0;
   mlab.midas_time = 0;
-  envi.midas_time = 0;
+  cart.midas_time = 0;
+  ring.midas_time = 0;
   tilt.midas_time = 0;
   hall.midas_time = 0;
 
@@ -81,8 +84,11 @@ int main(int argc, char *argv[])
   TFile *pf_rome_ctec = nullptr;
   TTree *pt_rome_ctec = nullptr;
 
-  TFile *pf_rome_envi = nullptr;
-  TTree *pt_rome_envi = nullptr;
+  TFile *pf_rome_ring = nullptr;
+  TTree *pt_rome_ring = nullptr;
+
+  TFile *pf_rome_cart = nullptr;
+  TTree *pt_rome_cart = nullptr;
 
   TFile *pf_rome_tilt = nullptr;
   TTree *pt_rome_tilt = nullptr;
@@ -95,7 +101,8 @@ int main(int argc, char *argv[])
 
   TFile *pf_all = nullptr;
   TTree *pt_sync = nullptr;
-  TTree *pt_envi = nullptr;
+  TTree *pt_cart = nullptr;
+  TTree *pt_ring = nullptr;
   TTree *pt_tilt = nullptr;
   TTree *pt_hall = nullptr;
   TTree *pt_mlab = nullptr;
@@ -158,10 +165,20 @@ int main(int argc, char *argv[])
   ss.str("");
   ss << datadir << "rome/sc_tree_run" << std::setfill('0') << std::setw(5);
   ss << run_number << ".root";
-  pf_rome_envi = new TFile(ss.str().c_str(), "read");
+  pf_rome_cart = new TFile(ss.str().c_str(), "read");
 
-  if (!pf_rome_envi->IsZombie()) {
-    pt_rome_envi = (TTree *)pf_rome_envi->Get("g2slow");
+  if (!pf_rome_cart->IsZombie()) {
+    pt_rome_cart = (TTree *)pf_rome_cart->Get("g2slow");
+  }
+
+  // And the slow control data.
+  ss.str("");
+  ss << datadir << "rome/sc_tree_run" << std::setfill('0') << std::setw(5);
+  ss << run_number << ".root";
+  pf_rome_ring = new TFile(ss.str().c_str(), "read");
+
+  if (!pf_rome_ring->IsZombie()) {
+    pt_rome_ring = (TTree *)pf_rome_ring->Get("g2slow");
   }
 
   // And the tilt sensor data.
@@ -181,7 +198,7 @@ int main(int argc, char *argv[])
   pf_rome_hall = new TFile(ss.str().c_str(), "read");
 
   if (!pf_rome_hall->IsZombie()) {
-    pt_rome_hall = (TTree *)pf_rome_hall->Get("g2hall_platform");
+    pt_rome_hall = (TTree *)pf_rome_hall->Get("g2hall_probe");
   }
 
   // And the metrolab data.
@@ -211,19 +228,21 @@ int main(int argc, char *argv[])
   
   pf_all = new TFile(ss.str().c_str(), "recreate");
   pt_sync = new TTree("t_sync", "Synchronous Shim Data");
-  pt_envi = new TTree("t_envi", "Asynchronous SCS200 Data");
+  pt_cart = new TTree("t_cart", "Asynchronous SCS200 Data");
+  pt_ring = new TTree("t_ring", "Asynchronous SCS200 Data");
   pt_tilt = new TTree("t_tilt", "Asynchronous Tilt Sensor Data");
   pt_hall = new TTree("t_hall", "Asynchronous Hall Prob Platform Data");
   pt_mlab = new TTree("t_mlab", "Asynchronous Metrolab Data");
 
   // Attach the branches to the final output
   pt_sync->Branch("platform", &platform, gm2::platform_str);
-  pt_sync->Branch("laser", &laser, gm2::hamar_str);
+  pt_sync->Branch("laser", &laser, gm2::laser_str);
   pt_sync->Branch("ctec", &ctec, gm2::capacitec_str);
-  pt_sync->Branch("flags", &flags.platform_data, gm2::sync_flags_str);
-  pt_envi->Branch("envi", &envi, gm2::scs2000_str);
+  pt_sync->Branch("flags", &flags.platform_data, gm2::data_flags_str);
+  pt_cart->Branch("cart", &cart, gm2::mscb_cart_str);
+  pt_ring->Branch("ring", &ring, gm2::mscb_ring_str);
   pt_tilt->Branch("tilt", &tilt, gm2::tilt_sensor_str);
-  pt_hall->Branch("hall", &hall, gm2::hall_platform_str);
+  pt_hall->Branch("hall", &hall, gm2::hall_probe_str);
   pt_mlab->Branch("mlab", &mlab, gm2::metrolab_str);
 
   if (run_number < 1475) {
@@ -340,25 +359,26 @@ int main(int argc, char *argv[])
     pt_platform->SetBranchAddress("shim_platform", &platform.sys_clock[0]);
   }
 
-  if (pt_rome_envi != nullptr) {
+  if (pt_rome_cart != nullptr) {
 
-    cout << "Found ROME data for Environment" << endl;
+    cout << "Found ROME data for Cartronment" << endl;
 
-    flags.envi_data = true;
-    pt_rome_envi->SetBranchAddress("Timestamp", &envi.midas_time);
-    pt_rome_envi->SetBranchAddress("Temp0", &envi.temp[0]);
-    pt_rome_envi->SetBranchAddress("Temp1", &envi.temp[1]);
-    pt_rome_envi->SetBranchAddress("Temp2", &envi.temp[2]);
-    pt_rome_envi->SetBranchAddress("Temp3", &envi.temp[3]);
-    pt_rome_envi->SetBranchAddress("Temp4", &envi.temp[4]);
-    pt_rome_envi->SetBranchAddress("Temp5", &envi.temp[5]);
-    pt_rome_envi->SetBranchAddress("Temp6", &envi.temp[6]);
-    pt_rome_envi->SetBranchAddress("Temp7", &envi.temp[7]);
-    pt_rome_envi->SetBranchAddress("Capac0", &envi.ctec[0]);
-    pt_rome_envi->SetBranchAddress("Capac1", &envi.ctec[1]);
-    pt_rome_envi->SetBranchAddress("Capac2", &envi.ctec[2]);
-    pt_rome_envi->SetBranchAddress("Capac3", &envi.ctec[3]);
+    flags.mscb_cart_data = true;
+    pt_rome_cart->SetBranchAddress("Timestamp", &cart.midas_time);
+    pt_rome_cart->SetBranchAddress("Temp0", &cart.temp[0]);
+    pt_rome_cart->SetBranchAddress("Temp1", &cart.temp[1]);
+    pt_rome_cart->SetBranchAddress("Temp2", &cart.temp[2]);
+    pt_rome_cart->SetBranchAddress("Temp3", &cart.temp[3]);
+    pt_rome_cart->SetBranchAddress("Temp4", &cart.temp[4]);
+    pt_rome_cart->SetBranchAddress("Temp5", &cart.temp[5]);
+    pt_rome_cart->SetBranchAddress("Temp6", &cart.temp[6]);
+    pt_rome_cart->SetBranchAddress("Temp7", &cart.temp[7]);
+    pt_rome_cart->SetBranchAddress("Capac0", &cart.ctec[0]);
+    pt_rome_cart->SetBranchAddress("Capac1", &cart.ctec[1]);
+    pt_rome_cart->SetBranchAddress("Capac2", &cart.ctec[2]);
+    pt_rome_cart->SetBranchAddress("Capac3", &cart.ctec[3]);
   }
+
   
   if (pt_rome_tilt != nullptr) {
 
@@ -476,13 +496,19 @@ int main(int argc, char *argv[])
  
   cout << "Finished bundling sync TTree." << endl;
 
-  if (pt_rome_envi != nullptr) {
-    for (int i = 0; i < pt_rome_envi->GetEntries(); ++i) {
-      pt_rome_envi->GetEntry(i);
-      pt_envi->Fill();
+  if (pt_rome_cart != nullptr) {
+    for (int i = 0; i < pt_rome_cart->GetEntries(); ++i) {
+      pt_rome_cart->GetEntry(i);
+      pt_cart->Fill();
     }
   }
 
+  if (pt_rome_ring != nullptr) {
+    for (int i = 0; i < pt_rome_ring->GetEntries(); ++i) {
+      pt_rome_ring->GetEntry(i);
+      pt_ring->Fill();
+    }
+  }
 
   if (pt_rome_tilt != nullptr) {
 
@@ -537,7 +563,8 @@ int main(int argc, char *argv[])
 
   pf_rome_laser->Close(); 
   pf_rome_ctec->Close();
-  pf_rome_envi->Close();
+  pf_rome_cart->Close();
+  pf_rome_ring->Close();
   pf_rome_tilt->Close();
   pf_rome_hall->Close();
   pf_platform->Close();
