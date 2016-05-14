@@ -137,7 +137,16 @@ int main(int argc, char *argv[])
   pt_out->Branch("mlab", &omlab, gm2::metrolab_str);
 
   // Go through the data, and sort by azimuth.
-  int n = pt_sync->BuildIndex("10000*laser.phi_2", "Entry$");
+  int n = 0;
+  if (pt_sync->GetEntries() > 0) {
+
+    n = pt_sync->BuildIndex("10000*laser.phi_2", "Entry$");
+
+  } else {
+    cout << "No synchronous entries.  Exiting." << endl;
+    exit(0);
+  }
+
   TTreeIndex *index = (TTreeIndex *)pt_sync->GetTreeIndex();
 
   for (int idx = 0; idx < index->GetN(); ++idx) {

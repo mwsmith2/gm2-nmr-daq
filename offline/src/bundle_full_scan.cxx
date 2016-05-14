@@ -108,8 +108,8 @@ int main(int argc, char *argv[])
   // Create a new ROOT file.
   pf = new TFile(outfile.c_str(), "recreate");
   pt_sync = new TTree("t_sync", "Synchronous Shim Platform Data");
-  pt_cart = new TTree("t_cart", "Shim Platform MSCB Data");
-  pt_ring = new TTree("t_ring", "Storage Ring MSCB Data");
+  pt_cart = new TTree("t_mscb_cart", "Shim Platform MSCB Data");
+  pt_ring = new TTree("t_mscb_ring", "Storage Ring MSCB Data");
   pt_tilt = new TTree("t_tilt", "Tilt Sensor Data");
   pt_hall = new TTree("t_hall", "Hall Probe Data");
   pt_mlab = new TTree("t_mlab", "Metrolab Data");

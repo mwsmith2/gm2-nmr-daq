@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
   // Parse the i/o files
   if (argc < 2) {
     cout << "Insufficent arguments, usage:" << endl;
-    cout << "make_bundled_dataset <bundle-type> <bundle-number>";
+    cout << "make_bundled_dataset <bundle-type> <bundle-number> ";
     cout << "[interpolate-missing-laser] [data-directory] " << endl;;
     exit(1);
   }
@@ -141,7 +141,7 @@ int main(int argc, char *argv[])
 
   pt_ring->Branch("ring", &ring, gm2::mscb_ring_str);
   pt_ring->Branch("run_number", &run_number, "run_number/I");
-
+  
   pt_tilt->Branch("tilt", &tilt, gm2::tilt_sensor_str);
   pt_tilt->Branch("run_number", &run_number, "run_number/I");
 
