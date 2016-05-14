@@ -7,15 +7,18 @@ def main():
 
     # Open the ZMQ socket that talks to the job scheduler.
     ctx = zmq.Context()
-    sck = ctx.socket(zmq.PUSH)
-    sck.connect('tcp://127.0.1.1:44444')
+    job_sck = ctx.socket(zmq.PUSH)
+    job_sck.connect('tcp://127.0.1.1:44444')
+
+    req_sck = ctx.socket(zmq.REQ)
+    req_sck.connect('tcp://127.0.1.1:44446')
 
     # Get the data directory
     odb = midas.ODB('gm2-nmr')
     datadir = odb.get_value('/Logger/Data dir').rstrip() + '/'
 
     # Intialize a standard job submission.
-    info = {'run': 1, 'type': 'normal'}
+    info = {'run': 1, 'type': 'standard'}
 
     # Update only new runs.
     if sys.argv[1] == 'update':
@@ -43,7 +46,7 @@ def main():
         else:
             for i in xrange(last_crunch, current_run):
                 info['run'] = i
-                rc = sck.send_json(info)
+                rc = job_sck.send_json(info)
             
         
     # Update all runs given
@@ -58,11 +61,18 @@ def main():
                 print 'Not a valid run number.'
                 continue
 
-            rc = sck.send_json(info)
+            rc = job_sck.send_json(info)
 
     elif sys.argv[1] == 'reset':
         
         print 'Reset not yet implemented.'
+
+    elif sys.argv[1] == 'status':
+        
+        msg = {'type': 'status'}
+        rc = req_sck.send_json(msg)
+
+        print req_sck.recv_json()
 
     else:
         print 'Unrecognized command.'

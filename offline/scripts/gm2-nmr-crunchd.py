@@ -37,8 +37,8 @@ worker_sck = context.socket(zmq.PUSH)
 worker_sck.connect('tcp://127.0.1.1:44445')
 
 # Socket to query the scheduler.
-answer_sck = context.socket(zmq.REP)
-answer_sck.bind('tcp://127.0.1.1:44446')
+status_sck = context.socket(zmq.REP)
+status_sck.bind('tcp://127.0.1.1:44446')
 
 job_queue = {}
 req_queue = []
@@ -76,7 +76,7 @@ def main():
 
         jobs.append(gevent.spawn(crunch_sck.poll, timeout=polltime))
         jobs.append(gevent.spawn(logger_sck.poll, timeout=polltime))
-        jobs.append(gevent.spawn(answer_sck.poll, timeout=polltime))
+        jobs.append(gevent.spawn(status_sck.poll, timeout=polltime))
         gevent.joinall(jobs)
         
         # Put number of messages into an array.
@@ -92,13 +92,13 @@ def main():
                 log_queue.append(logger_sck.recv_json())
 
         if nevents[2]:
-            while (answer_sck.poll(timeout=polltime)):
+            while (status_sck.poll(timeout=polltime)):
                 try:
-                    req_queue.append(answer_sck.recv_json())
+                    req_queue.append(status_sck.recv_json())
 
                 except(zmq.error.ZMQError):
                     continue
-        
+
         # Start working on some of the jobs.
         parse_jobs()
         spawn_jobs()
@@ -115,7 +115,7 @@ def parse_jobs():
 
     for count, msg in enumerate(msg_queue):
 
-        if msg['type'] == 'normal':
+        if msg['type'] == 'standard':
 
             try:
                 job_queue[msg['run']]
@@ -123,10 +123,10 @@ def parse_jobs():
             except(KeyError):
                 job_queue[msg['run']] = []
             
-            for jobs in normal_job_set(msg):
+            for jobs in standard_job_set(msg):
                 job_queue[msg['run']].append(jobs)
 
-        if msg['type'] == 'full_scan':
+        if msg['type'].startswith('bundle'):
 
             try:
                 job_queue[msg['run']]
@@ -134,7 +134,7 @@ def parse_jobs():
             except(KeyError):
                 job_queue[msg['run']] = []
             
-            for jobs in full_scan_job_set(msg):
+            for jobs in bundle_job_set(msg):
                 job_queue[msg['run']].append(jobs)
 
         # Remove the processed message.
@@ -145,38 +145,45 @@ def parse_jobs():
             break
 
 
-def normal_job_set(msg):
-    """Generate the set of jobs associated with normal runs."""
+def standard_job_set(msg):
+    """Generate the set of jobs associated with standard runs."""
 
     run_num = msg['run']
-    jobs = [[], [], [], []]
+    jobs = [[], [], [], [], []]
     new_dep = {'time': None, 'md5': None}
         
     # Add ROME jobs first
     cmd_prefix = "./midanalyzer.exe -b -i romeConfig.xml -r "
     cmd_suffix = " -m offline -p 0 -q"
-    rome_dir = offline_dir + '/rome-extractors'
+    rome_dir = offline_dir + '/rome-processors'
 
     job = {}
-    job['meta'] = datadir + '/rome/.processing_metadata.json'
+    job['meta'] = datadir + '/shim/.crunchd_metadata.json'
     job['cmd'] = cmd_prefix + str(run_num) + cmd_suffix
-    job['clean'] = 'rm histos%05i.root run%05i.root'
+    job['clean'] = 'rm histos*.root run*.root'
 
     if run_num < 787:
-        job['dir'] = rome_dir + '/sync'
-        job['name'] = 'sync'
+        job['dir'] = rome_dir + '/single-laser'
+        job['name'] = 'laser'
 
     else:
-        job['dir'] = rome_dir + '/sync_ext_ltrk'
-        job['name'] = 'sync_ext_ltrk'
+        job['dir'] = rome_dir + '/double-laser'
+        job['name'] = 'laser'
 
     job['deps'] = {}
     job['deps'][job['dir'] + '/midanalyzer.exe'] = new_dep
     jobs[0].append(job)
 
     job = copy.copy(job)
-    job['name'] = 'ctec'
-    job['dir'] = rome_dir + '/ctec'
+    job['name'] = 'capacitec'
+    job['dir'] = rome_dir + '/capacitec'
+    job['deps'] = {}
+    job['deps'][job['dir'] + '/midanalyzer.exe'] = new_dep
+    jobs[0].append(job)
+
+    job = copy.copy(job)
+    job['name'] = 'shim-platform'
+    job['dir'] = rome_dir + '/shim-platform'
     job['deps'] = {}
     job['deps'][job['dir'] + '/midanalyzer.exe'] = new_dep
     jobs[0].append(job)
@@ -189,22 +196,22 @@ def normal_job_set(msg):
     jobs[0].append(job)
     
     job = copy.copy(job)
-    job['name'] = 'slowcont'
-    job['dir'] = rome_dir + '/slowcont'
+    job['name'] = 'mscb-cart'
+    job['dir'] = rome_dir + '/mscb-cart'
     job['deps'] = {}
     job['deps'][job['dir'] + '/midanalyzer.exe'] = new_dep
     jobs[0].append(job)
 
     job = copy.copy(job)
-    job['name'] = 'tilt'
-    job['dir'] = rome_dir + '/tilt'
+    job['name'] = 'tilt-sensor'
+    job['dir'] = rome_dir + '/tilt-sensor'
     job['deps'] = {}
     job['deps'][job['dir'] + '/midanalyzer.exe'] = new_dep
     jobs[0].append(job)
 
     job = copy.copy(job)
-    job['name'] = 'hall_probe_platform'
-    job['dir'] = rome_dir + '/hall_probe_platform'
+    job['name'] = 'hall-probe'
+    job['dir'] = rome_dir + '/hall-probe'
     job['deps'] = {}
     job['deps'][job['dir'] + '/midanalyzer.exe'] = new_dep
     jobs[0].append(job)
@@ -215,85 +222,76 @@ def normal_job_set(msg):
     job['dir'] = offline_dir
     job['cmd'] = 'python scripts/extract_run_attr.py %i' % run_num
     job['clean'] = None
-    job['meta'] = datadir + '/crunched/.processing_metadata.json'
+    job['meta'] = datadir + '/crunched/.crunchd_metadata.json'
     job['deps'] = {}
     jobs[0].append(job)
     
     # Now the data bundling job.
     job = {}
-    job['name'] = 'shim_data_bundler'
-    job['cmd'] = 'bin/shim_data_bundler %i' % run_num
+    job['name'] = 'make-shim-dataset'
+    job['cmd'] = 'bin/make_shim_dataset %i' % run_num
     job['clean'] = None
     job['dir'] = offline_dir
-    job['meta'] = datadir + '/shim/.processing_metadata.json'
+    job['meta'] = datadir + '/shim/.crunchd_metadata.json'
     job['deps'] = {}
-    job['deps'][offline_dir + '/bin/shim_data_bundler'] = new_dep
-    job['deps']['data/rome/*%05i.root' % run_num] = new_dep
-    job['deps']['data/root/*%05i.root' % run_num] = new_dep
+    job['deps'][offline_dir + '/bin/make_shim_dataset'] = new_dep
+    job['deps']['data/shim/*%05i.root' % run_num] = new_dep
     jobs[1].append(job)
 
-    # Now reprocess the nmr platform data.
-    job = {}
-    job['name'] = 'crunched'
-    job['dir'] = offline_dir
-    job['cmd'] = 'bin/recrunch_fids %i' % run_num
-    job['clean'] = None
-    job['meta'] = datadir + '/crunched/.processing_metadata.json'
-    job['deps'] = {}
-    job['deps'][offline_dir + '/bin/recrunch_fids'] = new_dep
-    job['deps'][datadir + '/shim/run_%05i.root' % run_num] = new_dep
-    jobs[2].append(job)
-
     # Finally apply fixes.
-    job = {}
-    job['name'] = 'fix_probe_remap'
-    job['dir'] = offline_dir
-    job['cmd'] = 'bin/fix_run_probe_map '
-    job['cmd'] += 'data/crunched/run_%05i.root ' % run_num
-    job['cmd'] += 'data/crunched/ %i' % run_num
-    job['clean'] = None
-    job['meta'] = datadir + '/crunched/.processing_metadata.json'
-    job['deps'] = {}
-    job['deps'][offline_dir + '/bin/recrunch_fids'] = new_dep
-    job['deps'][datadir + '/shim/run_%05i.root' % run_num] = new_dep
-    jobs[3].append(job)
+    # job = {}
+    # job['name'] = 'fix-probe-remap'
+    # job['dir'] = offline_dir
+    # job['cmd'] = 'bin/fix_run_probe_map '
+    # job['cmd'] += 'data/crunched/run_%05i.root ' % run_num
+    # job['cmd'] += 'data/crunched/ %i' % run_num
+    # job['clean'] = None
+    # job['meta'] = datadir + '/crunched/.crunchd_metadata.json'
+    # job['deps'] = {}
+    # job['deps'][offline_dir + '/bin/recrunch_fids'] = new_dep
+    # job['deps'][datadir + '/shim/run_%05i.root' % run_num] = new_dep
+    # jobs[2].append(job)
 
     # Automatically generate extracted dataset
     job = {}
-    job['name'] = 'extracted'
+    job['name'] = 'extraction'
     job['dir'] = offline_dir
-    job['cmd'] = 'bin/extract_derived_dataset'
-    job['cmd'] += 'data/crunched/run_%i.root' % run_num
+    job['cmd'] = 'bin/make_extracted_dataset '
+    job['cmd'] += 'data/crunched/run_%05i.root' % run_num
     job['clean'] = None
-    job['meta'] = datadir + '/extracted/.processing_metadata.json'
+    job['meta'] = datadir + '/extracted/.crunchd_metadata.json'
     job['deps'] = {}
-    job['deps'][offline_dir + '/bin/extract_derived_dataset'] = new_dep
+    job['deps'][offline_dir + '/bin/make_extracted_dataset'] = new_dep
     job['deps'][datadir + '/crunched/run_%05i.root' % run_num] = new_dep
-    jobs[2].append(job)
+    jobs[3].append(job)
 
     return jobs
 
-def full_scan_job_set(msg):
+def bundle_job_set(msg):
 
-    run_num = msg['run']
+    bundle_num = msg['run']
+    bundle_type = msg['type'].replace('bundle-', '')
+
+    bundle_info = (bundle_type, bundle_num)
+
     jobs = [[]]
     new_dep = {'time': None, 'md5': None}
 
     job = {}
-    job['name'] = 'bundle_full_scan'
-    job['cmd'] = 'bin/bundle_full_scan %i' % run_num
-    job['meta'] = datadir + '/full_scans/.processing_metadata.json'
+    job['name'] = 'make-%s' % msg['type']
+    job['cmd'] = 'bin/make_bundled_dataset %s %i' % bundle_info
+    job['meta'] = datadir + '/bundles/.crunchd_metadata.json'
     job['dir'] = offline_dir
     job['clean'] = None
     job['deps'] = {}
 
-    runfile = datadir + '/full_scans/run_list_full_scan_%05i.txt' % run_num
+    runfile = datadir + '/bundles/run_list_%s_%03i.txt' % bundle_info
     runs = np.genfromtxt(runfile, dtype=np.int)
 
     for run in runs:
         job['deps'][datadir + '/crunched/run_%05i.root' % run] = new_dep
 
-    job['deps'][offline_dir + '/bin/bundle_full_scan'] = new_dep
+    job['deps'][offline_dir + '/bin/make_bundled_dataset'] = new_dep
     jobs[0].append(job)
         
     return jobs
@@ -462,8 +460,14 @@ def spawn_jobs():
             log.info("Starting job %s for run %05i." % (job['name'], int(run)))
             
             if check_job(run, job) == True:
+                
+                if job['clean'] == None:
+                    cmd = job['cmd']
 
-                worker = Popen(job['cmd'],
+                else:
+                    cmd = ' && '.join([job['cmd'], job['clean']])
+          
+                worker = Popen(cmd,
                                cwd=job['dir'],
                                env=os.environ,
                                stdout=fdump,
@@ -493,7 +497,7 @@ def spawn_jobs():
 
 
 def write_reps():
-    """Write replies back for queries to on answer socket."""
+    """Write replies back for queries to on status socket."""
 
     # Process the first 10
     maxcount = 10
@@ -504,8 +508,8 @@ def write_reps():
 
         if req['type'] == 'check':
             
-            if req['body']['type'] == 'normal':
-                job_set = normal_job_set(req['body']['msg'])
+            if req['body']['type'] == 'standard':
+                job_set = standard_job_set(req['body']['msg'])
                 run_num = req['body']['msg']['run']
                 rep['result'] = check_job_set(run_num, job_set)
             
@@ -523,8 +527,17 @@ def write_reps():
             else:
                 rep['result'] = None
 
+        if req['type'] == 'status':
+
+            status = ['gm2-nmr-crunchd is running as process %i' % os.getpid()]
+            jobs = ' '.join(['(%s, %s)' % (w[1], w[2]['name']) for w in workers])
+            status.append('    running jobs: %s' % jobs)
+            status.append('    queue has %i jobs' % len(job_queue))
+            
+            req['result'] = '\n'.join(status)
+
         try:
-            answer_sck.send_json(rep)
+            status_sck.send_json(rep)
 
         except(zmq.error.ZMQError):
             pass

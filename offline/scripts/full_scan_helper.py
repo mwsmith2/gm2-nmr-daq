@@ -107,7 +107,7 @@ def main():
                     if msg['result'] == False:
                         runlist.remove(run)
 
-            job_sck.send_json({'type': 'full_scan', 'run': scan_idx})
+            job_sck.send_json({'type': 'bundle-full_scan', 'run': scan_idx})
                     
 
     else:
