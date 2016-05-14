@@ -22,6 +22,8 @@ usage:
 
 //--- other includes --------------------------------------------------------//
 #include <boost/filesystem.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 #include "TFile.h"
 #include "TTree.h"
 #include "TCanvas.h"
@@ -52,6 +54,8 @@ int main(int argc, char **argv)
   laser_t laser;
   capacitec_t ctec;
   data_flags_t flags;
+  string laser_point;
+  bool laser_swap;
 
   int run_number;
   string datafile;
@@ -145,11 +149,17 @@ int main(int argc, char **argv)
 
     pt_ltrk = (TTree *)pf_ltrk->Get("t_ltrk");
     flags.laser_data = true;
+    flags.laser_p1 = false;
+    flags.laser_p2 = false;
+    flags.laser_swap = false;
 
   } else {
     
     pt_ltrk = new TTree("t_ltrk", "Laser Tracker Data");
     flags.laser_data = false;
+    flags.laser_p1 = false;
+    flags.laser_p2 = false;
+    flags.laser_swap = false;
   }
 
   // Now load the capacitec data.
@@ -201,7 +211,7 @@ int main(int argc, char **argv)
     flags.mscb_ring_data = true;
 
   } else {
-    
+
     pt_ring = new TTree("t_mscb_ring", "MSCB Data from Ring Environment");
     flags.mscb_ring_data = false;
   }
@@ -282,6 +292,21 @@ int main(int argc, char **argv)
     flags.missing_probe19 = true;
   }
 
+  // Load the run attributes.
+  string attr_file("/home/newg2/Applications/gm2-nmr/");
+  attr_file += string("resources/log/run_attributes.json");
+
+  boost::property_tree::ptree pt;
+  boost::property_tree::read_json(attr_file, pt);
+
+  ss.str("");
+  ss << std::setfill('0') << std::setw(5) << run_number << ".laser_point";
+  laser_point = pt.get<string>(ss.str());
+
+  ss.str("");
+  ss << std::setfill('0') << std::setw(5) << run_number << ".laser_swap";
+  laser_swap = pt.get<bool>(ss.str());
+
   // Go through the data.
   for (int idx = 0; idx < pt_shpf->GetEntries(); ++idx) {
 
@@ -289,6 +314,54 @@ int main(int argc, char **argv)
     pt_ltrk->GetEntry(idx);
     pt_ctec->GetEntry(idx);
 
+    if (run_number < 787) {
+      
+      if (laser_point == string("P1")) {
+        
+        flags.laser_p1 = true;
+    
+      } else if (laser_point == string("P2")) {
+
+        flags.laser_p2 = true;
+
+        laser.r_2 = laser.r_1;
+        laser.z_2 = laser.z_1;
+        laser.phi_2 = laser.phi_1;
+
+        laser.r_1 = 0.0;
+        laser.z_1 = 0.0;
+        laser.phi_1 = 0.0;
+
+      }
+
+    } else {
+
+      if (laser_point == string("P1")) {
+        flags.laser_p1 = true;
+      }
+      
+      if (laser_point == string("P2")) {
+        flags.laser_p2 = true;
+      }
+      
+      if (laser_swap) {
+
+        flags.laser_swap = true;
+        
+        double r_2 = laser.r_2;
+        double z_2 = laser.z_2;
+        double phi_2 = laser.phi_2;
+        
+        laser.r_2 = laser.r_1;
+        laser.z_2 = laser.z_1;
+        laser.phi_2 = laser.phi_1;
+
+        laser.r_1 = r_2;
+        laser.z_1 = z_2;
+        laser.phi_1 = phi_2;
+      }
+    } 
+    
     pt_sync->Fill();
   }
 
