@@ -163,7 +163,7 @@
           <SPValue>0</SPValue>
         </SteeringParameterField>
         <SteeringParameterField>
-          <!-- Array size of IN_0 bank -->
+          <!-- Array size of INPT bank -->
           <SPName>NChannels</SPName>
           <SPValue>12</SPValue>
         </SteeringParameterField>
@@ -309,58 +309,13 @@
       <MidasOnlineCommunicationThread>false</MidasOnlineCommunicationThread>
       <!-- Loop period to read online midas event from experiment in milli second. If you set small number, analyzer reads events frequently. If it is too much load for midas server, you may increase this number. Positive number or 0 is valid. -->
       <MidasOnlineLoopPeriod>10</MidasOnlineLoopPeriod>
-      <Event>
-        <!-- Description of a midas event. -->
-        <EventName>Trigger</EventName>
-        <!-- If true, this event type will be analyzed. Default is false. -->
-        <Active>true</Active>
-        <Bank>
-          <!-- Description of a midas bank. -->
-          <BankName>ADC0</BankName>
-          <!-- If true, this bank will be analyzed. Default is false. -->
-          <Active>true</Active>
-        </Bank>
-        <Bank>
-          <!-- Description of a midas bank. -->
-          <BankName>TDC0</BankName>
-          <!-- If true, this bank will be analyzed. Default is false. -->
-          <Active>true</Active>
-        </Bank>
-        <Bank>
-          <!-- Description of a midas bank. -->
-          <BankName>STDC</BankName>
-          <!-- If true, this bank will be analyzed. Default is false. -->
-          <Active>true</Active>
-        </Bank>
-        <Bank>
-          <!-- Description of a midas bank. -->
-          <BankName>STRT</BankName>
-          <!-- If true, this bank will be analyzed. Default is false. -->
-          <Active>true</Active>
-        </Bank>
-      </Event>
-
-      <Event>
-        <!-- Description of a midas event. -->
-        <EventName>Scaler</EventName>
-        <!-- If true, this event type will be analyzed. Default is false. -->
-        <Active>true</Active>
-        <Bank>
-          <!-- Description of a midas bank. -->
-          <BankName>SCLR</BankName>
-          <!-- If true, this bank will be analyzed. Default is false. -->
-          <Active>true</Active>
-        </Bank>
-      </Event>
-
-      <Event>
         <!-- Description of a midas event. -->
         <EventName>Environment</EventName>
         <!-- If true, this event type will be analyzed. Default is false. -->
         <Active>true</Active>
         <Bank>
           <!-- Description of a midas bank. -->
-          <BankName>IN_0</BankName>
+          <BankName>INP0</BankName>
           <!-- If true, this bank will be analyzed. Default is false. -->
           <Active>true</Active>
         </Bank>

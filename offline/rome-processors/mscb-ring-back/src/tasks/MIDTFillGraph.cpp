@@ -67,7 +67,7 @@ void MIDTFillGraph::Init()
 //______________________________________________________________________________
 void MIDTFillGraph::BeginOfRun()
 {
-   TString treeFile = "data-out/mscb_ring_tree_";
+   TString treeFile = "data-out/mscb_ring_tree_run";
    treeFile += Form("%05i",gAnalyzer->GetODB()->GetRunNumber());
    treeFile += ".root";
 
@@ -86,10 +86,10 @@ void MIDTFillGraph::Event()
     //tree stuff
     mscb.midas_time = gAnalyzer->GetActiveDAQ()->GetTimeStamp();
 
-    if (gAnalyzer->GetMidasDAQ()->GetIN_0BankEntries() > 0) {
+    if (gAnalyzer->GetMidasDAQ()->GetINPTBankEntries() > 0) {
 
       for (int i = 0; i < 12; ++i) {
-        mscb.temp[i] = gAnalyzer->GetMidasDAQ()->GetIN_0BankAt(i);
+        mscb.temp[i] = gAnalyzer->GetMidasDAQ()->GetINP0BankAt(i);
       }
 
       fEventTree->Fill();

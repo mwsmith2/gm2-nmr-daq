@@ -87,6 +87,10 @@ void MIDTFillGraph::BeginOfRun()
 //_____________________________________________________________________________
 void MIDTFillGraph::Event()
 {
+  if (gAnalyzer->GetODB()->GetRunNumber() < 2500) {
+    return;
+  }
+
   if (IsMyGraphActive()) {
     
     hall.midas_time = gAnalyzer->GetActiveDAQ()->GetTimeStamp();
