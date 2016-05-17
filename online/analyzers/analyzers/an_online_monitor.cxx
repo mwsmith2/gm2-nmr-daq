@@ -63,7 +63,7 @@ INT tr_stop_hook(INT run_number, char *error);
 // We anticipate three SIS3302 digitizers, but only use one for now.
 BANK_LIST trigger_bank_list[] = {
   {"SHPF", TID_DWORD, sizeof(daq::shim_platform_st), NULL},
-  {"SHFX", TID_DWORD, sizeof(daq::shim_fixed_st), NULL},
+  {"LTRK", TID_DOUBLE, 6, NULL},
   {""}
 };
 
@@ -266,6 +266,11 @@ INT analyze_trigger_event(EVENT_HEADER * pheader, void *pevent)
   unsigned int ch, idx;
   DWORD *pvme;
   float *pfreq;
+  double *plaser;
+  static double prev_phi = -1;
+  static double prev_dipole = -1;
+  static double this_phi = -1;
+  static double this_dipole = -1;
 
   // Look for the first SHIM_PLATFORM traces.
   if (bk_locate(pevent, "SHPF", &pvme) != 0) {
@@ -315,6 +320,48 @@ INT analyze_trigger_event(EVENT_HEADER * pheader, void *pevent)
       id += 1;
       db_set_data(hDB, hkey, &id, sizeof(id), 1, TID_DOUBLE); 
     }
+    
+    if (bk_locate(pevent, "LTRK", &plaser) != 0) {
+      printf("Found laser\n");
+      this_phi = plaser[4];
+
+      // Calculate the average field.
+      this_dipole = 0.0;
+      for (int idx = 0; idx < 25; ++idx) {
+        this_dipole += pfreq[idx];
+      }
+      this_dipole /= 25.0;
+
+      if (prev_phi > this_phi) {
+        prev_phi -= 360.0;
+      }
+
+      printf("this_phi = %.2f, prev_phi = %.2f\n", this_phi, prev_phi);
+
+      // Fill the values in the ODB if we can interpolate a point.
+      if (this_phi - prev_phi < 0.5) {
+
+        // Interpolate a new value.
+        double new_phi = int(2 * this_phi) / 2.0;
+        double w1 = (new_phi - prev_phi) / (this_phi - prev_phi);
+        double w2 = (this_phi - new_phi) / (this_phi - prev_phi);
+        double new_dipole = w1 * prev_dipole + w2 * this_dipole;
+
+        double tmp_dipole = 0.0;
+        int size;
+
+        // Get and replace the old value.
+        db_find_key(hDB, 0, "/Custom/Data/field-data/this-dipole", &hkey);
+        db_get_data(hDB, hkey, &tmp_dipole, &size, TID_DOUBLE);
+        db_set_data(hDB, hkey, &new_dipole, sizeof(new_dipole), 1, TID_DOUBLE);
+
+        db_find_key(hDB, 0, "/Custom/Data/field-data/prev-dipole", &hkey);
+        db_set_data(hDB, hkey, &tmp_dipole, sizeof(tmp_dipole), 1, TID_DOUBLE);
+      }
+
+      prev_phi = this_phi;
+      prev_dipole = this_dipole;
+    }
 
     // Now let the plot loop know.
     new_platform_waveforms = true;
@@ -326,6 +373,7 @@ INT analyze_trigger_event(EVENT_HEADER * pheader, void *pevent)
 
     new_fixed_waveforms = true;
   }
+
 
   return CM_SUCCESS;
 }
@@ -394,12 +442,14 @@ void plot_waveforms_loop()
           ph_wfm->SetBinContent(idx, myfid.wf()[idx]);
         }
         
+        c1.Clear();
         c1.SetLogx(0);
         c1.SetLogy(0);
         ph_wfm->Draw();
         c1.Print(TString::Format("%s/%s.gif", 
                                  figdir.c_str(), 
                                  ph_wfm->GetName()));
+        c1.Clear();
         c1.SetLogx(1);
         c1.SetLogy(1);
         ph_fft->Draw();
@@ -467,11 +517,13 @@ void plot_waveforms_loop()
           ph_wfm->SetBinContent(idx, myfid.wf()[idx]);
         }
         
+        c1.Clear();
         c1.SetLogx(0);
         c1.SetLogy(0);
         ph_wfm->Draw();
         c1.Print(TString::Format("%s/%s.gif", figdir.c_str(), ph_wfm->GetName()));
         
+        c1.Clear();
         c1.SetLogx(1);
         c1.SetLogy(1);
         ph_fft->Draw();
