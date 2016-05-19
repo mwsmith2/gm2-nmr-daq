@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+  <title>g-2 Field Shimming Online Monitor</title>
+</head>
+<style>
+
+section.press button {
+  color: #fff;
+  background-color: #6496c8;
+  border: none;
+  border-radius: 15px;
+  box-shadow: 0 10px #27496d;
+}
+
+section.press button:hover,
+section.press button.hover {
+  background-color: #417cb8
+}
+
+section.press button:active,
+section.press button.active {
+  background-color: #417cb8;
+  box-shadow: 0 5px #27496d;
+  transform: translateY(5px);
+}
+
+.toggle-off {
+background-color: lightgrey;
+text-align: center;
+}
+
+.toggle-on {
+background-color: darkgrey;
+text-align: center;
+}
+
+</style>
+<body>
+  <div style="width: 100%">
+    <div id="probe-diagram" style="float:left; width: 8%; height: 100px">
+    </div>
+    <div style="float:right; width: 92%; height: 100px">
+      <h1><center><strong>Shimming Platform FID Monitor</strong></center></h1>
+    </div>
+  </div>
+  <div style="width: 100%">
+    <div style="float:left; width: 8%">
+      <table>
+        <tr>
+          <td>
+            <div class="toggle-on" id="display-fids">Waveforms</div>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <div class="toggle-off" id="display-ffts">Power</div>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <div class="toggle-on" id="probes-all">All Probes</div>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <div class="toggle-off" id="probes-inner">Inner Probes</div>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <div class="toggle-off" id="probes-outer">Outer Probes</div>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <div class="toggle-off" id="probes-fixed">Fixed Probes</div>
+          </td>
+        </tr>
+      </table>
+    </div>
+    <div style="float:right; width: 92%">
+      <table id="image-table">
+      </table>
+    </div>
+
+<script language="javascript" type="text/javascript">
+
+var displayFids = true;
+var displayFfts = false;
+var probeSubset = "probes-all";
+var probeMap = [-1, 25, 26, 27, -1,
+                19, 18, 17, 16, 15, 
+                20,  6,  5,  4, 14, 
+                21,  7,  0,  3, 13, 
+                22,  8,  1,  2, 12, 
+                23, 24,  9, 10, 11];
+
+document.getElementById("display-fids").addEventListener("click", function() {
+    displayFids = !displayFids;
+    if (displayFids) {
+        document.getElementById("display-fids").className = "toggle-on";
+    } else {
+        document.getElementById("display-fids").className = "toggle-off";
+   }
+   fillImageTable();
+}, false);
+
+document.getElementById("display-ffts").addEventListener("click", function() {
+    displayFfts = !displayFfts;
+    if (displayFfts) {
+        document.getElementById("display-ffts").className = "toggle-on";
+    } else {
+        document.getElementById("display-ffts").className = "toggle-off";
+    }
+    fillImageTable();
+}, false);
+
+document.getElementById("probes-all").addEventListener("click", function() {
+    probeSubset = "probes-all";
+    document.getElementById("probes-all").className = "toggle-on";
+    document.getElementById("probes-inner").className = "toggle-off";
+    document.getElementById("probes-outer").className = "toggle-off";
+    document.getElementById("probes-fixed").className = "toggle-off";
+    fillImageTable();
+}, false);
+
+document.getElementById("probes-inner").addEventListener("click", function() {
+    probeSubset = "probes-inner";
+    document.getElementById("probes-all").className = "toggle-off";
+    document.getElementById("probes-inner").className = "toggle-on";
+    document.getElementById("probes-outer").className = "toggle-off";
+    document.getElementById("probes-fixed").className = "toggle-off";
+    fillImageTable();
+}, false);
+
+document.getElementById("probes-outer").addEventListener("click", function() {
+    probeSubset = "probes-outer";
+    document.getElementById("probes-all").className = "toggle-off";
+    document.getElementById("probes-inner").className = "toggle-off";
+    document.getElementById("probes-outer").className = "toggle-on";
+    document.getElementById("probes-fixed").className = "toggle-off";
+    fillImageTable();
+}, false);
+
+document.getElementById("probes-fixed").addEventListener("click", function() {
+    probeSubset = "probes-fixed";
+    document.getElementById("probes-all").className = "toggle-off";
+    document.getElementById("probes-inner").className = "toggle-off";
+    document.getElementById("probes-outer").className = "toggle-off";
+    document.getElementById("probes-fixed").className = "toggle-on";
+    fillImageTable();
+}, false);
+
+function fillImageTable() {
+  var table = document.getElementById("image-table");
+  table.innerHTML = "";
+
+  if (probeSubset === "probes-all") {
+
+     var channels = [];
+
+     for (var i = 0; i < 30; ++i) {
+
+       channels.push(probeMap[i]);
+
+       if (i % 5 == 4) {
+         insertFidImages(table, channels);
+         insertFftImages(table, channels);
+         channels = [];
+       }
+     }
+
+  } else if (probeSubset === "probes-inner") {
+
+     var channels = [];
+
+     for (var i = 11; i < 20; ++i) {
+
+       channels.push(probeMap[i]);
+
+       if ((i - 11) % 3 == 2) {
+         insertFidImages(table, channels);
+         insertFftImages(table, channels);
+         channels = [];
+       }
+    }
+
+  } else if (probeSubset === "probes-outer") {
+
+     var channels = [];
+     var count = 0;
+
+     for (var i = 5; i < 30; ++i) {
+
+       channels.push(probeMap[i]);
+
+       if (count % 4 == 3) {
+         insertFidImages(table, channels);
+         insertFftImages(table, channels);
+         table.insertRow().insertCell("colspan='5'")
+         channels = [];
+       }
+       
+       if (i == 10) {
+         i += 3;
+       } else if (i == 15) {
+         i += 3;
+       } else if (i == 20) {
+         i += 3;
+       }
+
+       count += 1;
+    }
+
+  } else if (probeSubset === "probes-fixed") {
+
+    var channels = [25, 26, 27];
+    insertFidImages(table, channels);
+    insertFftImages(table, channels);
+  }
+}
+
+function insertFidImages(t, ch) {
+  if (displayFids) {
+    var row = t.insertRow();
+    for (var i = 0; i < ch.length; ++i) {
+      var c = row.insertCell(-1);
+      if (ch[i] > 9) {
+        c.innerHTML = "<img src='shim_platform_ch" + ch[i] + "_wf.gif' width=80%>";
+      } else if (ch[i] >= 0) {
+        c.innerHTML = "<img src='shim_platform_ch0" + ch[i] + "_wf.gif' width=80%>";
+      } else {
+        c.innerHTML = "";
+      }
+    }
+  }
+}
+
+function insertFftImages(t, ch) {
+  if (displayFfts) {
+    var row = t.insertRow();
+    for (var i = 0; i < ch.length; ++i) {
+      var c = row.insertCell(-1);
+      if (ch[i] > 9) {
+        c.innerHTML = "<img src='shim_platform_ch" + ch[i] + "_fft.gif' width=80%>";
+      } else if (ch[i] >= 0) {
+        c.innerHTML = "<img src='shim_platform_ch0" + ch[i] + "_fft.gif' width=80%>";
+      } else {
+        c.innerHTML = "";
+      }
+    }
+  }
+}
+
+setInterval(fillImageTable, 2500);
+
+fillImageTable();
+
+</script>
+</body>

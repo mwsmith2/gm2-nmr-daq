@@ -4,7 +4,8 @@
 <script src="http://code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
 <script src="https://rawgithub.com/d3/d3-plugins/master/cubehelix/cubehelix.js"></script>
-<script src="http://square.github.com/cubism/cubism.v1.min.js?1.0.0"></script>
+<script src="http://www.numericjs.com/lib/numeric-1.2.6.min.js"></script>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 <script src="mhttpd.js"></script>
 <style>
 .axis {
@@ -205,6 +206,40 @@
         ]
     };
 
+    var mp = []
+
+    for (var i = 0; i < 16; i++) {
+
+        var m = []
+
+        for (var j = 0; j < 25; j++) {
+            var x = shim_data.platform_coords[j][0];
+            var y = shim_data.platform_coords[j][1]
+
+            var r = Math.sqrt(x*x + y*y) / (2 * scale);
+            var phi = Math.atan2(x, y);
+            var n = Math.floor((i + 1) / 2);
+
+            if (i == 0) {
+
+               m.push(1.0);
+
+            } else if (i % 2 == 0) {
+          
+               m.push(Math.pow(r, n) * Math.sin(n * phi));
+
+            } else {
+
+               m.push(Math.pow(r, n) * Math.cos(n * phi));
+            }
+        }
+       
+        mp.push(m);
+    }
+
+    var C = numeric.dot(numeric.transpose(mp), mp);
+    var S = numeric.dot(numeric.inv(C), numeric.transpose(mp));
+
 test_data = {
         'platform_probes': [
             {'health': 1.0,  'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
@@ -358,140 +393,200 @@ test_data = {
             window.open('probe_display.html?id=' + sn, '_blank').focus();
         });
 
-        // Now create the line chart data
-    var ctx = cubism.context()
-      .step(2e3)
-      .size(0.24 * w);
-
+    // Now create the line chart data
     var vis = d3.select('#rightcol').append('div')
-        .attr('id', 'left-plots')
+        .attr('id', 'dipole-field')
         .style('position', 'absolute')
-        .style('width', '24%')
+        .style('width', '48%')
+        .style('top', '10%')
         .style('left', '35.01%');
 
-    vis.selectAll('.axis')
-        .data(['top', 'bottom']) 
-      .enter().append('div')
-        .attr('class', function(d) { return d + ' axis'; })
-        .each(function(d) { 
-          d3.select(this).call(ctx.axis().ticks(12).orient(d)); 
-        });
-
-    vis.append('div')
-      .attr('class', 'rule')
-      .call(ctx.rule());
-
-    vis.selectAll('.horizon')
-        .data(d3.range(1, 26).map(random))
-      .enter().insert('div', '.bottom')
-        .attr('class', 'horizon')
-        .call(ctx.horizon().extent([-10, 10]).height('24'));
-
-  ctx.on("focus", function(i) {
-    vis.selectAll(".value").style("right", i == null ? null : ctx.size() - i + "px");
-});
-
-    var ctx = cubism.context()
-      .step(2e3)
-      .size(0.24 * w);
+    var vis = d3.select('#rightcol').append('div')
+        .attr('id', 'multipole-fields')
+        .style('position', 'absolute')
+        .style('width', '48%')
+        .style('top', '40%')
+        .style('left', '35.01%');
 
     var vis = d3.select('#rightcol').append('div')
-        .attr('id', 'right-plots')
+        .attr('id', 'nmr-frequencies')
         .style('position', 'absolute')
-        .style('width', '24%')
-        .style('left', '65.01%');
+        .style('width', '48%')
+        .style('top', '70%')
+        .style('left', '35.01%');
 
-    vis.selectAll('.axis')
-        .data(['top', 'bottom']) 
-      .enter().append('div')
-        .attr('class', function(d) { return d + ' axis'; })
-        .each(function(d) { 
-          d3.select(this).call(ctx.axis().ticks(12).orient(d)); 
-        });
+var nmrFreqData = []
+for (var i = 0; i < 25; i++) {
+    if (i < 9) {
+        nmrFreqData.push({ x: [], y: [], type: 'scatter',  name: 'nmr_' + i});
+    } else {
+        nmrFreqData.push({ x: [], y: [], type: 'scatter',  name: 'nmr_' + i, visible: 'legendonly'});
+    }
+}
 
-    vis.append('div')
-      .attr('class', 'rule')
-      .call(ctx.rule());
+var fieldDipoleData = [
+    { x: [], y: [], type: 'scatter',  name: 'Old Dipole'},
+    { x: [], y: [], type: 'scatter',  name: 'New Dipole'}
+];
 
-    vis.selectAll('.horizon')
-        .data(d3.range(1, 10).map(random))
-      .enter().insert('div', '.bottom')
-        .attr('class', 'horizon')
-        .call(ctx.horizon().extent([-10, 10]).height('48'));
+dipole = ODBGet("Custom/Data/field-data/prev-dipole[*]", "%f", 0.0, 720, "TID_DOUBLE");
+for (var i = 0; i < 720; i++) {
+    for (var j = 0; j < 2; ++j) {
+        fieldDipoleData[j].x.push(0.5 * i);
+        fieldDipoleData[j].y.push(dipole[i]);
+    }
+}
 
-  ctx.on("focus", function(i) {
-    vis.selectAll(".value").style("right", i == null ? null : ctx.size() - i + "px");
-});
 
-    setInterval(function() {
-        update_platform_probes();
-        update_storage_field();
-    }, 1000);
+var fieldMultipoleData = []
+for (var i = 0; i < 16; i++) {
+    if (i == 0) {
+        fieldMultipoleData.push({ x: [], y: [], type: 'scatter',  name: 'mp_' + i});
+    } else {
+        fieldMultipoleData.push({ x: [], y: [], type: 'scatter',  name: 'mp_' + i, visible: 'legendonly'});
+    }
+}
 
-    function update_platform_probes() {
-        var data = platform_probes.data();
-        for (var i = 0; i < data.length; ++i) {
-            var val = Math.random() <= 0.9;
-            data[i].health = alpha * val + (1.0 - alpha) * data[i].health;
+var layout = {margin: {t: 100, l: 40, r: 40, b: 200}};
+var layout2 = {margin: {t: 100, l: 40, r: 40, b: 200}};
+var layout3 = {margin: {t: 100, l: 40, r: 40, b: 200}};
+
+function draw_field_plots() {
+    Plotly.newPlot('dipole-field', fieldDipoleData, layout);
+    Plotly.newPlot('multipole-fields', fieldMultipoleData, layout2);
+    Plotly.newPlot('nmr-frequencies', nmrFreqData, layout3);
+}
+
+draw_field_plots();
+plots = [];
+plots.push(document.getElementById('dipole-field'));
+plots.push(document.getElementById('multipole-fields'));
+plots.push(document.getElementById('nmr-frequencies'));
+
+function redraw_plots() {
+    for (var i = 0; i < plots.length; i++) {
+        Plotly.redraw(plots[i]);
+    }
+}
+
+
+setInterval(function() {
+    update_platform_probes();
+    update_storage_field();
+}, 1000);
+                        
+setInterval(function() {
+    redraw_plots();
+}, 5000);
+
+function update_platform_probes() {
+    var data = platform_probes.data();
+    for (var i = 0; i < data.length; ++i) {
+        var val = Math.random() <= 0.9;
+        data[i].health = alpha * val + (1.0 - alpha) * data[i].health;
+    }
+    ph = ODBGet("Custom/Data/shim-platform/health[*]", "%f", 0.0, 25, "TID_SHORT");
+    for (var i = 0; i < data.length; ++i) {
+        data[i].health = alpha * ph[i] + (1.0 - alpha) * data[i].health;
+    } 
+    platform_probes.data(data).transition('platform-color')
+       .duration(500)
+       .style('fill', function(d, i) {
+            return healthcolor(d.health / 100.0);
+    });
+};
+
+var nevents = 0;
+var maxpoints = 120;
+var prevPhi = -1.0;
+var thisPhi = -1.0;
+var prevMeanFreq = -1.0;
+
+function update_storage_field() {
+    nevents += 1;
+    pf = ODBGet("Custom/Data/shim-platform/freq[*]", "%f", 0.0, 25, "TID_DOUBLE");
+    thisPhi = ODBGet("/Equipment/laser-tracker/Variables/LTRK[4]", "%f", 0.0, 1, "TID_DOUBLE");
+        
+    freq = []
+    var sum = 0.0;
+    var d = new Date();       
+    for (var i = 0; i < 25; ++i) {
+        sum += parseFloat(pf[i]);
+        freq.push(parseFloat(pf[i]) / 61.79e-3);
+
+        nmrFreqData[i].x.push(d.toLocaleTimeString());
+        nmrFreqData[i].y.push(parseFloat(pf[i]));
+
+        while (nmrFreqData[i].x.length > maxpoints) {
+           nmrFreqData[i].x.shift();
+           nmrFreqData[i].y.shift();
         }
-        ph = ODBGet("Custom/Data/shim-platform/health", "%f", 0.0, 25, "TID_WORD");
-        for (var i = 0; i < data.length; ++i) {
-            data[i].health = alpha * ph[i] + (1.0 - alpha) * data[i].health;
-        } 
-        platform_probes.data(data).transition('platform-color')
-            .duration(500)
-            .style('fill', function(d, i) {
-                return healthcolor(d.health);
-        });
     };
 
-    function update_storage_field() {
-        for (var i = 0; i < field_data.length; ++i) {
-          var val = 46.5 + Math.random();
-          field_data[i] = alpha * val + (1.0 - alpha) * field_data[i];
-        }
+    var y = numeric.dot(S, freq);
+ 
+    for (var i = 0; i < 16; i++) {
+        fieldMultipoleData[i].x.push(d.toLocaleTimeString());
+        fieldMultipoleData[i].y.push(y[i]);
 
-        var data = storage_field.data();
-        storage_field.data(data).transition('field-update')
-            .duration(500)
-            .style('fill', function(d, i) {
-                return fieldcolor(field_data[i]);
-            });
+        while (fieldMultipoleData[i].x.length > maxpoints) {
+            fieldMultipoleData[i].x.shift();
+            fieldMultipoleData[i].y.shift();
+        }
     }
 
-    function healthcolor(x) {
-        var r = Math.floor((1.0 - x) * 168);
-        var g = Math.floor(x * 84)
-        var b = Math.floor((1.0 - x) * 42 + x * 168);
-        return d3.rgb(r, g, b);        
-    };
+    var meanFreq = sum / 25.0;
 
-    function fieldcolor(x) {
-        var cm = d3.scale.cubehelix().domain([46.5, 47.5]);
-        return d3.rgb(cm(x));
-    };
+    if (thisPhi < prevPhi) {
+        prevPhi -= 360.0;
+    }                        
 
-    function random(x) {
-      var value = 0,
-          values = [],
-          i = 0,
-          last;
-      return ctx.metric(function(start, stop, step, callback) {
-        start = +start, stop = +stop;
-        if (isNaN(last)) last = start;
-        while (last < stop) {
-          last += step;
-          value = Math.max(-10, Math.min(10, value + .8 * Math.random() - .4 + .2 * Math.cos(i += x * .02)));
-          values.push(value);
-        }
-        callback(null, values = values.slice((start - stop) / step));
-      }, x);
-    };
+    if (thisPhi - prevPhi < 0.5) {
+        var phi = parseInt(2.0 * thisPhi) * 0.5;
+        var w1 = (phi - prevPhi) / (thisPhi - prevPhi);
+        var w2 = (thisPhi - phi) / (thisPhi - prevPhi);
+        var n = parseInt(2.0 * phi);
 
-  </script>
+        fieldDipoleData[1].y[n] = w1 * prevMeanFreq + w2 * meanFreq;
+    }                        
 
+    prevPhi = thisPhi;                
+    prevMeanFreq = meanFreq;
 
+    for (var i = 0; i < field_data.length; ++i) {
 
+          if (nevents < 10) {
 
+              field_data[i] *= (nevents - 1.0) / nevents;
+              field_data[i] += 1.0 / nevents * (pf[i] - meanFreq);
+
+          } else {
+
+              field_data[i] *= 1.0 - alpha;
+              field_data[i] += alpha * (pf[i] - meanFreq);
+          }
+    }
+
+    var data = storage_field.data();
+    storage_field.data(data).transition('field-update')
+        .duration(500)
+        .style('fill', function(d, i) {
+            return fieldcolor(field_data[i]);
+        });
+}
+
+function healthcolor(x) {
+    var r = Math.floor((1.0 - x) * 168);
+    var g = Math.floor(x * 84)
+    var b = Math.floor((1.0 - x) * 42 + x * 168);
+    return d3.rgb(r, g, b);        
+};
+
+function fieldcolor(x) {
+    var cm = d3.scale.cubehelix().domain([-7.5, 7.5]);
+    return d3.rgb(cm(x));
+};
+
+</script>
 
 </body>
