@@ -127,14 +127,15 @@ int main(int argc, char **argv)
 
   pf_shpf = new TFile(datafile.c_str(), "read");
   
-  if (!pf_shpf->IsZombie()) {
-
+  if (pf_shpf->GetListOfKeys()->Contains("t_shpf")) {
+    
     pt_shpf = (TTree *)pf_shpf->Get("t_shpf");
     flags.platform_data = true;
 
   } else {
     
     pt_shpf = new TTree("t_shpf", "Shim Platform Data");
+    pt_shpf->Branch("platform", &platform.sys_clock[0], platform_str);
     flags.platform_data = false;
   }
 
@@ -145,7 +146,7 @@ int main(int argc, char **argv)
   datafile = ss.str();
 
   pf_ltrk= new TFile(datafile.c_str(), "read");
-  if (!pf_ltrk->IsZombie()) {
+  if (pf_ltrk->GetListOfKeys()->Contains("t_ltrk")) {
 
     pt_ltrk = (TTree *)pf_ltrk->Get("t_ltrk");
     flags.laser_data = true;
@@ -156,6 +157,7 @@ int main(int argc, char **argv)
   } else {
     
     pt_ltrk = new TTree("t_ltrk", "Laser Tracker Data");
+    pt_ltrk->Branch("laser", &laser.midas_time, laser_str);
     flags.laser_data = false;
     flags.laser_p1 = false;
     flags.laser_p2 = false;
@@ -169,7 +171,7 @@ int main(int argc, char **argv)
   datafile = ss.str();
 
   pf_ctec= new TFile(datafile.c_str(), "read");
-  if (!pf_ctec->IsZombie()) {
+  if (pf_ctec->GetListOfKeys()->Contains("t_ctec")) {
 
     pt_ctec = (TTree *)pf_ctec->Get("t_ctec");
     flags.laser_data = true;
@@ -177,6 +179,7 @@ int main(int argc, char **argv)
   } else {
     
     pt_ctec = new TTree("t_ctec", "Capacitec Sensor Data");
+    pt_ctec->Branch("ctec", &ctec.midas_time, capacitec_str);
     flags.laser_data = false;
   }
 
@@ -187,7 +190,7 @@ int main(int argc, char **argv)
   datafile = ss.str();
 
   pf_cart= new TFile(datafile.c_str(), "read");
-  if (!pf_cart->IsZombie()) {
+  if (pf_cart->GetListOfKeys()->Contains("t_mscb_cart")) {
 
     pt_cart = (TTree *)pf_cart->Get("t_mscb_cart");
     flags.mscb_cart_data = true;
@@ -205,7 +208,7 @@ int main(int argc, char **argv)
   datafile = ss.str();
 
   pf_ring= new TFile(datafile.c_str(), "read");
-  if (!pf_ring->IsZombie()) {
+  if (pf_ring->GetListOfKeys()->Contains("t_mscb_ring")) {
 
     pt_ring = (TTree *)pf_ring->Get("t_mscb_ring");
     flags.mscb_ring_data = true;
@@ -223,7 +226,7 @@ int main(int argc, char **argv)
   datafile = ss.str();
 
   pf_tilt= new TFile(datafile.c_str(), "read");
-  if (!pf_tilt->IsZombie()) {
+  if (pf_tilt->GetListOfKeys()->Contains("t_tilt")) {
 
     pt_tilt = (TTree *)pf_tilt->Get("t_tilt");
     flags.tilt_data = true;
@@ -241,7 +244,7 @@ int main(int argc, char **argv)
   datafile = ss.str();
 
   pf_hall= new TFile(datafile.c_str(), "read");
-  if (!pf_hall->IsZombie()) {
+  if (pf_hall->GetListOfKeys()->Contains("t_hall")) {
 
     pt_hall = (TTree *)pf_hall->Get("t_hall");
     flags.hall_data = true;
@@ -259,14 +262,14 @@ int main(int argc, char **argv)
   datafile = ss.str();
 
   pf_mlab= new TFile(datafile.c_str(), "read");
-  if (!pf_mlab->IsZombie()) {
+  if (pf_mlab->GetListOfKeys()->Contains("t_mlab")) {
 
     pt_mlab = (TTree *)pf_mlab->Get("t_mlab");
     flags.mlab_data = true;
 
   } else {
     
-    pt_mlab = nullptr;
+    pt_mlab = new TTree("t_mlab", "Metrolab NMR Data");
     flags.mlab_data = false;
   }
 
