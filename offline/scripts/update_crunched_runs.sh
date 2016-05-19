@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# This script ensures that full_scans are up-to-date.
+# Ensures that crunched runs are up-to-date.  Runs every 10 minutes.
 
 source /home/newg2/.bashrc
 source /home/newg2/.shrc

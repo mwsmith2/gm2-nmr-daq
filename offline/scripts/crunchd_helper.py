@@ -45,12 +45,15 @@ def main():
         
         else:
             for i in xrange(last_crunch, current_run):
+                info['cmd'] = 'crunch'
                 info['run'] = i
                 rc = job_sck.send_json(info)
             
         
     # Update all runs given
     elif sys.argv[1] == 'crunch':
+
+        info['cmd'] = 'crunch'
 
         for i in xrange(2, len(sys.argv)):
 
@@ -64,8 +67,19 @@ def main():
             rc = job_sck.send_json(info)
 
     elif sys.argv[1] == 'reset':
+
+        info['cmd'] = 'reset'
         
-        print 'Reset not yet implemented.'
+        for i in xrange(2, len(sys.argv)):
+
+            try:
+                info['run'] = int(sys.argv[i])
+                
+            except(ValueError):
+                print 'Not a valid run number.'
+                continue
+
+            rc = job_sck.send_json(info)
 
     elif sys.argv[1] == 'status':
         

@@ -21,6 +21,7 @@ import midas
 context = zmq.Context()
 odb = midas.ODB('gm2-nmr')
 nworkers = 4
+maxcount = 20
 datadir = odb.get_value('/Logger/Data dir').rstrip()
 offline_dir = os.path.abspath(os.path.dirname(__file__) + '/..')
 
@@ -66,7 +67,7 @@ def main():
                         format='[%(asctime)s]: %(levelname)s, %(message)s',
                         level=log.INFO)
 
-    log.info('gm2-nmr-crunchd has started')
+    log.info('gm2-nmr-crunchd has started as process %i' % os.getpid())
 
     polltime = 20
         
@@ -99,32 +100,55 @@ def main():
                 except(zmq.error.ZMQError):
                     continue
 
+        if len(log_queue) == 0 and len(job_queue) == 0 and len(msg_queue) == 0:
+            time.sleep(1.0)
+
         # Start working on some of the jobs.
+        log.debug('running parse_jobs()')
         parse_jobs()
+
+        log.debug('running spawn_jobs()')
         spawn_jobs()
+
+        log.debug('running write_reps()')
         write_reps()
+
+        log.debug('running write_logs()')
         write_logs()
 
 
 def parse_jobs():
     global msg_queue
     global job_queue
+    global maxcount
 
-    # Process the first 10
-    maxcount = 10
-
+    # Process a set.
     for count, msg in enumerate(msg_queue):
 
         if msg['type'] == 'standard':
 
-            try:
-                job_queue[msg['run']]
+            if msg['cmd'] == 'crunch':
+                try:
+                    job_queue[msg['run']]
 
-            except(KeyError):
-                job_queue[msg['run']] = []
+                except(KeyError):
+                    job_queue[msg['run']] = []
             
-            for jobs in standard_job_set(msg):
-                job_queue[msg['run']].append(jobs)
+                for jobs in standard_job_set(msg):
+                    job_queue[msg['run']].append(jobs)
+
+            elif msg['cmd'] == 'reset':
+
+                for job in standard_job_set(msg):
+                    # Update the metadata just in case.
+                    msg = {}
+                    msg['cmd'] = 'reset'
+                    msg['info'] = job['meta']
+                    msg['run'] = str(run_num).zfill(5)
+                    msg['log'] = {}
+                    msg['log'][job['name']] = {'attempted': True}
+                    msg['log'][job['name']]['deps'] = job['deps']
+                    worker_sck.send(json.dumps(msg))
 
         if msg['type'].startswith('bundle'):
 
@@ -390,10 +414,11 @@ def check_job(run_num, job):
             job['deps'][fkey] = metadata['deps'][fkey]
 
     if metadata['attempted']:
-        log.info('already ran %s for run %s' % (job['name'], run_key))
+        log.debug('already ran %s for run %s' % (job['name'], run_key))
 
         # Update the metadata just in case.
         msg = {}
+        msg['cmd'] = 'write'
         msg['info'] = job['meta']
         msg['run'] = str(run_num).zfill(5)
         msg['log'] = {}
@@ -484,6 +509,7 @@ def spawn_jobs():
                 job_queue[run][0].remove(job)
 
             msg = {}
+            msg['cmd'] = 'write'
             msg['info'] = job['meta']
             msg['run'] = str(run).zfill(5)
             msg['log'] = {}
@@ -498,10 +524,9 @@ def spawn_jobs():
 
 def write_reps():
     """Write replies back for queries to on status socket."""
+    global maxcount
 
-    # Process the first 10
-    maxcount = 10
-
+    # Process the next set.
     for count, req in enumerate(req_queue):
         
         rep = {}
@@ -551,14 +576,13 @@ def write_reps():
 def write_logs():
     """Write data to the log file for crunchd."""
     global log_queue
+    global maxcount
 
-    # Process the first 10
-    maxcount = 10
-    
+    # Process the first set
     for count, msg in enumerate(log_queue):
-        
-        loginfo = {}
 
+        loginfo = {}
+        print msg
         for entry in msg['log'].keys():
 
             loginfo[entry] = {}
@@ -575,8 +599,12 @@ def write_logs():
         except(KeyError):
             metadata[msg['run']] = {}
 
-        for key in loginfo.keys():
-            metadata[msg['run']][key] = loginfo[key]
+        if msg['cmd'] == 'write':
+            for key in loginfo.keys():
+                metadata[msg['run']][key] = loginfo[key]
+
+        elif msg['cmd'] == 'reset':
+            metadata[msg['run']] = {}
             
         with open(msg['info'], 'w') as f:
             f.write(json.dumps(metadata, indent=2, sort_keys=True))
