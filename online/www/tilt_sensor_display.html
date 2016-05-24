@@ -12,7 +12,7 @@
 <body>
   <div style="width: 100%">
     <div style="float:left; width: 12%; border-right-style: solid; border-bottom-style: solid">
-      <h3 style="text-align: center">Measurement Utilty</h3>
+      <h3 style="text-align: center">Measurement Clipboard</h3>
       <table>
         <tr>
           <td>
@@ -51,42 +51,42 @@
         <tr>
           <td>
             <select id="tilt-pole-id"  style="width: 95%">
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-              <option value="4">4</option>
-              <option value="5">5</option>
-              <option value="6">6</option>
-              <option value="7">7</option>
-              <option value="8">8</option>
-              <option value="9">9</option>
-              <option value="10">10</option>
-              <option value="11">11</option>
-              <option value="12">12</option>
-              <option value="13">13</option>
-              <option value="14">14</option>
-              <option value="15">15</option>
-              <option value="16">16</option>
-              <option value="17">17</option>
-              <option value="18">18</option>
-              <option value="19">19</option>
-              <option value="20">20</option>
-              <option value="21">21</option>
-              <option value="22">22</option>
-              <option value="23">23</option>
-              <option value="24">24</option>
-              <option value="25">25</option>
-              <option value="26">26</option>
-              <option value="27">27</option>
-              <option value="28">28</option>
-              <option value="29">29</option>
-              <option value="30">20</option>
-              <option value="31">31</option>
-              <option value="32">32</option>
-              <option value="33">33</option>
-              <option value="34">34</option>
-              <option value="35">35</option>
-              <option value="36">36</option>
+              <option value="1">1 or 1/2</option>
+              <option value="2">2 or 2/3</option>
+              <option value="3">3 or 3/4</option>
+              <option value="4">4 or 4/5</option>
+              <option value="5">5 or 5/6</option>
+              <option value="6">6 or 6/7</option>
+              <option value="7">7 or 7/8</option>
+              <option value="8">8 or 8/9</option>
+              <option value="9">9 or 9/10</option>
+              <option value="10">10 or 10/11</option>
+              <option value="11">11 or 11/12</option>
+              <option value="12">12 or 12/13</option>
+              <option value="13">13 or 13/14</option>
+              <option value="14">14 or 14/15</option>
+              <option value="15">15 or 15/16</option>
+              <option value="16">16 or 16/17</option>
+              <option value="17">17 or 17/18</option>
+              <option value="18">18 or 18/19</option>
+              <option value="19">19 or 19/20</option>
+              <option value="20">20 or 20/21</option>
+              <option value="21">21 or 21/22</option>
+              <option value="22">22 or 22/23</option>
+              <option value="23">23 or 23/24</option>
+              <option value="24">24 or 24/25</option>
+              <option value="25">25 or 25/26</option>
+              <option value="26">26 or 26/27</option>
+              <option value="27">27 or 27/28</option>
+              <option value="28">28 or 28/29</option>
+              <option value="29">29 or 29/30</option>
+              <option value="30">30 or 30/31</option>
+              <option value="31">31 or 31/32</option>
+              <option value="32">32 or 32/33</option>
+              <option value="33">33 or 33/34</option>
+              <option value="34">34 or 34/35</option>
+              <option value="35">35 or 35/36</option>
+              <option value="36">36 or 36/1</option>
             </select>
           </td>
         </tr>
@@ -130,9 +130,10 @@ var copyTiltValues = new Clipboard('#tilt-values');
 var copyMeasurement = new Clipboard('#measurement');
 
 function initPlotData() {
-    var url="http://localhost:8080/HS/Tilt%20Sensor/Azimuthal%20Tilt%20%28bits%29\?hscale\=3m\&fgroup\=Tilt+Sensor\&fpanel\=Azimuthal+Tilt+%28bits%29\&cmd\=Export";
+    var base = window.location.href;
+    var url = base + "/Azimuthal%20Tilt%20%28bits%29\?hscale\=3m\&fgroup\=Tilt+Sensor\&fpanel\=Azimuthal+Tilt+%28bits%29\&cmd\=Export";
 
-    var alpha = 0.07;
+    var alpha = 0.04;
     $.ajax({ url: url, success: function(data) {
             var lines = data.split('\n');
             var data = [];
@@ -160,7 +161,7 @@ function initPlotData() {
         }
     });
 
-    url="http://localhost:8080/HS/Tilt%20Sensor/Radial%20Tilt%20%28bits%29\?hscale\=3m\&fgroup\=Tilt+Sensor\&fpanel\=Radial+Tilt+%28bits%29\&cmd\=Export";
+    url = base + "/Radial%20Tilt%20%28bits%29\?hscale\=3m\&fgroup\=Tilt+Sensor\&fpanel\=Radial+Tilt+%28bits%29\&cmd\=Export";
 
     $.ajax({ url: url, success: function(data) {
             var lines = data.split('\n');
@@ -228,7 +229,7 @@ initPlotData();
 
 function update_data() {
 
-    var alpha = 0.07;
+    var alpha = 0.04;
     var maxpoints = 60;
 
     if (radTiltData.x.length != 0) {
@@ -269,7 +270,13 @@ function update_data() {
     meas.push(document.getElementById('tilt-orientation').value);
     meas.push(document.getElementById('tilt-data-type').value);
     meas.push(document.getElementById('tilt-ring-power').value);
-    meas.push(document.getElementById('tilt-pole-id').value);
+
+    var poleId = document.getElementById('tilt-pole-id').value;
+    if (document.getElementById('tilt-data-type').value.startsWith('step')) {
+      meas.push(poleId + ' - ' + (parseInt(poleId) + 1));
+    } else {
+      meas.push(poleId);
+    }
     meas.push(document.getElementById('tilt-pole-layer').value);
     meas.push(d.toLocaleTimeString());
 
