@@ -15,14 +15,12 @@ BIN_DIR = bin
 LINK_DIR = ~/Applications/gm2-nmr/common
 
 # Grab our compilation objects.
-SOURCES = $(wildcard src/*.cxx)
-OBJECTS := $(patsubst src%.cxx,build%.o,$(SOURCES))
-SOURCES = $(wildcard src/*.c)
-OBJECTS += $(patsubst src%.c,build%.o,$(SOURCES))
-#MODULES = $(patsubst modules/%.c,bin/%,$(wildcard modules/*.c))
-#MODULES += $(patsubst modules/%.cxx,bin/%,$(wildcard modules/*.cxx))
-TARGETS = $(patsubst analyzers/%.c,bin/%,$(wildcard analyzers/*.c))
-TARGETS += $(patsubst analyzers/%.cxx,bin/%,$(wildcard analyzers/*.cxx))
+SOURCES = $(wildcard modules/*.cxx)
+OBJECTS := $(patsubst modules%.cxx,build%.o,$(SOURCES))
+SOURCES = $(wildcard modules/*.c)
+OBJECTS += $(patsubst modules%.c,build%.o,$(SOURCES))
+TARGETS = $(patsubst src/%.c,bin/%,$(wildcard src/*.c))
+TARGETS += $(patsubst src/%.cxx,bin/%,$(wildcard src/*.cxx))
 
 #-----------------------------------------
 # This is for Linux
@@ -60,20 +58,20 @@ print_vars:
 	echo $(TARGETS)
 	echo $(OBJECTS)
 
-bin/%: analyzers/%.cxx $(LIB_DIR)/rmana.o $(OBJECTS)
+bin/%: src/%.cxx $(LIB_DIR)/rmana.o $(OBJECTS)
 	$(CXX) $(CXXFLAGS) $(CFLAGS) $(OSFLAGS) $(ROOTFLAGS) -o $@ $+ \
 	$(LIB) $(LIBS) $(ROOTLIBS) 
 	ln -fs $(shell pwd)/$@ $(LINK_DIR)/$@ 
 
-bin/%: analyzers/%.c $(LIB_DIR)/mana.o $(OBJECTS)
+bin/%: src/%.c $(LIB_DIR)/mana.o $(OBJECTS)
 	$(CC) $(CFLAGS) $(OSFLAGS) -o $@ $+ \
 	$(LIB) $(LIBS) $(ROOTLIBS) 
 	ln -fs $(shell pwd)/$@ $(LINK_DIR)/$@ 
 
-build/%.o: src/%.cxx 
+build/%.o: modules/%.cxx 
 	$(CXX) $(CXXFLAGS) $(CFLAGS) $(OSFLAGS) $(ROOTFLAGS) -c $< -o $@
 
-build/%.o: src/%.c
+build/%.o: modules/%.c
 	$(CC) $(CFLAGS) $(OSFLAGS) -c $< -o $@
 
 clean:
