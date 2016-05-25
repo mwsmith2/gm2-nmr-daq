@@ -227,6 +227,13 @@ def standard_job_set(msg):
     jobs[0].append(job)
 
     job = copy.copy(job)
+    job['name'] = 'mscb-ring'
+    job['dir'] = rome_dir + '/mscb-ring'
+    job['deps'] = {}
+    job['deps'][job['dir'] + '/midanalyzer.exe'] = new_dep
+    jobs[0].append(job)
+
+    job = copy.copy(job)
     job['name'] = 'tilt-sensor'
     job['dir'] = rome_dir + '/tilt-sensor'
     job['deps'] = {}
