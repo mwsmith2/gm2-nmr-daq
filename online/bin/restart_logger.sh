@@ -10,7 +10,7 @@ done
 
 cmd="mlogger -e $EXPT$(printf \\r)"
 screen -dmS "${EXPT}.mlogger"
-screen -S "${EXPT}.mlogger" -p 0 -rX stuff "$cmd";;
+screen -S "${EXPT}.mlogger" -p 0 -rX stuff "$cmd"
 
 unset cmd
 
