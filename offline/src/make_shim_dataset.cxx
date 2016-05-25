@@ -41,9 +41,6 @@ using namespace gm2;
 
 int main(int argc, char **argv)
 {
-  // Use to make checksum changeable at will.
-  const int id = 2L; 
-
   // Allocate parameters
   const double dt = 10.0 / SHORT_FID_LN;
   const double t0 = 0.0;
@@ -310,12 +307,166 @@ int main(int argc, char **argv)
   ss << std::setfill('0') << std::setw(5) << run_number << ".laser_swap";
   laser_swap = pt.get<bool>(ss.str());
 
-  // Go through the data.
-  for (int idx = 0; idx < pt_shpf->GetEntries(); ++idx) {
+  // Need to determine the number of good synchronized entries.
+  uint shpf_offset = 0;
+  uint ltrk_offset = 0;
+  uint ctec_offset = 0;
+  uint nsync = 0;
 
-    pt_shpf->GetEntry(idx);
-    pt_ltrk->GetEntry(idx);
-    pt_ctec->GetEntry(idx);
+  if (pt_shpf->GetEntries() != 0) {
+    nsync = pt_shpf->GetEntries();
+    cout << "Setting nsync to " << nsync << endl;
+  }
+  
+  if ((pt_ltrk->GetEntries() < nsync) && (pt_ltrk->GetEntries() != 0)) {
+    nsync = pt_ltrk->GetEntries();
+    cout << "Setting nsync to " << nsync << endl;
+  }
+
+  if ((pt_ctec->GetEntries() < nsync) && (pt_ctec->GetEntries() != 0)) {
+    nsync = pt_ctec->GetEntries();
+    cout << "Setting nsync to " << nsync << endl;
+  }
+
+  if (nsync > 3) {
+
+    vector<double> shpf_tm;
+    vector<double> ltrk_tm;
+    vector<double> ctec_tm;
+
+    for (int i = nsync - 3; i < nsync; ++i) {
+      pt_shpf->GetEntry(i);
+      pt_ltrk->GetEntry(i);
+      pt_ctec->GetEntry(i);
+  
+      shpf_tm.push_back(platform.sys_clock[0] * 1.0e-6);
+      ltrk_tm.push_back(laser.midas_time + 600.0);
+      ctec_tm.push_back(ctec.midas_time);
+    }
+  
+    // Now determine offsets for proper synchronization.
+    if (pt_shpf->GetEntries() == nsync) {
+
+      printf("platform - laser[0]: %.2f, %.2f\n",
+             shpf_tm[0] - ltrk_tm[0], shpf_tm[1] - ltrk_tm[0]);
+
+      if (abs(shpf_tm[0] - ltrk_tm[0]) < abs(shpf_tm[1] - ltrk_tm[0])) {
+        shpf_offset = 0;
+      } else {
+        shpf_offset = 1;
+      }
+
+      printf("laser - platform[%i]: %.2f, %.2f\n",
+             shpf_offset,
+             ltrk_tm[0] - shpf_tm[shpf_offset], 
+             ltrk_tm[1] - shpf_tm[shpf_offset]);
+
+      if (abs(ltrk_tm[0] - shpf_tm[shpf_offset]) < 
+          abs(ltrk_tm[1] - shpf_tm[shpf_offset])) {
+        ltrk_offset = 0;
+      } else {
+        ltrk_offset = 1;
+      }
+
+      printf("ctec - platform[%i]: %.2f, %.2f\n",
+             shpf_offset,
+             ctec_tm[0] - shpf_tm[shpf_offset], 
+             ctec_tm[1] - shpf_tm[shpf_offset]);
+
+      if (abs(ctec_tm[0] - shpf_tm[shpf_offset]) < 
+          abs(ctec_tm[1] - shpf_tm[shpf_offset])) {
+        ctec_offset = 0;
+      } else {
+        ctec_offset = 1;
+      }
+
+      printf("Setting offsets to shpf = %i, ltrk = %i, ctec = %i\n",
+             shpf_offset, ltrk_offset, ctec_offset);;
+
+    } else if (pt_ltrk->GetEntries() == nsync) {
+
+      printf("laser - platform[0]: %.2f, %.2f\n",
+             ltrk_tm[0] - shpf_tm[0], ltrk_tm[1] - shpf_tm[0]);
+    
+      if (abs(ltrk_tm[0] - shpf_tm[0]) < abs(ltrk_tm[1] - shpf_tm[0])) {
+        ltrk_offset = 0;
+      } else {
+        ltrk_offset = 1;
+      }
+
+      printf("platform - laser[%i]: %.2f, %.2f\n",
+             ltrk_offset,
+             shpf_tm[0] - ltrk_tm[ltrk_offset], 
+             shpf_tm[1] - ltrk_tm[ltrk_offset]);
+
+      if (abs(shpf_tm[0] - ltrk_tm[ltrk_offset]) < 
+          abs(shpf_tm[1] - ltrk_tm[ltrk_offset])) {
+        shpf_offset = 0;
+      } else {
+        shpf_offset = 1;
+      }
+
+      printf("ctec - laser[%i]: %.2f, %.2f\n",
+             ltrk_offset,
+             ctec_tm[0] - ltrk_tm[ltrk_offset], 
+             ctec_tm[1] - ltrk_tm[ltrk_offset]);
+
+      if (abs(ctec_tm[0] - ltrk_tm[ltrk_offset]) < 
+          abs(ctec_tm[1] - ltrk_tm[ltrk_offset])) {
+        ctec_offset = 0;
+      } else {
+        ctec_offset = 1;
+      }
+
+      printf("Setting offsets to shpf = %i, ltrk = %i, ctec = %i\n",
+             shpf_offset, ltrk_offset, ctec_offset);;
+
+    } else if (pt_ctec->GetEntries() == nsync) {
+
+      printf("laser - platform[0]: %.2f, %.2f\n",
+             ctec_tm[0] - shpf_tm[0], ctec_tm[1] - shpf_tm[0]);
+    
+      if (abs(ctec_tm[0] - shpf_tm[0]) < abs(ctec_tm[1] - shpf_tm[0])) {
+        ctec_offset = 0;
+      } else {
+        ctec_offset = 1;
+      }
+
+      printf("platform - ctec[%i]: %.2f, %.2f\n",
+             ctec_offset,
+             shpf_tm[0] - ctec_tm[ctec_offset], 
+             shpf_tm[1] - ctec_tm[ctec_offset]);
+
+      if (abs(shpf_tm[0] - ctec_tm[ctec_offset]) < 
+          abs(shpf_tm[1] - ctec_tm[ctec_offset])) {
+        shpf_offset = 0;
+      } else {
+        shpf_offset = 1;
+      }
+
+      printf("laser - ctec[%i]: %.2f, %.2f\n",
+             ctec_offset,
+             ltrk_tm[0] - ctec_tm[ctec_offset], 
+             ltrk_tm[1] - ctec_tm[ctec_offset]);
+
+      if (abs(ltrk_tm[0] - ctec_tm[ctec_offset]) < 
+          abs(ltrk_tm[1] - ctec_tm[ctec_offset])) {
+        ltrk_offset = 0;
+      } else {
+        ltrk_offset = 1;
+      }
+
+      cout << "Setting offsets to shpf = " << shpf_offset;
+      cout << ", ltrk = " << ltrk_offset << endl;
+    }
+  }
+
+  // Go through the data.
+  for (int idx = 0; idx < nsync; ++idx) {
+
+    pt_shpf->GetEntry(idx + shpf_offset);
+    pt_ltrk->GetEntry(idx + ltrk_offset);
+    pt_ctec->GetEntry(idx + ctec_offset);
 
     if (run_number < 787) {
       
