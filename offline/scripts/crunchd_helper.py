@@ -23,7 +23,7 @@ def main():
     # Update only new runs.
     if sys.argv[1] == 'update':
 
-        metafile = datadir + 'crunched/.processing_metadata.json'
+        metafile = datadir + 'crunched/.crunchd_metadata.json'
         crunched_runs = json.load(open(metafile)).keys()
         crunched_runs.sort()
 
