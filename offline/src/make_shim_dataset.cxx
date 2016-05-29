@@ -39,6 +39,16 @@ usage:
 using namespace std;
 using namespace gm2;
 
+double laser_machine_offset(int run) {
+  if ((run > 3160) && (run < 3178)) {
+    return 544.0;
+  } else if ((run > 3188) && (run < 3221)) {
+    return 600.0;
+  } else {
+    return 0.0;
+  }
+}
+
 int main(int argc, char **argv)
 {
   // Allocate parameters
@@ -340,7 +350,7 @@ int main(int argc, char **argv)
       pt_ctec->GetEntry(i);
   
       shpf_tm.push_back(platform.sys_clock[0] * 1.0e-6);
-      ltrk_tm.push_back(laser.midas_time + 600.0);
+      ltrk_tm.push_back(laser.midas_time + laser_machine_offset(run_number));
       ctec_tm.push_back(ctec.midas_time);
     }
   
