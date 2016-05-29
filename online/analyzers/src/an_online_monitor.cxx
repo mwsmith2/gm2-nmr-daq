@@ -827,7 +827,7 @@ void archive_config_loop()
       // Now take care of the runlog file with Comments and tags.
       ptree pt_runlog;
       ptree pt_run;
-      std::string runlog_file = logdir + "runlog.json";
+      std::string runlog_file = logdir + "midas_runlog.json";
 
       try {
         read_json(runlog_file, pt_runlog);
@@ -842,7 +842,15 @@ void archive_config_loop()
 
         pt_run.put("comment", std::string(str));
       }
-  
+
+      // Get the comment from the ODB
+      db_find_key(hDB, 0, "/Experiment/Run Parameters/Comment", &hkey);
+      if (hkey) {
+        size = sizeof(str);
+        db_get_data(hDB, hkey, str, &size, TID_STRING);
+
+        pt_run.put("comment", std::string(str));
+      }
 
       // Get the comment from the ODB
       db_find_key(hDB, 0, "/Experiment/Run Parameters/Tags", &hkey);
@@ -860,6 +868,24 @@ void archive_config_loop()
         }
     
         pt_run.put_child("tags", pt_tags);
+      }
+
+      // Get the comment from the ODB
+      db_find_key(hDB, 0, "/Experiment/Runinfo/Start time binary", &hkey);
+      if (hkey) {
+        size = sizeof(str);
+        db_get_data(hDB, hkey, str, &size, TID_STRING);
+
+        pt_run.put("start_time", std::string(str));
+      }
+
+      // Get the comment from the ODB
+      db_find_key(hDB, 0, "/Experiment/Runinfo/Stop time binary", &hkey);
+      if (hkey) {
+        size = sizeof(str);
+        db_get_data(hDB, hkey, str, &size, TID_STRING);
+
+        pt_run.put("stop_time", std::string(str));
       }
   
       sprintf(str, "run_%05d", run_number);
