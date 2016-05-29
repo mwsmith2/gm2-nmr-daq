@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<script type="text/javascript" src="mhttpd.js"></script>
+
+<head>
+  <title>Run Log Display</title>
+</head>
+
+<body>
+  <div style="width: 100%">
+    <div style="float:left; width: 12%; border-right-style: solid; border-bottom-style: solid">
+      <h2 style="text-align: center">Select Run</h2>
+      <table>
+        <tr>
+          <td>
+            <input id="run-selection" onkeydown="showRun()" style="width: 95%; text-align: center">
+            </input>
+          </td>
+        </tr>
+      </table>
+    </div>
+    <div style="float:right; width: 84%">
+      <h2 style="text-align: center">Run Log Entry:</h2>
+      <textarea id='run-attributes' rows="10" cols="80" onchange="updateRunlog()">
+      </textarea>
+    </div>
+  </div>
+  
+<script>
+function cs_button(cmd, callback) {
+  var request = XMLHttpRequestGeneric();
+
+  var url = location.protocol + "//" + location.hostname;
+  url += (location.port && ":" + location.port) + "/";
+  url +='?customscript=' + encodeURIComponent(cmd);
+
+  request.open('GET', url, true); // asynchronous request
+  request.send(null);
+}
+
+var runlog = {};
+var userRunlog = {};
+var runKey = '';
+var runAttr = '';
+
+$.getJSON('static/log/midas_runlog.json', 'none', function(data) {runlog = data; initView();});
+
+$.getJSON('static/log/user_runlog.json', 'none', function(data) {userRunlog = data; initView();});
+  
+function showRun() {
+  if (event.keyCode != 13) {
+    return;
+  }
+
+  var run = parseInt(document.getElementById('run-selection').value);
+
+  if (run < 10) {
+
+    runKey = 'run_0000' + run;
+
+  } else if (run < 100) {
+
+    runKey = 'run_000' + run;
+
+  } else if (run < 1000) {
+
+    runKey = 'run_00' + run;
+
+  } else if (run < 10000) {
+
+    runKey = 'run_0' + run;
+
+  } else {
+
+   runKey = 'run_' + run;
+ }
+
+  runAttr = JSON.stringify(runlog[runKey], null, 2);
+
+  if (userRunlog[runKey]) {
+    runAttr = JSON.stringify(userRunlog[runKey], null, 2);
+  }
+
+  document.getElementById('run-attributes').value = runAttr;
+}
+
+function updateRunlog() {
+  // Load the changes
+  runAttr = document.getElementById('run-attributes').value;
+
+  // Upload the changes to the ODB
+  ODBSet('/Custom/Data/json-buffer/value', runAttr);
+  ODBSet('/Custom/Data/json-buffer/key', runKey);
+  ODBSet('/Custom/Data/json-buffer/file', 
+         'static/log/user_runlog.json');
+
+  // Propagate the changes to the user_runlog
+  var request = XMLHttpRequestGeneric();
+  var url = location.protocol + "//" + location.hostname;
+  url += (location.port && ":" + location.port) + "/";
+  url +='?customscript=' + encodeURIComponent('Update JSON Buffer');
+
+  request.open('GET', url, true); // asynchronous request
+  request.send();
+
+  // Reload the user run log.
+  userRunlog[runKey] = JSON.parse(runAttr);
+}
+
+function initView() {
+var runNum = parseInt(ODBGet('/Runinfo/Run number'));
+
+if (ODBGet('/Runinfo/State') != '1') {
+  document.getElementById('run-selection').value = runNum - 1;
+} else {
+  document.getElementById('run-selection').value = runNum;
+}
+
+var run = parseInt(document.getElementById('run-selection').value);
+
+if (run < 10) {
+
+  runKey = 'run_0000' + run;
+
+} else if (run < 100) {
+
+  runKey = 'run_000' + run;
+
+} else if (run < 1000) {
+
+  runKey = 'run_00' + run;
+
+} else if (run < 10000) {
+
+  runKey = 'run_0' + run;
+
+} else {
+
+ runKey = 'run_' + run;
+}
+
+runAttr = JSON.stringify(runlog[runKey], null, 2);
+
+if (userRunlog[runKey]) {
+  runAttr = JSON.stringify(userRunlog[runKey], null, 2);
+}
+
+document.getElementById('run-attributes').value = runAttr;
+}
+</script>
+</body>
