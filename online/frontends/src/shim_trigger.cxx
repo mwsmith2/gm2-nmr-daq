@@ -177,7 +177,9 @@ INT begin_of_run(INT run_number, char *error)
 //--- End of Run ----------------------------------------------------*/
 INT end_of_run(INT run_number, char *error)
 {
+  readout_trigger->FixNumClients(false);
   readout_trigger->StopTriggers();
+  stepper_trigger->FixNumClients(false);
   stepper_trigger->StopTriggers();
   return SUCCESS;
 }
