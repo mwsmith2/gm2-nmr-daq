@@ -104,8 +104,8 @@ extern "C" {
 RUNINFO runinfo;
 
 // @sync: begin boilerplate
-daq::SyncClient *listener;
-daq::SyncClient *listenerStepper;
+daq::SyncClient *listener_trigger;
+daq::SyncClient *listener_stepper;
 // @sync: end boilderplate
 
 //--- Frontend Init -------------------------------------------------//
@@ -148,8 +148,13 @@ INT frontend_init()
 
   int trigger_port(tmp);
 
-  listener = new daq::SyncClient(trigger_addr, trigger_port);
-  listenerStepper = new daq::SyncClient(trigger_addr, trigger_port+30);
+  listener_trigger = new daq::SyncClient(std::string(frontend_name),
+                                         trigger_addr, 
+                                         trigger_port);
+
+  listener_stepper = new daq::SyncClient(std::string(frontend_name),
+                                         trigger_addr, 
+                                         trigger_port + 30);
  
  // @sync: end boilderplate
   // Note that if no address is specifed the SyncClient operates
@@ -162,8 +167,8 @@ INT frontend_init()
 INT frontend_exit()
 {
   // @sync: begin boilerplate
-  delete listener;
-  delete listenerStepper;
+  delete listener_trigger;
+  delete listener_stepper;
 
   // @sync: end boilerplate
 
@@ -174,8 +179,8 @@ INT frontend_exit()
 INT begin_of_run(INT run_number, char *error)
 {
   // @sync: begin boilerplate
-  listener->SetReady();
-  listenerStepper->UnsetReady(); // don't move until we say so
+  listener_trigger->SetReady();
+  listener_stepper->UnsetReady(); // don't move until we say so
   // @sync: end boilerplate
 
   return SUCCESS;
@@ -184,8 +189,8 @@ INT begin_of_run(INT run_number, char *error)
 //--- End of Run ----------------------------------------------------*/
 INT end_of_run(INT run_number, char *error)
 {
-  listener->UnsetReady();
-  listenerStepper->UnsetReady();
+  listener_trigger->UnsetReady();
+  listener_stepper->UnsetReady();
   return SUCCESS;
 }
 
@@ -236,7 +241,7 @@ INT poll_event(INT source, INT count, BOOL test) {
   // Checking HasTrigger() has a side effect of setting the trigger to false
   // 
 
-  if (listener->HasTrigger()) {
+  if (listener_trigger->HasTrigger()) {
     cout << "Received trigger\n"<<endl;
     return 1;
   } // if HasTrigger()
@@ -326,8 +331,8 @@ INT read_trigger_event(char *pevent, INT off)
   printf("set listener stepper ready\n");
 
 
-  listenerStepper->SetReady();
-  listener->SetReady();
+  listener_stepper->SetReady();
+  listener_trigger->SetReady();
   // @sync: end boilerplate
 
   return bk_size(pevent);

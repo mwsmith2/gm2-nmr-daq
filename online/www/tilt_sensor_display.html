@@ -130,7 +130,7 @@ var copyTiltValues = new Clipboard('#tilt-values');
 var copyMeasurement = new Clipboard('#measurement');
 
 function initPlotData() {
-    var base = window.location.href;
+    var base = window.location.href.replace('/CS/', '/HS/');
     var url = base + "/Azimuthal%20Tilt%20%28bits%29\?hscale\=3m\&fgroup\=Tilt+Sensor\&fpanel\=Azimuthal+Tilt+%28bits%29\&cmd\=Export";
 
     var alpha = 0.04;

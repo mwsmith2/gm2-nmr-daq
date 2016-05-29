@@ -42,7 +42,7 @@ using std::string;
 extern "C" {
   
   // The frontend name (client name) as seen by other MIDAS clients
-  char *frontend_name = (char*) "shim platform";
+  char *frontend_name = (char*) "shim-platform";
 
   // The frontend file name, don't change it.
   char *frontend_file_name = (char*) __FILE__;
@@ -263,11 +263,15 @@ INT frontend_init()
 
   int trigger_port(tmp);
 
-  readout_listener = new daq::SyncClient(trigger_addr, trigger_port);
+  readout_listener = new daq::SyncClient(std::string(frontend_name), 
+                                         trigger_addr, 
+                                         trigger_port);
 
   //Brendan : Piggy-back off of the port information already extracted for the listener, and increment it by 1
 
-  stepper_listener = new daq::SyncClient(trigger_addr, trigger_port+30);
+  stepper_listener = new daq::SyncClient(std::string(frontend_name), 
+                                         trigger_addr, 
+                                         trigger_port + 30);
 
   // Load the steppper motor params.
   db_find_key(hDB, 0, "/Params/stepper-motor", &hkey);
@@ -355,7 +359,7 @@ INT begin_of_run(INT run_number, char *error)
   db_find_key(hDB, 0, "/Runinfo", &hkey);
   if (db_open_record(hDB, hkey, &runinfo, sizeof(runinfo), MODE_READ,
 		     NULL, NULL) != DB_SUCCESS) {
-    cm_msg(MERROR, "analyzer_init", "Cannot open \"/Runinfo\" tree in ODB");
+    cm_msg(MERROR, "shim_platform_init", "Can't open \"/Runinfo\" in ODB");
     return 0;
   }
 
