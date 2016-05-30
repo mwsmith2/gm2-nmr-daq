@@ -1,56 +1,63 @@
-/*******************************************************************\
+/**************************************************************************** \
 
-Name: Metrolab_client.cxx
-Author: Luke P. K. Baines (The Beefeater)
-Email: Baines-L-10@kcs.org.uk
+Name:   Metrolab RS232 client
+Author: Peter Winter
+Email:  winterp@anl.gov
 
-\******************************************************************/
+About:  A simple frontend to communicate with the Metrolab via RS232 and 
+      that is synchronized to the SyncTrigger class in shim_trigger using 
+      a SyncClient. Boilerplate code is surrounded with @sync flags and 
+      places needing user code are marked with @user.  
+        
+\*****************************************************************************/
 
-// ---std includes -----------------------------------------------//
+//--- std includes ----------------------------------------------------------//
+#include <termios.h>
+#include <fcntl.h>
 #include <sys/socket.h>
 #include <string>
 #include <iostream>
 #include <sstream>
 #include <stdio.h>
+#include <fcntl.h>
 using namespace std;
 
-//--- other includes -----------------------------------------------//          
+//--- other includes -------------------------------------------------------// 
 #include "midas.h"
 #include "boost/property_tree/ptree.hpp"
 #include "boost/property_tree/json_parser.hpp"
-#include <zmq.hpp>
 
- //--- project includes ---------------------------------------------//          
+
+//--- project includes ------------------------------------------------------//
 #include "sync_client.hh"
 
- //--- globals ------------------------------------------------------//          
-
-#define FRONTEND_NAME "metrolab"
+//--- global variables ------------------------------------------------------//
+#define FRONTEND_NAME "Metrolab"
 
 extern "C" {
 
-  // The frontend name (client name) as seen by other MIDAS clients             
+  // The frontend name (client name) as seen by other MIDAS clients.
   char *frontend_name = (char*)FRONTEND_NAME;
 
-  // The frontend file name, don't change it.                                   
+  // The frontend file name, don't change it.
   char *frontend_file_name = (char*) __FILE__;
 
-  // frontend_loop is called periodically if this variable is TRUE              
+  // Frontend_loop is called periodically if this variable is TRUE.
   BOOL frontend_call_loop = FALSE;
 
-  // A frontend status page is displayed with this frequency in ms.             
+  // A frontend status page is displayed with this frequency in ms.
   INT display_period = 1000;
 
-  // maximum event size produced by this frontend                               
-  INT max_event_size = 0x80000; // 80 kB                         
+  // Set maximum event size produced by this frontend
+  INT max_event_size = 0x80000;
 
-  // maximum event size for fragmented events (EQ_FRAGMENTED)                   
+  // Set maximum event size for fragmented events (EQ_FRAGMENTED)
   INT max_event_size_frag = 0x800000;
 
-  // buffer size to hold events                                                 
+  // Set buffer size to hold events.
   INT event_buffer_size = 0x800000;
 
-  // Function declarations                                                      
+  // Function declarations.
   INT frontend_init();
   INT frontend_exit();
   INT begin_of_run(INT run_number, char *error);
@@ -63,201 +70,172 @@ extern "C" {
   INT poll_event(INT source, INT count, BOOL test);
   INT interrupt_configure(INT cmd, INT source, PTYPE adr);
 
-  // Equipment list                                                             
-
+  // Define the equipment list.
   EQUIPMENT equipment[] =
     {
       {FRONTEND_NAME,  // equipment name                     
        {11, 0,         // event ID, trigger mask
         "SYSTEM",      // event buffer (use to be SYSTEM)
-        EQ_POLLED |
-        EQ_EB,         // equipment type
+        EQ_PERIODIC,   // equipment type
         0,             // not used
         "MIDAS",       // format
         TRUE,          // enabled
-        RO_RUNNING |   // read only when running
+        RO_ALWAYS |    // read only when running
         RO_ODB,        // and update ODB
-        10,            // poll for 10ms
+        2000,          // read every 2s
         0,             // stop run after this event limit                      
         0,             // number of sub events
         0,             // don't log history
         "", "", "",
        },
 
-       read_trigger_event,      // readout routine                              
+       read_trigger_event,      // readout routine 
+       NULL,
+       NULL
       },
 
       {""}
     };
 
-} //extern C                                                                    
+} //extern C
 
-RUNINFO runinfo;
+// Define settings struct and string for frontend.
+typedef struct {
+   char address[128];
+} METROLAB_SETTINGS;
+METROLAB_SETTINGS metrolab_settings;
 
-// @sync: begin boilerplate                                                     
-daq::SyncClient *listener = nullptr;
-zmq::socket_t *metrolab_sck;
-// @sync: end boilderplate
+#define METROLAB_SETTINGS_STR "\
+Address = STRING : [128] /dev/ttyUSB%i\n\
+"
 
-std::queue<std::string> data_queue;
-std::string metrolab_addr;
+int serial_port;
 
-//--- Frontend Init -------------------------------------------------//         
+//--- Frontend Init ---------------------------------------------------------//
 INT frontend_init()
 {
-  // @sync: begin boilerplate                                                   
-  //DATA part                                                                   
   HNDLE hDB, hkey;
   INT status, tmp;
   char str[256], filename[256];
   int size;
 
   cm_get_experiment_database(&hDB, NULL);
-  db_find_key(hDB, 0, "Params/config-dir", &hkey);
+  
+  sprintf(str, "/Equipment/%s/Settings", FRONTEND_NAME);
+  status = db_create_record(hDB, 0, str, METROLAB_SETTINGS_STR);
+  if (status != DB_SUCCESS){
+    printf("Could not create record %s\n", str);
+    return FE_ERR_ODB;   
+  }  
+  
+  if(db_find_key(hDB, 0, str, &hkey)==DB_SUCCESS){
+      size = sizeof(METROLAB_SETTINGS);
+      db_get_record(hDB, hkey, &metrolab_settings, &size, 0);
+  }
+  
+  char devname[100];
+  struct termios options;
 
-  if (hkey) {
-    size = sizeof(str);
-    db_get_data(hDB, hkey, str, &size, TID_STRING);
-    if (str[strlen(str) - 1] != DIR_SEPARATOR) {
-      strcat(str, DIR_SEPARATOR_STR);
+  // Try opening several serial port, since USB serials change number.
+  for (int n = 0; n < 4; ++n) {
+    sprintf(devname, metrolab_settings.address, n);
+    serial_port = open(devname, O_RDWR | O_NOCTTY | O_NDELAY | O_NONBLOCK);
+  
+    if ((serial_port < 0) && (n == 3)) {
+      cm_msg(MERROR, "frontend_init", "error opening device");
+      return -1;
     }
   }
 
-  // Get the config for the synchronized trigger.                               
-  db_find_key(hDB, 0, "Params/sync-trigger-address", &hkey);
-
-  if (hkey) {
-    size = sizeof(str);
-    db_get_data(hDB, hkey, str, &size, TID_STRING);
-  }
-
-  string trigger_addr(str);
-
-  db_find_key(hDB, 0, "Params/fast-trigger-port", &hkey);
-
-  if (hkey) {
-    size = sizeof(tmp);
-    db_get_data(hDB, hkey, &tmp, &size, TID_INT);
-  }
-
-  int trigger_port(tmp);
-
-  // not sure that metrolab needs to by synced.
-  // listener = new daq::SyncClient(trigger_addr, trigger_port);
-
-  // @sync: end boilderplate                                                  
-  // Note that if no address is specifed the SyncClient operates                
-  // on localhost automatically.        
-
-  return SUCCESS;
-}
-
-//--- Frontend Exit ------------------------------------------------//          
-INT frontend_exit()
-{
-  // @sync: begin boilerplate                                                   
-  if (listener != nullptr) {
-    delete listener;
-  }
-  // @sync: end boilerplate                                                     
-
-  return SUCCESS;
-}
-
-//--- Begin of Run --------------------------------------------------//         
-INT begin_of_run(INT run_number, char *error)
-{
-  // @sync: begin boilerplate
-  if (listener != nullptr) {
-    listener->SetReady();
-  }
-  // @sync: end boilerplate       
-
-  HNDLE hDB, hkey;
-  INT status, tmp;
-  char str[256], filename[256];
-  int size;
-
-  cm_get_experiment_database(&hDB, NULL);
-  db_find_key(hDB, 0, "Params/metrolab-addr", &hkey);
-
-  if (hkey) {
-    size = sizeof(str);
-    db_get_data(hDB, hkey, str, &size, TID_STRING);
-    metrolab_addr = std::string(str);
+  fcntl(serial_port, F_SETFL, 0); // return immediately if no data
+  
+  if (tcgetattr(serial_port, &options) < 0) {
+    cm_msg(MERROR, "frontend_init", "tcgetattr");
+    return -2;
   }
   
-  auto msg = std::string("Metrolab socket listening on ") + metrolab_addr;
-  cm_msg(MINFO, frontend_name, msg.c_str());
+  cfsetospeed(&options, B9600);
+  cfsetispeed(&options, B9600);
+  
+  // Setting other port stuff.
+  options.c_cflag &= ~PARENB;  // Make 8n1
+  options.c_cflag &= ~CSTOPB;
+  options.c_cflag &= ~CSIZE;
+  options.c_cflag |= CS8;
+  options.c_cflag &= ~CRTSCTS; // no flow control
+  options.c_lflag = 0;  // no signaling chars, no echo, no canonical processing
+  options.c_oflag = 0;  // no remapping, no delays
+  options.c_cc[VMIN] = 0; // read doesn't block
+  options.c_cc[VTIME] = 5; // 0.5 seconds read timeout
+  options.c_cflag |= CREAD | CLOCAL; // turn on READ & ignore ctrl lines
+  options.c_iflag &= ~(IXON | IXOFF | IXANY); // turn off s/w flow ctrl
+  options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG); // make raw
+  options.c_oflag &= ~OPOST; // make raw   
 
-  metrolab_sck = new zmq::socket_t(daq::msg_context, ZMQ_SUB);
+  tcflush( serial_port, TCIFLUSH );
 
-  // Set some useful options like timeout (so it doesn't block forever).
-  int timeout = 250; // in ms
-  metrolab_sck->setsockopt(ZMQ_RCVTIMEO, &timeout, sizeof(timeout));
+  if(tcsetattr(serial_port, TCSANOW, &options) < 0) {
+    cm_msg(MERROR, "frontend_init", "tcsetattr");
+    return -3;
+  }
 
-  timeout = 0; // in seconds
-  metrolab_sck->setsockopt(ZMQ_LINGER, &timeout, sizeof(timeout));
-
-  // Connect to the server socket and subscribe to all messages.
-  cout << "Connecting metrolab socket." << endl;
-  metrolab_sck->connect(metrolab_addr);
-  metrolab_sck->setsockopt(ZMQ_SUBSCRIBE, "", 0);
+  char line[200];
+  sprintf(line,"R\r\nA0\r\nH\r\n");
+  write(serial_port, line, strlen(line));
+  tcflush(serial_port, TCIFLUSH );
 
   return SUCCESS;
 }
 
-//--- End of Run -----------------------------------------------------//        
+//--- Frontend Exit ---------------------------------------------------------//
+INT frontend_exit()
+{
+  return SUCCESS;
+}
+
+//--- Begin of Run ----------------------------------------------------------//
+INT begin_of_run(INT run_number, char *error)
+{
+  return SUCCESS;
+}
+
+//--- End of Run ------------------------------------------------------------//
 INT end_of_run(INT run_number, char *error)
 {
-  // @sync: begin boilerplate                                                  
-  if (listener != nullptr) {
-    listener->UnsetReady();
-  }
-  // @sync: end boilerplate       
-
-  delete metrolab_sck;
   return SUCCESS;
 }
 
-//--- Pause Run -----------------------------------------------------*/        
+//--- Pause Run -------------------------------------------------------------//
 INT pause_run(INT run_number, char *error){
   return SUCCESS;
 }
 
-//--- Resume Run ----------------------------------------------------*/       
+//--- Resume Run -----------------------------------------------------------// 
 INT resume_run(INT run_number, char *error)
 {
   return SUCCESS;
 }
 
-//--- Frontend Loop -------------------------------------------------*/         
-
+//--- Frontend Loop ---------------------------------------------------------//
 INT frontend_loop()
 {
-  // If frontend_call_loop is true, this routine gets called when              
-  // the frontend is idle or once between every event                           
   return SUCCESS;
 }
 
-//-------------------------------------------------------------------*/         
+//---------------------------------------------------------------------------//
 
-/********************************************************************\           
+/**************************************************************************** \
+
   Readout routines for different events  
 
-\********************************************************************/
+\*****************************************************************************/
 
-//--- Trigger event routines ----------------------------------------*/         
-
+//--- Trigger event routines ------------------------------------------------//
 INT poll_event(INT source, INT count, BOOL test) {
 
   static unsigned int i;
-  static zmq::message_t msg(256);
-  bool rc;
-  int pollcount = 0;
-  int pollmax = 100;
 
-  // fake calibration                                                           
+  // fake calibration
   if (test) {
     for (i = 0; i < count; i++) {
       usleep(10);
@@ -265,46 +243,10 @@ INT poll_event(INT source, INT count, BOOL test) {
     return 0;
   }
 
-  // @sync: begin boilerplate                                                  
-  
-  if (listener != nullptr) {
-    if (listener->HasTrigger()) {
-      // User: Issue trigger here.
-      // Note that HasTrigger only returns true once.  It resets the
-      // trigger when it reads true to avoid multiple reads.
-    }
-    // @sync: end boilerplate
-  }
-
-  // Check for event, add to queue if found.
-  do {
-
-    try {
-      rc = metrolab_sck->recv(&msg, ZMQ_DONTWAIT);
-
-    } catch (...) {
-
-      continue;
-    }
-    usleep(10);
-
-  } while ((rc == false) && (++pollcount < pollmax));
-
-  if (rc == true) {
-    data_queue.push(std::string(msg.data()));
-  }
-
-  if (data_queue.size() > 0) {
-
-    return 1;
-
-  } else {
-
-    return 0;
-  }
+  return 1;
 }
 
-//--- Interrupt configuration ---------------------------------------*/        
+//--- interrupt configuration -----------------------------------------------//
 INT interrupt_configure(INT cmd, INT source, PTYPE adr)
 {
   switch (cmd) {
@@ -320,7 +262,7 @@ INT interrupt_configure(INT cmd, INT source, PTYPE adr)
   return SUCCESS;
 }
 
-//--- Event readout -------------------------------------------------*/         
+//--- event readout ---------------------------------------------------------//
 INT read_trigger_event(char *pevent, INT off)
 {
   int count = 0;
@@ -331,39 +273,43 @@ INT read_trigger_event(char *pevent, INT off)
   string field_unit;
   double time_stamp;
 
-  // @user: readout routine here.                                              
-  // And MIDAS output.                                                          
+  char line[200];
+  int b, n;
+  char status, unit, buf[30];
+  double value;
+
+  // And MIDAS output.
   bk_init32(pevent);
 
   // Get the time as an example                                                
-  sprintf(bk_name, "MTRL");
+  sprintf(bk_name, "MTR2");
 
+  sprintf(line,"\u0005\n");
+  n = write(serial_port, line, strlen(line));
+  b = read(serial_port, &buf, 30);
+
+  if (b == 13) {
+    status = buf[0];
+    char v[12]; 
+    strncpy(v, &buf[1], 9);
+    v[11] = '\0';
+    value = stof(v);
+    unit = buf[10];
+
+  } else {
+
+    cm_msg(MLOG, "read_trigger_event", "no valid readback value found");
+
+    return 0;
+  }
+    
   bk_create(pevent, bk_name, TID_DOUBLE, &pdata);
 
-  istringstream iss(data_queue.front());
-  iss >> magnetic_field >> field_unit >> time_stamp;
-
-  *(pdata++) = time_stamp;
-  *(pdata++) = magnetic_field;
+  *(pdata++) = (double)status;
+  *(pdata++) = value - 1.45;
+  *(pdata++) = (double)unit;
   
-  // Field unit is either Tesla or frequency in Mhz.
-  if (field_unit == std::string("T")) {
-    *(pdata++) = 100.0;
-  } else {
-    *(pdata++) = -100.0;
-  }
-
   bk_close(pevent, pdata);
-
-  // Pop the event now that we've read it.
-  data_queue.pop();
-
-  // @sync: begin boilerplate                                                  
-  // Let the trigger listener know we are ready for the next event.  
-  if (listener != nullptr) {
-    listener->SetReady();
-  }
-  // @sync: end boilerplate                                                     
 
   return bk_size(pevent);
 };
