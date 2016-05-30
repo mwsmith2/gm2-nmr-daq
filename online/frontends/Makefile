@@ -10,13 +10,13 @@
 
 NMR_DIR = core
 OBJECTS = $(wildcard $(NMR_DIR)/build/*.o)
-MODULES = $(patsubst src/%.cxx,%,$(wildcard src/*.cxx))
+TARGETS = $(patsubst src/%.cxx,bin/%,$(wildcard src/*.cxx))
 
-#-----------------------------------------
+#-------------------------------------------------------------------
 # This is for Linux
 OSFLAGS = -DOS_LINUX -DHAVE_USB -DHAVE_LIBUSB10 -Dextname
-CFLAGS = -g -fpermissive
-CXXFLAGS = -std=c++0x 
+CFLAGS = -fpermissive -O2
+CXXFLAGS = -std=c++0x
 LIBS = -lm -lz -lpthread -lfftw3 -lzmq -lodbc -lrt -lyocto -lyapi
 
 ROOTFLAGS = $(shell root-config --cflags)
@@ -26,8 +26,7 @@ ROOTLIBS = $(shell root-config --libs)
 # The following lines define direcories. Adjust if necessary
 INC_DIR = $(MIDASSYS)/include
 LIB_DIR = $(MIDASSYS)/linux/lib
-BIN_DIR = bin
-LINK_DIR = ../../common/bin
+LINK_DIR = ../../common/
 
 # wxWidgets libs and flags
 WXLIBS  = $(shell wx-config --libs)
@@ -49,12 +48,12 @@ CXX = g++
 
 # Make commands
 
-all: $(MODULES)
+all: $(TARGETS)
 
-%: src/%.cxx $(LIB_DIR)/mfe.o 
-	$(CXX) -o $(BIN_DIR)/$@ $+ $(CXXFLAGS) $(CFLAGS) $(OSFLAGS) \
-	$(LIB) $(LIBS) $(ROOTFLAGS) $(ROOTLIBS) $(WXFLAGS) $(WXLIBS)
-	ln -fs $(shell pwd)/$(BIN_DIR)/$@ $(LINK_DIR)/$@ 
+bin/%: src/%.cxx $(LIB_DIR)/mfe.o 
+	$(CXX) -o $@ $+ $(CXXFLAGS) $(CFLAGS) $(OSFLAGS) $(WXFLAGS) \
+	$(LIB) $(LIBS) $(ROOTFLAGS) $(ROOTLIBS) $(WXLIBS)
+	ln -fs $(shell pwd)/$@ $(LINK_DIR)/$@
 
 clean:
-	rm -f *~ $(MODULES)
+	rm -f *~ $(TARGETS)
