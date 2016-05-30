@@ -9,13 +9,13 @@ about:  Performs FFTs and plots those as well waveforms for simple
 
 \*---------------------------------------------------------------------------*/
 
-//-- std includes ------------------------------------------------------------//
+//--- std includes ----------------------------------------------------------//
 #include <stdio.h>
 #include <time.h>
 #include <cstring>
 #include <iostream>
 
-//--- other includes ---------------------------------------------------------//
+//--- other includes --------------------------------------------------------//
 #include "TFile.h"
 #include "TTree.h"
 #include "TH1F.h"
@@ -25,12 +25,12 @@ about:  Performs FFTs and plots those as well waveforms for simple
 #define USE_ROOT 1
 #include "midas.h"
 
-//--- project includes -------------------------------------------------------//
+//--- project includes ------------------------------------------------------//
 #include "experim.h"
 #include "fid.h"
 #include "nmr/common.hh"
 
-//--- globals ----------------------------------------------------------------//
+//--- globals ---------------------------------------------------------------//
 
 // The analyzer name (client name) as seen by other MIDAS clients   
 char *analyzer_name = (char *)"online-monitor"; // MWS set
@@ -145,7 +145,7 @@ INT analyzer_init()
   
   // Filepaths are too long, so moving to /tmp
   //  figdir = std::string(str) + std::string("static/");
-  figdir = std::string("/tmp");
+  figdir = std::string("/home/newg2/Applications/gm2-nmr/online/www/static/fig/");
   gROOT->SetBatch(true);
   gStyle->SetOptStat(false);
 
@@ -654,6 +654,8 @@ void archive_config_loop()
   HNDLE hDB, hkey;
   INT status;
   char str[256], filename[256];
+  double temp_double;
+  int temp_int;
   int size, run_number;
   std::string histdir;
   std::string confdir;
@@ -827,7 +829,7 @@ void archive_config_loop()
       // Now take care of the runlog file with Comments and tags.
       ptree pt_runlog;
       ptree pt_run;
-      std::string runlog_file = logdir + "runlog.json";
+      std::string runlog_file = logdir + "midas_runlog.json";
 
       try {
         read_json(runlog_file, pt_runlog);
@@ -842,7 +844,15 @@ void archive_config_loop()
 
         pt_run.put("comment", std::string(str));
       }
-  
+
+      // Get the comment from the ODB
+      db_find_key(hDB, 0, "/Experiment/Run Parameters/Comment", &hkey);
+      if (hkey) {
+        size = sizeof(str);
+        db_get_data(hDB, hkey, str, &size, TID_STRING);
+
+        pt_run.put("comment", std::string(str));
+      }
 
       // Get the comment from the ODB
       db_find_key(hDB, 0, "/Experiment/Run Parameters/Tags", &hkey);
@@ -861,7 +871,49 @@ void archive_config_loop()
     
         pt_run.put_child("tags", pt_tags);
       }
-  
+
+      // Get the start time from the ODB
+      db_find_key(hDB, 0, "/Runinfo/Start time binary", &hkey);
+      if (hkey) {
+        size = sizeof(temp_int);
+        db_get_data(hDB, hkey, &temp_int, &size, TID_INT);
+
+        pt_run.put("start_time", temp_int);
+      }
+
+      // Get the stop time from the ODB
+      db_find_key(hDB, 0, "/Runinfo/Stop time binary", &hkey);
+      if (hkey) {
+        size = sizeof(temp_int);
+        db_get_data(hDB, hkey, &temp_int, &size, TID_INT);
+
+        pt_run.put("stop_time", temp_int);
+      }
+
+      // Get the step size from the ODB
+      db_find_key(hDB, 0, "/Params/stepper-motor/step_size", &hkey);
+      if (hkey) {
+        size = sizeof(temp_double);
+        db_get_data(hDB, hkey, &temp_double, &size, TID_DOUBLE);
+
+        pt_run.put("step_size", temp_double);
+      }
+
+      // Get the laser tracker point from the ODB
+      db_find_key(hDB,
+                  0, 
+                  "/Experiment/Run Parameters/Laser Tracker Point",
+                  &hkey);
+
+      if (hkey) {
+        size = sizeof(str);
+        db_get_data(hDB, hkey, str, &size, TID_STRING);
+
+        pt_run.put("laser_point", std::string(str));
+      }
+
+      pt_run.put("laser_swap", false);
+
       sprintf(str, "run_%05d", run_number);
       pt_runlog.put_child(std::string(str), pt_run);
 

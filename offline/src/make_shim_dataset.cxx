@@ -304,18 +304,27 @@ int main(int argc, char **argv)
 
   // Load the run attributes.
   string attr_file("/home/newg2/Applications/gm2-nmr/");
-  attr_file += string("resources/log/run_attributes.json");
+  attr_file += string("resources/log/midas_runlog.json");
 
   boost::property_tree::ptree pt;
   boost::property_tree::read_json(attr_file, pt);
 
+  // Load the run attributes.
+  attr_file = string("/home/newg2/Applications/gm2-nmr/");
+  attr_file += string("resources/log/user_runlog.json");
+
+  boost::property_tree::ptree pt_user;
+  boost::property_tree::read_json(attr_file, pt_user);
+
   ss.str("");
   ss << std::setfill('0') << std::setw(5) << run_number << ".laser_point";
   laser_point = pt.get<string>(ss.str());
+  laser_point = pt_user.get<string>(ss.str(), laser_point);
 
   ss.str("");
   ss << std::setfill('0') << std::setw(5) << run_number << ".laser_swap";
   laser_swap = pt.get<bool>(ss.str());
+  laser_swap = pt_user.get<bool>(ss.str(), laser_swap);
 
   // Need to determine the number of good synchronized entries.
   uint shpf_offset = 0;

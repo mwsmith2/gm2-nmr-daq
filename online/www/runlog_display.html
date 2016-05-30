@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<script type="text/javascript" src="mhttpd.js"></script>
+
+<head>
+  <title>Run Log</title>
+</head>
+
+<body>
+  <div style="width: 100%">
+    <div style="float:left; width: 12%; border-right-style: solid; border-bottom-style: solid">
+      <h2 style="text-align: center">Select Run</h2>
+      <table>
+        <tr>
+          <td>
+            <button onclick="showTodaysRuns()" style="width: 95%; text-align: center">Daily Runs</button>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            </input>
+            <input id="run-selection" onkeydown="selectRun()" style="width: 95%; text-align: center">
+            </input>
+          </td>
+        </tr>
+      </table>
+    </div>
+    <div style="float:right; width: 86%">
+      <h2 style="float:left; text-align: center; width: 500px">Run Log</h2>
+      <div id="run-log" style="float:right; width: 100%">
+      </div>
+    </div>
+  </div>
+  
+<script>
+function cs_button(cmd, callback) {
+  var request = XMLHttpRequestGeneric();
+
+  var url = location.protocol + "//" + location.hostname;
+  url += (location.port && ":" + location.port) + "/";
+  url +='?customscript=' + encodeURIComponent(cmd);
+
+  request.open('GET', url, true); // asynchronous request
+  request.send(null);
+}
+
+var midasRunLog = {};
+var userRunLog = {};
+var runKey = '';
+var runAttr = '';
+var runs = [];
+
+$.getJSON('static/log/user_runlog.json', 'none', function(data) {userRunLog = data;});
+
+$.getJSON('static/log/midas_runlog.json', 'none', function(data) {midasRunLog = data; initView();});
+
+function selectRun() {
+  if (event.keyCode != 13) {
+    return;
+  }
+
+  runs = [parseInt(document.getElementById('run-selection').value)];
+  displayRunLog();
+}
+
+function updateRunLog() {
+  // Load the changes
+  runAttr = document.getElementById('run-log').value;
+
+  // Upload the changes to the ODB
+  ODBSet('/Custom/Data/json-buffer/value', runAttr);
+  ODBSet('/Custom/Data/json-buffer/key', runKey);
+  ODBSet('/Custom/Data/json-buffer/file', 
+         'static/log/user_runlog.json');
+
+  // Propagate the changes to the user_runlog
+  var request = XMLHttpRequestGeneric();
+  var url = location.protocol + "//" + location.hostname;
+  url += (location.port && ":" + location.port) + "/";
+  url +='?customscript=' + encodeURIComponent('Update JSON Buffer');
+
+  request.open('GET', url, true); // asynchronous request
+  request.send();
+
+  // Update the user run log.
+  userRunLog[runKey] = JSON.parse(runAttr);
+}
+
+function updateRunLogEntry(entry) {
+  // Load the changes
+  runAttr = document.getElementById(entry.id).value;
+
+  // Upload the changes to the ODB
+  ODBSet('/Custom/Data/json-buffer/value', runAttr);
+  ODBSet('/Custom/Data/json-buffer/key', runKey);
+  ODBSet('/Custom/Data/json-buffer/file', 
+         'static/log/user_runlog.json');
+
+  // Propagate the changes to the user_runlog
+  var request = XMLHttpRequestGeneric();
+  var url = location.protocol + "//" + location.hostname;
+  url += (location.port && ":" + location.port) + "/";
+  url +='?customscript=' + encodeURIComponent('Update JSON Buffer');
+
+  request.open('GET', url, true); // asynchronous request
+  request.send();
+
+  // Reload the user run log.
+  userRunLog[runKey] = JSON.parse(runAttr);
+  var runLog = document.getElementById('run-log');
+  var index = Array.prototype.indexOf.call(entry.parentNode.children, entry);
+
+  newEntry = '<pre id=' + entry.id + ' ondblclick="makeEditable(this)">';
+  newEntry += runAttr;
+  newEntry += '</pre>';
+  
+  var wrapper = document.createElement('div');
+  wrapper.innerHTML = newEntry;
+
+  runLog.replaceChild(wrapper.firstChild, entry); 
+}
+
+function initView() {
+  var runNum = parseInt(ODBGet('/Runinfo/Run number'));
+
+  if (ODBGet('/Runinfo/State') != '1') {
+    document.getElementById('run-selection').value = runNum - 1;
+  } else {
+    document.getElementById('run-selection').value = runNum;
+  }
+
+  displayRunLog();
+}
+
+function getRunsFromToday() {
+  runs = [];
+  d = new Date();
+  d.setHours(0, 0, 0, 0);
+
+  var keys = Object.keys(midasRunLog);
+  
+  for (var i = keys.length - 1; i > 0; i--) {
+    if (midasRunLog[keys[i]].start_time > d.getTime() / 1000.0) {
+      runs.push(parseInt(keys[i].replace('run_', '')));
+    } else {
+      break;
+   }
+  }
+}
+
+function displayRunLog() {
+
+  if (runs.length == 0) {
+    getRunsFromToday();
+  }
+
+  document.getElementById('run-log').innerHTML = "";
+
+  for (var i = 0; i < runs.length; i++) {
+
+    var run = runs[i];
+
+    if (run < 10) {
+
+      runKey = 'run_0000' + run;
+
+    } else if (run < 100) {
+
+      runKey = 'run_000' + run;
+
+    } else if (run < 1000) {
+
+      runKey = 'run_00' + run;
+
+    } else if (run < 10000) {
+
+      runKey = 'run_0' + run;
+
+    } else {
+
+     runKey = 'run_' + run;
+   }
+
+   runAttr = JSON.stringify(midasRunLog[runKey], null, 2);
+
+   if (userRunLog[runKey]) {
+     runAttr = JSON.stringify(userRunLog[runKey], null, 2);
+   }
+   
+   runLogEntry = '<h3>Run ' + run + '</h3>';
+   runLogEntry += '<pre id="run-' + run + '" ondblclick="makeEditable(this)">';
+   runLogEntry += runAttr;
+   runLogEntry += '</pre>';
+
+   document.getElementById('run-log').innerHTML += runLogEntry;
+  }
+}
+
+function makeEditable(entry) {
+  var runLog = document.getElementById('run-log');
+  var index = Array.prototype.indexOf.call(entry.parentNode.children, entry);
+
+  newEntry = '<textarea id=' + entry.id + ' rows="12" cols="80" onblur="updateRunLogEntry(this)">';
+  newEntry += entry.innerHTML;
+  newEntry += '</textarea>';
+  
+  var wrapper = document.createElement('div');
+  wrapper.innerHTML = newEntry;
+
+  runLog.replaceChild(wrapper.firstChild, entry); 
+  document.getElementById(entry.id).focus();
+}
+
+function showTodaysRuns() {
+  runs = [];
+  displayRunLog();
+}
+</script>
+
+</body>
