@@ -25,7 +25,7 @@ TARGETS += $(patsubst src/%.cxx,bin/%,$(wildcard src/*.cxx))
 #-----------------------------------------
 # This is for Linux
 OSFLAGS = -DOS_LINUX -DHAVE_USB -DHAVE_LIBUSB10 -Dextname
-CFLAGS = -g -fpermissive
+CFLAGS = -fpermissive -O2
 CXXFLAGS = -std=c++0x 
 LIBS = -lm -lz -lpthread -lfftw3 -lzmq -lcurl -lodbc
 
