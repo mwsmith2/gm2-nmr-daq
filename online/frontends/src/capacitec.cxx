@@ -273,7 +273,7 @@ INT read_trigger_event(char *pevent, INT off)
     float OU; //Input[11]
   } trolleyCap;
 
-  db_find_key(hDB, 0, "/Equipment/Environment/Variables/Input", &hkey);
+  db_find_key(hDB, 0, "/Equipment/MSCB Cart/Variables/Input", &hkey);
 
   if (hkey == NULL) {
     cm_msg(MERROR, "read_trigger_event", "unable to find input key");
