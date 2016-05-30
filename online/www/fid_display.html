@@ -227,9 +227,9 @@ function insertFidImages(t, ch) {
     for (var i = 0; i < ch.length; ++i) {
       var c = row.insertCell(-1);
       if (ch[i] > 9) {
-        c.innerHTML = "<img src='shim_platform_ch" + ch[i] + "_wf.gif' width=80%>";
+        c.innerHTML = "<img src='static/fig/shim_platform_ch" + ch[i] + "_wf.gif' width=80%>";
       } else if (ch[i] >= 0) {
-        c.innerHTML = "<img src='shim_platform_ch0" + ch[i] + "_wf.gif' width=80%>";
+        c.innerHTML = "<img src='static/fig/shim_platform_ch0" + ch[i] + "_wf.gif' width=80%>";
       } else {
         c.innerHTML = "";
       }
@@ -243,9 +243,9 @@ function insertFftImages(t, ch) {
     for (var i = 0; i < ch.length; ++i) {
       var c = row.insertCell(-1);
       if (ch[i] > 9) {
-        c.innerHTML = "<img src='shim_platform_ch" + ch[i] + "_fft.gif' width=80%>";
+        c.innerHTML = "<img src='static/fig/shim_platform_ch" + ch[i] + "_fft.gif' width=80%>";
       } else if (ch[i] >= 0) {
-        c.innerHTML = "<img src='shim_platform_ch0" + ch[i] + "_fft.gif' width=80%>";
+        c.innerHTML = "<img src='static/fig/shim_platform_ch0" + ch[i] + "_fft.gif' width=80%>";
       } else {
         c.innerHTML = "";
       }
