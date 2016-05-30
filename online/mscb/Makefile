@@ -23,7 +23,7 @@ OSTYPE = $(shell uname)
 
 #--------------------------------------------------------------------
 # The following lines contain specific switches for different UNIX
-# systems. Find the one which matches your OS and outcomment the 
+# systems. Find the one which matches your OS and outcomment the
 # lines below.
 
 # This is for Darwin ---------------
@@ -57,7 +57,7 @@ missroot:
 endif
 #-------------------------------------------------------------------
 # The following lines define direcories. Adjust if necessary
-#                 
+#
 INC_DIR 	= $(MIDASSYS)/include
 LIB_DIR 	= $(MIDASSYS)/$(OS_DIR)/lib
 DRV_DIR		= $(MIDASSYS)/drivers
@@ -69,11 +69,11 @@ ROOTCINT_DIR    = $(ROOTSYS)/cint/cint/include
 #-------------------------------------------------------------------
 # List of analyzer modules
 #
-MODULES   = envi.o TEnvi.o 
+MODULES   = envi.o TEnvi.o
 
 #-------------------------------------------------------------------
 # Drivers needed by the frontend program
-#                 
+#
 DRIVERS         = hv.o multi.o null.o nulldev.o mscbdev.o mscb.o multi_0.o
 
 ####################################################################
@@ -85,10 +85,10 @@ LIB = $(LIB_DIR)/libmidas.a libDataClasses.a
 # compiler
 CC = cc
 CFLAGS = -g -Wall -I$(INC_DIR) -I$(DRV_DIR) -I$(MSCB_DIR) -I$(MXML_DIR) $(ROOTCFLAGS) $(ROOTLIBS) -fPIC -fpermissive
-LDFLAGS = 
+LDFLAGS =
 AR = ar
 
-all: analyzer mscb_fe mscb_fe2
+all: analyzer mscb_cart mscb_ring
 #all: scfe mscb_fe
 
 DataLibraryDict.o: DataLibraryDict.cpp
@@ -115,6 +115,14 @@ mscb_fe2:  $(LIB) $(LIB_DIR)/mfe.o mscb_fe2.o $(DRIVERS)
 	$(CC) -o mscb_fe2 mscb_fe2.o $(LIB_DIR)/mfe.o $(DRIVERS) $(LIB) $(LDFLAGS)  $(LIBS) $(ROOTLIBS) $(ROOTFLAGS)
 	ln -fs $(shell pwd)/$@ $(LINK_DIR)/$@
 
+mscb_ring:  $(LIB) $(LIB_DIR)/mfe.o mscb_ring.o $(DRIVERS)
+	$(CC) -o mscb_ring mscb_ring.o $(LIB_DIR)/mfe.o $(DRIVERS) $(LIB) $(LDFLAGS)  $(LIBS) $(ROOTLIBS) $(ROOTFLAGS)
+	ln -fs $(shell pwd)/$@ $(LINK_DIR)/$@
+
+mscb_cart:  $(LIB) $(LIB_DIR)/mfe.o mscb_cart.o $(DRIVERS)
+	$(CC) -o mscb_cart mscb_cart.o $(LIB_DIR)/mfe.o $(DRIVERS) $(LIB) $(LDFLAGS)  $(LIBS) $(ROOTLIBS) $(ROOTFLAGS)
+	ln -fs $(shell pwd)/$@ $(LINK_DIR)/$@
+
 template_async_fe:  $(LIB) $(LIB_DIR)/mfe.o template_async_fe.o $(DRIVERS)
 	$(CC) -o template_async_fe template_async_fe.o $(LIB_DIR)/mfe.o $(DRIVERS) $(LIB) $(LIBS)
 	ln -fs $@ $(LINK_DIR)/$@
@@ -136,6 +144,12 @@ frontend.o: frontend.c
 	$(CC) $(CFLAGS) $(OSFLAGS) -c $< -o $@
 
 mscb_fe.o: mscb_fe.c
+	$(CC) $(CFLAGS) $(OSFLAGS) -c $< -o $@
+
+mscb_ring.o: mscb_ring.c
+	$(CC) $(CFLAGS) $(OSFLAGS) -c $< -o $@
+
+mscb_cart.o: mscb_cart.c
 	$(CC) $(CFLAGS) $(OSFLAGS) -c $< -o $@
 
 mscb_temperature.o: mscb_temperature.c
