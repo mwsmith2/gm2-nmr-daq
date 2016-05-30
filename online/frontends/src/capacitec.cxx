@@ -1,18 +1,18 @@
-/********************************************************************  \
+/**************************************************************************** \
 
 Name:   capacitec.cxx
 Author: Brendan Kiburg (adapted from example_sync_fe by Matthias W. Smith
                         and the work done at Fermilab by Paul Nebres)
 Email:  kiburg@fnal.gov
 
-About:  This frontend is synchorinzed to the SyncTrigger class in 
-        shim_trigger, and is responible for pulling values from the odb and 
+About:  This frontend is synchorinzed to the SyncTrigger class in
+        shim_trigger, and is responible for pulling values from the odb and
         writing them to the fast DAQ
 
-        
-\********************************************************************/
 
-//--- std includes -------------------------------------------------//
+\*****************************************************************************/
+
+//--- std includes ----------------------------------------------------------//
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,42 +25,42 @@ About:  This frontend is synchorinzed to the SyncTrigger class in
 using std::string;
 using namespace std;
 
-//--- other includes -----------------------------------------------//
+//--- other includes --------------------------------------------------------//
 #include "midas.h"
 #include "boost/property_tree/ptree.hpp"
 #include "boost/property_tree/json_parser.hpp"
 
-//--- project includes ---------------------------------------------//
+//--- project includes ------------------------------------------------------//
 #include "sync_client.hh"
 
-//--- globals ------------------------------------------------------//
+//--- globals ---------------------------------------------------------------//
 
-#define FE_NAME "capacitec"
+#define FE_NAME "Capacitec"
 
 extern "C" {
-  
+
   // The frontend name (client name) as seen by other MIDAS clients
   // fe_name , as above
-  char * frontend_name = FE_NAME;
-  
+  char *frontend_name = (char *)FE_NAME;
+
   // The frontend file name, don't change it.
   char *frontend_file_name = (char*) __FILE__;
-  
+
   // frontend_loop is called periodically if this variable is TRUE
   BOOL frontend_call_loop = FALSE;
-  
+
   // A frontend status page is displayed with this frequency in ms.
   INT display_period = 1000;
-  
+
   // maximum event size produced by this frontend
   INT max_event_size = 0x80000; // 80 kB
 
   // maximum event size for fragmented events (EQ_FRAGMENTED)
-  INT max_event_size_frag = 0x800000;  
-  
+  INT max_event_size_frag = 0x800000;
+
   // buffer size to hold events
   INT event_buffer_size = 0x800000;
-  
+
   // Function declarations
   INT frontend_init();
   INT frontend_exit();
@@ -76,26 +76,26 @@ extern "C" {
 
   // Equipment list
 
-  EQUIPMENT equipment[] = 
+  EQUIPMENT equipment[] =
     {
       {FE_NAME, //"capacitec", // equipment name
-       { 10, 0,          // event ID, trigger mask 
+       { 10, 0,          // event ID, trigger mask
          "BUF1",      // event buffer (use to be SYSTEM)
          EQ_POLLED |
-	 EQ_EB,         // equipment type 
-         0,             // not used 
-         "MIDAS",       // format 
-         TRUE,          // enabled 
-         RO_RUNNING| RO_ODB,   // read only when running 
-         100,            // poll every 100ms 
-         0,             // stop run after this event limit 
-         0,             // number of sub events 
-         0,             // don't log history 
+	 EQ_EB,         // equipment type
+         0,             // not used
+         "MIDAS",       // format
+         TRUE,          // enabled
+         RO_RUNNING| RO_ODB,   // read only when running
+         100,            // poll every 100ms
+         0,             // stop run after this event limit
+         0,             // number of sub events
+         0,             // don't log history
          "", "", "",
        },
-       read_trigger_event,      // readout routine 
+       read_trigger_event,      // readout routine
       },
-      
+
       {""}
     };
 
@@ -109,7 +109,7 @@ daq::SyncClient *listener_stepper;
 // @sync: end boilderplate
 
 //--- Frontend Init -------------------------------------------------//
-INT frontend_init() 
+INT frontend_init()
 {
   // @sync: begin boilerplate
   //DATA part
@@ -117,10 +117,10 @@ INT frontend_init()
   INT status, tmp;
   char str[256], filename[256];
   int size;
-    
+
   cm_get_experiment_database(&hDB, NULL);
   db_find_key(hDB, 0, "Params/config-dir", &hkey);
-    
+
   if (hkey) {
     size = sizeof(str);
     db_get_data(hDB, hkey, str, &size, TID_STRING);
@@ -149,13 +149,13 @@ INT frontend_init()
   int trigger_port(tmp);
 
   listener_trigger = new daq::SyncClient(std::string(frontend_name),
-                                         trigger_addr, 
+                                         trigger_addr,
                                          trigger_port);
 
   listener_stepper = new daq::SyncClient(std::string(frontend_name),
-                                         trigger_addr, 
+                                         trigger_addr,
                                          trigger_port + 30);
- 
+
  // @sync: end boilderplate
   // Note that if no address is specifed the SyncClient operates
   // on localhost automatically.
@@ -218,7 +218,7 @@ INT frontend_loop()
 //-------------------------------------------------------------------*/
 
 /********************************************************************\
-  
+
   Readout routines for different events
 
 \********************************************************************/
@@ -228,7 +228,7 @@ INT frontend_loop()
 INT poll_event(INT source, INT count, BOOL test) {
 
   static unsigned int i;
-  
+
   // fake calibration
   if (test) {
     for (i = 0; i < count; i++) {
@@ -236,19 +236,19 @@ INT poll_event(INT source, INT count, BOOL test) {
     }
     return 0;
   }
-  
+
   // @sync: begin boilerplate
   // Checking HasTrigger() has a side effect of setting the trigger to false
-  // 
+  //
 
   if (listener_trigger->HasTrigger()) {
     cout << "Received trigger\n"<<endl;
     return 1;
   } // if HasTrigger()
-  
+
   // @sync: end boilerplate
   return 0;
-  
+
 }
 
 //--- Interrupt configuration ---------------------------------------*/
@@ -275,18 +275,18 @@ INT read_trigger_event(char *pevent, INT off)
   //  int count = 0;
   char bk_name[10]; // Bank Name
   double *pdata;    // Place to store data
-  
+
   // Initialize MIDAS BANK
-  bk_init32(pevent); 
+  bk_init32(pevent);
   // Get the time as an example
   sprintf(bk_name, "CTEC");
   bk_create(pevent, bk_name, TID_DOUBLE, &pdata);
-  
+
   HNDLE hDB,hkey;
   cm_get_experiment_database(&hDB, NULL);
   static int count_cycles=0;
   bool first = 1;
-  
+
   // ---  This is the stuff we need to move over ----- //
 
   struct CAPACITEC {
@@ -299,7 +299,7 @@ INT read_trigger_event(char *pevent, INT off)
   db_find_key(hDB, 0, "/Equipment/Environment/Variables/Input", &hkey);
   if (hkey==NULL){printf("unable to find input key\n");}
   float input[12];
-  
+
   for (auto i=0; i<12;++i){ input[i]=0;}
   int size=sizeof(input);
   printf("size of input is %d\n",size);
@@ -310,8 +310,8 @@ INT read_trigger_event(char *pevent, INT off)
   trolleyCap.IU=input[9];
   trolleyCap.IL=input[10];
   trolleyCap.OU=input[11];
-   
-  *(pdata++)=trolleyCap.OL;  
+
+  *(pdata++)=trolleyCap.OL;
   *(pdata++)=trolleyCap.IU;
   *(pdata++)=trolleyCap.IL;
   *(pdata++)=trolleyCap.OU;
@@ -319,13 +319,13 @@ INT read_trigger_event(char *pevent, INT off)
   if (first)
     {
       first=false;
-      db_set_value(hDB, 0, "/Equipment/capacitec/Variables/X", 
-		   &count_cycles, sizeof(count_cycles), 1, TID_INT); 
+      db_set_value(hDB, 0, "/Equipment/capacitec/Variables/X",
+		   &count_cycles, sizeof(count_cycles), 1, TID_INT);
       count_cycles++;
     }
 
   bk_close(pevent, pdata);
-  
+
   // @sync: begin boilerplate
   // Let the steppertrigger listener know we are ready to move to the next
   printf("set listener stepper ready\n");
