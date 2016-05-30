@@ -1,13 +1,14 @@
-/********************************************************************\
+/**************************************************************************** \
 
   file:    simplest_analyzer.cxx
-  author:  Matthias W. Smith base on envi.c from Joe Grange
+  author:  Matthias W. Smith based on envi.c from Joe Grange
+  email:   mwsmith2@uw.edu
 
-  about:   Trying to debug midas analyzers using the simplest setup.
+  about:   Tries to debug midas analyzers using the simplest setup.
 
-\********************************************************************/
+\*****************************************************************************/
 
-//--- std includes -------------------------------------------------//
+//--- std includes ----------------------------------------------------------//
 #include <string>
 #include <ctime>
 #include <cstdio>
@@ -18,26 +19,24 @@ using std::string;
 using std::cout;
 using std::endl;
 
-//--- other includes -----------------------------------------------//
+//--- other includes --------------------------------------------------------//
 #include "midas.h"
 #include "experim.h"
 #include "TTree.h"
 #include "TFile.h"
 
-//--- project includes ---------------------------------------------//
+//--- global variables ------------------------------------------------------//
 
-//--- Globals ------------------------------------------------------//
+// The analyzer name (client name) as seen by other MIDAS clients
+char *analyzer_name = (char *)"Simplest Analyzer";
 
-/* The analyzer name (client name) as seen by other MIDAS clients   */
-char *analyzer_name = "Simple-Analyzer";
-
-/* analyzer_loop is called with this interval in ms (0 to disable)  */
+// analyzer_loop is called with this interval in ms (0 to disable)  
 INT analyzer_loop_period = 0;
 
-/* default ODB size */
+// default ODB size 
 INT odb_size = DEFAULT_ODB_SIZE;
 
-/*-- Module declaration --------------------------------------------*/
+//--- module declaration ----------------------------------------------------//
 
 BANK_LIST analyzer_bank_list[] = {
 
@@ -45,33 +44,30 @@ BANK_LIST analyzer_bank_list[] = {
   {""},
 };
 
-/*-- Event request list --------------------------------------------*/
+//-- event request list -----------------------------------------------------//
 INT ana_trigger_event(EVENT_HEADER *pheader, void *pevent);
 INT ana_begin_of_run(INT run_number, char *error);
 INT ana_end_of_run(INT run_number, char *error);
 
 ANALYZE_REQUEST analyze_request[] = {
-   {"simplest-frontend",   /* equipment name */
-    {1,                         /* event ID */
-     TRIGGER_ALL,               /* trigger mask */
-     GET_NONBLOCKING,           /* get events without blocking producer */
-     "BUF1",                  /* event buffer */
-     TRUE,                      /* enabled */
+  {"Simplest Analyzer",     // equipment name 
+    {1,                     // event ID 
+     TRIGGER_ALL,           // trigger mask 
+     GET_NONBLOCKING,       // get events without blocking producer 
+     "BUF1",                // event buffer 
+     TRUE,                  // enabled 
      "", "",}
     ,
-    ana_trigger_event,          /* analyzer routine */
-    NULL,                       /* module list */
-    analyzer_bank_list,    /* bank list */
-    }
-   ,
-
+    ana_trigger_event,      // analyzer routine 
+    NULL,                   // module list 
+    analyzer_bank_list,     // bank list  
+   },
    {""}
-   ,
 };
 
 
 
-/*-- init routine --------------------------------------------------*/
+//--- init routine ----------------------------------------------------------//
 
 INT analyzer_init()
 {
@@ -79,49 +75,49 @@ INT analyzer_init()
 }
 
 
-/*-----exit routine-------------*/
+//--- exit routine ----------------------------------------------------------//
 
 INT analyzer_exit(void)
 {
    return SUCCESS;
 }
 
-/*-- BOR routine ---------------------------------------------------*/
+//--- BOR routine -----------------------------------------------------------//
 
 INT ana_begin_of_run(INT run_number, char *error)
 {
    return SUCCESS;
 }
 
-/*-- EOR routine ---------------------------------------------------*/
+//--- EOR routine -----------------------------------------------------------//
 
 INT ana_end_of_run(INT run_number, char *error)
 {
    return SUCCESS;
 }
 
-/*-- Pause Run -----------------------------------------------------*/
+//--- pause run -------------------------------------------------------------//
 
 INT ana_pause_run(INT run_number, char *error)
 {
    return CM_SUCCESS;
 }
-
-/*-- Resume Run ----------------------------------------------------*/
+ 
+//--- resume run ------------------------------------------------------------//
 
 INT ana_resume_run(INT run_number, char *error)
 {
    return CM_SUCCESS;
 }
 
-/*-- Analyzer Loop -------------------------------------------------*/
+//--- analyzer loop ---------------------------------------------------------//
 
 INT analyzer_loop()
 {
    return CM_SUCCESS;
 }
 
-/*-- event routine -------------------------------------------------*/
+//--- event routine ---------------------------------------------------------//
 
 INT ana_trigger_event(EVENT_HEADER *pheader, void *pevent)
 {

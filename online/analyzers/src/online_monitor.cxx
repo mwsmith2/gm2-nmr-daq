@@ -1,5 +1,5 @@
-/*---------------------------------------------------------------------------*\
-file:   an_online_monitor.cxx
+/*--------------------------------------------------------------------------* \
+file:   online_monitor.cxx
 author: Matthias W. Smith
 email:  mwsmith2@uw.edu
 
@@ -33,7 +33,7 @@ about:  Performs FFTs and plots those as well waveforms for simple
 //--- globals ---------------------------------------------------------------//
 
 // The analyzer name (client name) as seen by other MIDAS clients   
-char *analyzer_name = (char *)"online-monitor"; // MWS set
+char *analyzer_name = (char *)"Online Monitor";
 
 // analyzer_loop is called with this interval in ms (0 to disable)  
 INT analyzer_loop_period = 500;
@@ -70,11 +70,11 @@ BANK_LIST trigger_bank_list[] = {
 //-- Event request list -----------------------------------------------------//
 
 ANALYZE_REQUEST analyze_request[] = {
-  {"online-monitor",                // equipment name 
-   {10,                         // event ID 
+  {"Online Monitor",           // equipment name 
+   {10,                        // event ID 
     TRIGGER_ALL,               // trigger mask 
     GET_NONBLOCKING,           // get some events 
-    "BUF1",                  // event buffer 
+    "BUF1",                    // event buffer 
     TRUE,                      // enabled 
     "", "",},
    analyze_trigger_event,      // analyzer routine 
@@ -108,7 +108,7 @@ void merge_data_loop();
 void plot_waveforms_loop();
 void archive_config_loop();
 
-//-- Analyzer Init ---------------------------------------------------------//
+//--- analyzer init ---------------------------------------------------------//
 
 INT analyzer_init()
 {
@@ -133,7 +133,7 @@ INT analyzer_init()
   // following code opens ODB structures to make them accessible
   // from the analyzer code as C structures 
   cm_get_experiment_database(&hDB, NULL);
-  db_find_key(hDB, 0, "/Params/html-dir", &hkey);
+  db_find_key(hDB, 0, "/Custom/Path", &hkey);
   
   if (hkey) {
     size = sizeof(str);
@@ -142,10 +142,10 @@ INT analyzer_init()
       strcat(str, DIR_SEPARATOR_STR);
     }
   }
+
   
   // Filepaths are too long, so moving to /tmp
-  //  figdir = std::string(str) + std::string("static/");
-  figdir = std::string("/home/newg2/Applications/gm2-nmr/online/www/static/fig/");
+  figdir = std::string(str) + std::string("static/fig/");
   gROOT->SetBatch(true);
   gStyle->SetOptStat(false);
 
@@ -158,7 +158,7 @@ INT analyzer_init()
     return SUCCESS;
   }
    
-  //---- user code to book histos ------------------------------------------//
+  // Sset up the ODB refs for histo images.
   for (i = 0; i < SHIM_FIXED_CH; i++) {
     char title[32], name[32], key[64], figpath[64];
 
@@ -655,7 +655,7 @@ void archive_config_loop()
   INT status;
   char str[256], filename[256];
   double temp_double;
-  int temp_int;
+  DWORD temp_int;
   int size, run_number;
   std::string histdir;
   std::string confdir;
@@ -876,7 +876,7 @@ void archive_config_loop()
       db_find_key(hDB, 0, "/Runinfo/Start time binary", &hkey);
       if (hkey) {
         size = sizeof(temp_int);
-        db_get_data(hDB, hkey, &temp_int, &size, TID_INT);
+        db_get_data(hDB, hkey, &temp_int, &size, TID_DWORD);
 
         pt_run.put("start_time", temp_int);
       }
@@ -885,7 +885,7 @@ void archive_config_loop()
       db_find_key(hDB, 0, "/Runinfo/Stop time binary", &hkey);
       if (hkey) {
         size = sizeof(temp_int);
-        db_get_data(hDB, hkey, &temp_int, &size, TID_INT);
+        db_get_data(hDB, hkey, &temp_int, &size, TID_DWORD);
 
         pt_run.put("stop_time", temp_int);
       }
