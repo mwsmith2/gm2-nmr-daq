@@ -14,6 +14,12 @@
       <table>
         <tr>
           <td>
+            <button onclick="showTodaysRuns()" style="width: 95%; text-align: center">Daily Runs</button>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            </input>
             <input id="run-selection" onkeydown="selectRun()" style="width: 95%; text-align: center">
             </input>
           </td>
@@ -21,7 +27,7 @@
       </table>
     </div>
     <div style="float:right; width: 86%">
-      <h2 style="float:left; text-align: center; width: 500px">Run Log:</h2>
+      <h2 style="float:left; text-align: center; width: 500px">Run Log</h2>
       <div id="run-log" style="float:right; width: 100%">
       </div>
     </div>
@@ -39,15 +45,15 @@ function cs_button(cmd, callback) {
   request.send(null);
 }
 
-var runlog = {};
+var midasRunLog = {};
 var userRunLog = {};
 var runKey = '';
 var runAttr = '';
 var runs = [];
 
-$.getJSON('static/log/midas_runlog.json', 'none', function(data) {runlog = data; initView();});
+$.getJSON('static/log/user_runlog.json', 'none', function(data) {userRunLog = data;});
 
-$.getJSON('static/log/user_runlog.json', 'none', function(data) {userRunLog = data; initView();});
+$.getJSON('static/log/midas_runlog.json', 'none', function(data) {midasRunLog = data; initView();});
 
 function selectRun() {
   if (event.keyCode != 13) {
@@ -77,7 +83,7 @@ function updateRunLog() {
   request.open('GET', url, true); // asynchronous request
   request.send();
 
-  // Reload the user run log.
+  // Update the user run log.
   userRunLog[runKey] = JSON.parse(runAttr);
 }
 
@@ -124,12 +130,32 @@ function initView() {
     document.getElementById('run-selection').value = runNum;
   }
 
-  runs = [parseInt(document.getElementById('run-selection').value)];
-
   displayRunLog();
 }
 
+function getRunsFromToday() {
+  runs = [];
+  d = new Date();
+  d.setHours(0, 0, 0, 0);
+
+  var keys = Object.keys(midasRunLog);
+  
+  for (var i = keys.length - 1; i > 0; i--) {
+    if (midasRunLog[keys[i]].start_time > d.getTime() / 1000.0) {
+      runs.push(parseInt(keys[i].replace('run_', '')));
+    } else {
+      break;
+   }
+  }
+}
+
 function displayRunLog() {
+
+  if (runs.length == 0) {
+    getRunsFromToday();
+  }
+
+  document.getElementById('run-log').innerHTML = "";
 
   for (var i = 0; i < runs.length; i++) {
 
@@ -156,17 +182,18 @@ function displayRunLog() {
      runKey = 'run_' + run;
    }
 
-   runAttr = JSON.stringify(runlog[runKey], null, 2);
+   runAttr = JSON.stringify(midasRunLog[runKey], null, 2);
 
    if (userRunLog[runKey]) {
      runAttr = JSON.stringify(userRunLog[runKey], null, 2);
    }
    
-   runLogEntry = '<pre id="run-' + run + '" ondblclick="makeEditable(this)">';
+   runLogEntry = '<h3>Run ' + run + '</h3>';
+   runLogEntry += '<pre id="run-' + run + '" ondblclick="makeEditable(this)">';
    runLogEntry += runAttr;
    runLogEntry += '</pre>';
 
-   document.getElementById('run-log').innerHTML = runLogEntry;
+   document.getElementById('run-log').innerHTML += runLogEntry;
   }
 }
 
@@ -185,6 +212,10 @@ function makeEditable(entry) {
   document.getElementById(entry.id).focus();
 }
 
+function showTodaysRuns() {
+  runs = [];
+  displayRunLog();
+}
 </script>
 
 </body>
