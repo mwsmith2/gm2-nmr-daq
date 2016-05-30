@@ -79,7 +79,7 @@ function selectRun() {
   } else if (selection.indexOf(',') > -1) {
     runStrings = selection.split(',');
     for (i = 0; i < runStrings.length; i++) {
-      runs.push(parseInt(runString[i]));
+      runs.push(parseInt(runStrings[i]));
     }
   } else {
     runs = [parseInt(selection)];
