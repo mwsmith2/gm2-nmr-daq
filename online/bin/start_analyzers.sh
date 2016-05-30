@@ -1,6 +1,6 @@
 #!/bin/bash
-# Load the experiment variables.
 
+# Load the experiment variables.
 source $(dirname $(readlink -f $0))/../../common/.expt-env
 
 for an in "${EXPT_AN[@]}"; do

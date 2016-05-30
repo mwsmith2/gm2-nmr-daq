@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# Script kills all analyzers running on the experiment.
 source $(dirname $(readlink -f $0))/../../common/.expt-env
 
 for an in "${EXPT_AN[@]}"; do
