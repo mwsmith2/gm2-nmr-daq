@@ -47,7 +47,7 @@ CXX = g++
 all: $(TARGETS)
 
 bin/%: src/%.cxx $(LIB_DIR)/mfe.o 
-	$(CXX) -o $@ $+ $(CXXFLAGS) $(CFLAGS) $(OSFLAGS)
+	$(CXX) -o $@ $+ $(CXXFLAGS) $(CFLAGS) $(OSFLAGS) \
 	$(LIB) $(LIBS) $(ROOTFLAGS) $(ROOTLIBS)
 	ln -fs $(shell pwd)/$@ $(LINK_DIR)/$@
 
