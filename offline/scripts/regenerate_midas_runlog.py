@@ -38,6 +38,8 @@ def main():
         
         for f in run_files:
 
+            got_step_size = False
+
             for line in open(f):
 
                 if 'xml' in f:
@@ -60,7 +62,9 @@ def main():
 
                     if '"step_size" type="DOUBLE"' in line:
                         step_size = float(line.split('>')[1].split('<')[0])
-                        run_attr[key]['step_size'] = step_size
+                        if not got_step_size:
+                            run_attr[key]['step_size'] = step_size
+                            got_step_size = True
                             
                     if '"Laser Tracker Point" type="STRING"' in line:
 
@@ -78,8 +82,8 @@ def main():
                         comment = line.split(': [80] ')[1].rstrip()
                         run_attr[key]['comment'] = comment
 
-                    if 'Tags = STRING' in line:
-                        tags = line.split(':')[1].rstrip()
+                    if 'Tags = STRING : [128] ' in line:
+                        tags = line.split(': [128] ')[1].rstrip()
                         run_attr[key]['tags'] = tags.split(',')
 
                     if 'Start time binary = DWORD' in line:
@@ -92,7 +96,9 @@ def main():
 
                     if 'step_size = DOUBLE' in line:
                         step_size = float(line.split(':')[1])
-                        run_attr[key]['step_size'] = step_size
+                        if not got_step_size:
+                            run_attr[key]['step_size'] = step_size
+                            got_step_size = True
                             
                     if 'Laser Tracker Point = STRING' in line:
 

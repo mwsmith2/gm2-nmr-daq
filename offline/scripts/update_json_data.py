@@ -21,7 +21,7 @@ def main():
 
     if os.path.exists(fname):
         json_data = json.loads(open(fname).read(),
-                               object_pairs_hook=OrderedDict))
+                               object_pairs_hook=OrderedDict)
                                
 
     else:
