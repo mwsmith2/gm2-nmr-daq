@@ -74,8 +74,8 @@ def main():
 
                 else:
 
-                    if 'Comment = STRING : [80]' in line:
-                        comment = line.split(':')[1].rstrip()
+                    if 'Comment = STRING : [80] ' in line:
+                        comment = line.split(': [80] ')[1].rstrip()
                         run_attr[key]['comment'] = comment
 
                     if 'Tags = STRING' in line:

@@ -19,6 +19,11 @@
         </tr>
         <tr>
           <td>
+            <button onclick="reverseRunOrder()" style="width: 95%; text-align: center">Reverse Order</button>
+          </td>
+        </tr>
+        <tr>
+          <td>
             </input>
             <input id="run-selection" onkeydown="selectRun()" style="width: 95%; text-align: center">
             </input>
@@ -50,6 +55,7 @@ var userRunLog = {};
 var runKey = '';
 var runAttr = '';
 var runs = [];
+var forwardSort = true;
 
 $.getJSON('static/log/user_runlog.json', 'none', function(data) {userRunLog = data;});
 
@@ -60,7 +66,24 @@ function selectRun() {
     return;
   }
 
-  runs = [parseInt(document.getElementById('run-selection').value)];
+  var selection = document.getElementById('run-selection').value;
+  runs = [];
+
+  if (selection.indexOf(':') > -1) {
+    var start = parseInt(selection.split(':')[0]);
+    var stop = parseInt(selection.split(':')[1]);
+    for (var i = start; i <= stop; i++) {
+      runs.push(i);
+    }
+
+  } else if (selection.indexOf(',') > -1) {
+    runStrings = selection.split(',');
+    for (i = 0; i < runStrings.length; i++) {
+      runs.push(parseInt(runStrings[i]));
+    }
+  } else {
+    runs = [parseInt(selection)];
+  }
   displayRunLog();
 }
 
@@ -130,6 +153,7 @@ function initView() {
     document.getElementById('run-selection').value = runNum;
   }
 
+  getRunsFromToday();
   displayRunLog();
 }
 
@@ -149,13 +173,25 @@ function getRunsFromToday() {
   }
 }
 
+function reverseRunOrder() {
+  forwardSort = !forwardSort;
+  displayRunLog();
+}
+
 function displayRunLog() {
 
   if (runs.length == 0) {
-    getRunsFromToday();
+    document.getElementById('run-log').innerHTML = "<h2>No runs found</h2>";
+    return;
   }
 
   document.getElementById('run-log').innerHTML = "";
+
+  if (forwardSort == true) {
+      runs.sort()
+  } else {
+      runs.reverse();
+  }
 
   for (var i = 0; i < runs.length; i++) {
 
@@ -213,7 +249,7 @@ function makeEditable(entry) {
 }
 
 function showTodaysRuns() {
-  runs = [];
+  getRunsFromToday();
   displayRunLog();
 }
 </script>
