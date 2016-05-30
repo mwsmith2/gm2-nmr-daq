@@ -28,10 +28,6 @@ INC_DIR = $(MIDASSYS)/include
 LIB_DIR = $(MIDASSYS)/linux/lib
 LINK_DIR = ../../common/
 
-# wxWidgets libs and flags
-WXLIBS  = $(shell wx-config --libs)
-WXFLAGS = $(shell wx-config --cxxflags)
-
 # Libraries && include flags
 LIB = -L$(LIB_DIR) -L$(NMR_DIR)/lib -L/usr/lib64/mysql
 LIB += -lmidas-shared -lmysqlclient -lsqlite3 -lCAENDigitizer -lusb-1.0
@@ -51,8 +47,8 @@ CXX = g++
 all: $(TARGETS)
 
 bin/%: src/%.cxx $(LIB_DIR)/mfe.o 
-	$(CXX) -o $@ $+ $(CXXFLAGS) $(CFLAGS) $(OSFLAGS) $(WXFLAGS) \
-	$(LIB) $(LIBS) $(ROOTFLAGS) $(ROOTLIBS) $(WXLIBS)
+	$(CXX) -o $@ $+ $(CXXFLAGS) $(CFLAGS) $(OSFLAGS)
+	$(LIB) $(LIBS) $(ROOTFLAGS) $(ROOTLIBS)
 	ln -fs $(shell pwd)/$@ $(LINK_DIR)/$@
 
 clean:
