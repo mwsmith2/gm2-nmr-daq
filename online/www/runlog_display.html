@@ -4,7 +4,7 @@
 <script type="text/javascript" src="mhttpd.js"></script>
 
 <head>
-  <title>Run Log Display</title>
+  <title>Run Log</title>
 </head>
 
 <body>
@@ -14,16 +14,16 @@
       <table>
         <tr>
           <td>
-            <input id="run-selection" onkeydown="showRun()" style="width: 95%; text-align: center">
+            <input id="run-selection" onkeydown="selectRun()" style="width: 95%; text-align: center">
             </input>
           </td>
         </tr>
       </table>
     </div>
-    <div style="float:right; width: 84%">
-      <h2 style="text-align: center">Run Log Entry:</h2>
-      <textarea id='run-attributes' rows="10" cols="80" onchange="updateRunlog()">
-      </textarea>
+    <div style="float:right; width: 86%">
+      <h2 style="float:left; text-align: center; width: 500px">Run Log:</h2>
+      <div id="run-log" style="float:right; width: 100%">
+      </div>
     </div>
   </div>
   
@@ -40,54 +40,27 @@ function cs_button(cmd, callback) {
 }
 
 var runlog = {};
-var userRunlog = {};
+var userRunLog = {};
 var runKey = '';
 var runAttr = '';
+var runs = [];
 
 $.getJSON('static/log/midas_runlog.json', 'none', function(data) {runlog = data; initView();});
 
-$.getJSON('static/log/user_runlog.json', 'none', function(data) {userRunlog = data; initView();});
-  
-function showRun() {
+$.getJSON('static/log/user_runlog.json', 'none', function(data) {userRunLog = data; initView();});
+
+function selectRun() {
   if (event.keyCode != 13) {
     return;
   }
 
-  var run = parseInt(document.getElementById('run-selection').value);
-
-  if (run < 10) {
-
-    runKey = 'run_0000' + run;
-
-  } else if (run < 100) {
-
-    runKey = 'run_000' + run;
-
-  } else if (run < 1000) {
-
-    runKey = 'run_00' + run;
-
-  } else if (run < 10000) {
-
-    runKey = 'run_0' + run;
-
-  } else {
-
-   runKey = 'run_' + run;
- }
-
-  runAttr = JSON.stringify(runlog[runKey], null, 2);
-
-  if (userRunlog[runKey]) {
-    runAttr = JSON.stringify(userRunlog[runKey], null, 2);
-  }
-
-  document.getElementById('run-attributes').value = runAttr;
+  runs = [parseInt(document.getElementById('run-selection').value)];
+  displayRunLog();
 }
 
-function updateRunlog() {
+function updateRunLog() {
   // Load the changes
-  runAttr = document.getElementById('run-attributes').value;
+  runAttr = document.getElementById('run-log').value;
 
   // Upload the changes to the ODB
   ODBSet('/Custom/Data/json-buffer/value', runAttr);
@@ -105,48 +78,113 @@ function updateRunlog() {
   request.send();
 
   // Reload the user run log.
-  userRunlog[runKey] = JSON.parse(runAttr);
+  userRunLog[runKey] = JSON.parse(runAttr);
+}
+
+function updateRunLogEntry(entry) {
+  // Load the changes
+  runAttr = document.getElementById(entry.id).value;
+
+  // Upload the changes to the ODB
+  ODBSet('/Custom/Data/json-buffer/value', runAttr);
+  ODBSet('/Custom/Data/json-buffer/key', runKey);
+  ODBSet('/Custom/Data/json-buffer/file', 
+         'static/log/user_runlog.json');
+
+  // Propagate the changes to the user_runlog
+  var request = XMLHttpRequestGeneric();
+  var url = location.protocol + "//" + location.hostname;
+  url += (location.port && ":" + location.port) + "/";
+  url +='?customscript=' + encodeURIComponent('Update JSON Buffer');
+
+  request.open('GET', url, true); // asynchronous request
+  request.send();
+
+  // Reload the user run log.
+  userRunLog[runKey] = JSON.parse(runAttr);
+  var runLog = document.getElementById('run-log');
+  var index = Array.prototype.indexOf.call(entry.parentNode.children, entry);
+
+  newEntry = '<pre id=' + entry.id + ' ondblclick="makeEditable(this)">';
+  newEntry += runAttr;
+  newEntry += '</pre>';
+  
+  var wrapper = document.createElement('div');
+  wrapper.innerHTML = newEntry;
+
+  runLog.replaceChild(wrapper.firstChild, entry); 
 }
 
 function initView() {
-var runNum = parseInt(ODBGet('/Runinfo/Run number'));
+  var runNum = parseInt(ODBGet('/Runinfo/Run number'));
 
-if (ODBGet('/Runinfo/State') != '1') {
-  document.getElementById('run-selection').value = runNum - 1;
-} else {
-  document.getElementById('run-selection').value = runNum;
+  if (ODBGet('/Runinfo/State') != '1') {
+    document.getElementById('run-selection').value = runNum - 1;
+  } else {
+    document.getElementById('run-selection').value = runNum;
+  }
+
+  runs = [parseInt(document.getElementById('run-selection').value)];
+
+  displayRunLog();
 }
 
-var run = parseInt(document.getElementById('run-selection').value);
+function displayRunLog() {
 
-if (run < 10) {
+  for (var i = 0; i < runs.length; i++) {
 
-  runKey = 'run_0000' + run;
+    var run = runs[i];
 
-} else if (run < 100) {
+    if (run < 10) {
 
-  runKey = 'run_000' + run;
+      runKey = 'run_0000' + run;
 
-} else if (run < 1000) {
+    } else if (run < 100) {
 
-  runKey = 'run_00' + run;
+      runKey = 'run_000' + run;
 
-} else if (run < 10000) {
+    } else if (run < 1000) {
 
-  runKey = 'run_0' + run;
+      runKey = 'run_00' + run;
 
-} else {
+    } else if (run < 10000) {
 
- runKey = 'run_' + run;
+      runKey = 'run_0' + run;
+
+    } else {
+
+     runKey = 'run_' + run;
+   }
+
+   runAttr = JSON.stringify(runlog[runKey], null, 2);
+
+   if (userRunLog[runKey]) {
+     runAttr = JSON.stringify(userRunLog[runKey], null, 2);
+   }
+   
+   runLogEntry = '<pre id="run-' + run + '" ondblclick="makeEditable(this)">';
+   runLogEntry += runAttr;
+   runLogEntry += '</pre>';
+
+   document.getElementById('run-log').innerHTML = runLogEntry;
+  }
 }
 
-runAttr = JSON.stringify(runlog[runKey], null, 2);
+function makeEditable(entry) {
+  var runLog = document.getElementById('run-log');
+  var index = Array.prototype.indexOf.call(entry.parentNode.children, entry);
 
-if (userRunlog[runKey]) {
-  runAttr = JSON.stringify(userRunlog[runKey], null, 2);
+  newEntry = '<textarea id=' + entry.id + ' rows="12" cols="80" onblur="updateRunLogEntry(this)">';
+  newEntry += entry.innerHTML;
+  newEntry += '</textarea>';
+  
+  var wrapper = document.createElement('div');
+  wrapper.innerHTML = newEntry;
+
+  runLog.replaceChild(wrapper.firstChild, entry); 
+  document.getElementById(entry.id).focus();
 }
 
-document.getElementById('run-attributes').value = runAttr;
-}
 </script>
+
 </body>
