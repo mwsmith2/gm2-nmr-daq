@@ -34,13 +34,11 @@ using namespace std;
 #include "sync_client.hh"
 
 //--- globals ---------------------------------------------------------------//
-
 #define FE_NAME "Capacitec"
 
 extern "C" {
 
   // The frontend name (client name) as seen by other MIDAS clients
-  // fe_name , as above
   char *frontend_name = (char *)FE_NAME;
 
   // The frontend file name, don't change it.
@@ -101,18 +99,13 @@ extern "C" {
 
 } //extern C
 
-RUNINFO runinfo;
-
-// @sync: begin boilerplate
 daq::SyncClient *listener_trigger;
 daq::SyncClient *listener_stepper;
-// @sync: end boilderplate
 
-//--- Frontend Init -------------------------------------------------//
+//--- Frontend Init -------------------------------------------------------//
 INT frontend_init()
 {
-  // @sync: begin boilerplate
-  //DATA part
+  // DATA part
   HNDLE hDB, hkey;
   INT status, tmp;
   char str[256], filename[256];
@@ -156,66 +149,58 @@ INT frontend_init()
                                          trigger_addr,
                                          trigger_port + 30);
 
- // @sync: end boilderplate
-  // Note that if no address is specifed the SyncClient operates
-  // on localhost automatically.
+  cm_msg(MDEBUG, "init_frontend", "success");
 
   return SUCCESS;
 }
 
-//--- Frontend Exit ------------------------------------------------//
+//--- Frontend Exit ------------------------------------------------------//
 INT frontend_exit()
 {
-  // @sync: begin boilerplate
   delete listener_trigger;
   delete listener_stepper;
 
-  // @sync: end boilerplate
-
   return SUCCESS;
 }
 
-//--- Begin of Run --------------------------------------------------*/
+//--- Begin of Run --------------------------------------------------//
 INT begin_of_run(INT run_number, char *error)
 {
-  // @sync: begin boilerplate
   listener_trigger->SetReady();
-  listener_stepper->UnsetReady(); // don't move until we say so
-  // @sync: end boilerplate
+  listener_stepper->UnsetReady();
 
   return SUCCESS;
 }
 
-//--- End of Run ----------------------------------------------------*/
+//--- End of Run ----------------------------------------------------//
 INT end_of_run(INT run_number, char *error)
 {
   listener_trigger->UnsetReady();
   listener_stepper->UnsetReady();
+
   return SUCCESS;
 }
 
-//--- Pause Run -----------------------------------------------------*/
+//--- Pause Run -----------------------------------------------------//
 INT pause_run(INT run_number, char *error)
 {
   return SUCCESS;
 }
 
-//--- Resuem Run ----------------------------------------------------*/
+//--- Resuem Run ----------------------------------------------------//
 INT resume_run(INT run_number, char *error)
 {
   return SUCCESS;
 }
 
-//--- Frontend Loop -------------------------------------------------*/
+//--- Frontend Loop -------------------------------------------------//
 
 INT frontend_loop()
 {
-  // If frontend_call_loop is true, this routine gets called when
-  // the frontend is idle or once between every event
   return SUCCESS;
 }
 
-//-------------------------------------------------------------------*/
+//-------------------------------------------------------------------//
 
 /********************************************************************\
 
@@ -223,7 +208,7 @@ INT frontend_loop()
 
 \********************************************************************/
 
-//--- Trigger event routines ----------------------------------------*/
+//--- Trigger event routines ----------------------------------------//
 
 INT poll_event(INT source, INT count, BOOL test) {
 
@@ -237,22 +222,16 @@ INT poll_event(INT source, INT count, BOOL test) {
     return 0;
   }
 
-  // @sync: begin boilerplate
   // Checking HasTrigger() has a side effect of setting the trigger to false
-  //
-
   if (listener_trigger->HasTrigger()) {
-    cout << "Received trigger\n"<<endl;
+    cm_msg(MDEBUG, "poll_event", "Received trigger");
     return 1;
-  } // if HasTrigger()
+  }
 
-  // @sync: end boilerplate
   return 0;
-
 }
 
-//--- Interrupt configuration ---------------------------------------*/
-
+//--- Interrupt configuration -----------------------------------------------//
 INT interrupt_configure(INT cmd, INT source, PTYPE adr)
 {
   switch (cmd) {
@@ -268,27 +247,25 @@ INT interrupt_configure(INT cmd, INT source, PTYPE adr)
   return SUCCESS;
 }
 
-//--- Event readout -------------------------------------------------*/
-
+//--- Event readout ---------------------------------------------------------//
 INT read_trigger_event(char *pevent, INT off)
 {
-  //  int count = 0;
+  HNDLE hDB, hkey;
   char bk_name[10]; // Bank Name
   double *pdata;    // Place to store data
+  float input[12];
+  bool first = 1;
+  static int count_cycles = 0;
+
+  cm_get_experiment_database(&hDB, NULL);
 
   // Initialize MIDAS BANK
   bk_init32(pevent);
-  // Get the time as an example
+
   sprintf(bk_name, "CTEC");
-  bk_create(pevent, bk_name, TID_DOUBLE, &pdata);
+  bk_create(pevent, bk_name, TID_DOUBLE, (void **)&pdata);
 
-  HNDLE hDB,hkey;
-  cm_get_experiment_database(&hDB, NULL);
-  static int count_cycles=0;
-  bool first = 1;
-
-  // ---  This is the stuff we need to move over ----- //
-
+  // This is the stuff we need to move over.
   struct CAPACITEC {
     float OL; //Input[8]
     float IU; //Input[9]
@@ -297,43 +274,45 @@ INT read_trigger_event(char *pevent, INT off)
   } trolleyCap;
 
   db_find_key(hDB, 0, "/Equipment/Environment/Variables/Input", &hkey);
-  if (hkey==NULL){printf("unable to find input key\n");}
-  float input[12];
 
-  for (auto i=0; i<12;++i){ input[i]=0;}
-  int size=sizeof(input);
-  printf("size of input is %d\n",size);
+  if (hkey == NULL) {
+    cm_msg(MERROR, "read_trigger_event", "unable to find input key");
+  }
 
-  db_get_data(hDB,hkey,&input,&size,TID_FLOAT);
+  for (uint i = 0; i < 12; ++i) {
+    input[i] = 0;
+  }
 
-  trolleyCap.OL=input[8];
-  trolleyCap.IU=input[9];
-  trolleyCap.IL=input[10];
-  trolleyCap.OU=input[11];
+  int size = sizeof(input);
 
-  *(pdata++)=trolleyCap.OL;
-  *(pdata++)=trolleyCap.IU;
-  *(pdata++)=trolleyCap.IL;
-  *(pdata++)=trolleyCap.OU;
+  db_get_data(hDB, hkey, &input, &size, TID_FLOAT);
 
-  if (first)
-    {
-      first=false;
-      db_set_value(hDB, 0, "/Equipment/capacitec/Variables/X",
-		   &count_cycles, sizeof(count_cycles), 1, TID_INT);
-      count_cycles++;
-    }
+  trolleyCap.OL = input[8];
+  trolleyCap.IU = input[9];
+  trolleyCap.IL = input[10];
+  trolleyCap.OU = input[11];
+
+  *(pdata++) = trolleyCap.OL;
+  *(pdata++) = trolleyCap.IU;
+  *(pdata++) = trolleyCap.IL;
+  *(pdata++) = trolleyCap.OU;
+
+  if (first) {
+    char str[128];
+    int size;
+
+    sprintf(str, "/Equipment/%s/Variables/X", frontend_name);
+    size = sizeof(count_cycles);
+    db_set_value(hDB, 0, str, &count_cycles, size, 1, TID_INT);
+
+    first = false;
+    count_cycles++;
+  }
 
   bk_close(pevent, pdata);
 
-  // @sync: begin boilerplate
-  // Let the steppertrigger listener know we are ready to move to the next
-  printf("set listener stepper ready\n");
-
-
   listener_stepper->SetReady();
   listener_trigger->SetReady();
-  // @sync: end boilerplate
 
   return bk_size(pevent);
 }

@@ -28,6 +28,7 @@ using namespace std;
 
 //--- global variables ------------------------------------------------------//
 #define FRONTEND_NAME "Tilt Sensor"
+#define BANK_NAME "TILT"
 
 extern "C" {
 

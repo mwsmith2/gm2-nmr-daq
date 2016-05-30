@@ -1,4 +1,4 @@
-/********************************************************************\
+/*****************************************************************************\
 
 Name:   shim_trigger.cxx
 Author: Matthias W. Smith
@@ -6,10 +6,10 @@ Email:  mwsmith2@uw.edu
 
 About:  Implements a frontend that issues synchronized triggers
         to other frontends.
-        
-\********************************************************************/
 
-//--- std includes -------------------------------------------------//
+\*****************************************************************************/
+
+//--- std includes ----------------------------------------------------------//
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,40 +26,43 @@ using std::string;
 using std::cout;
 using std::endl;
 
-//--- other includes -----------------------------------------------//
+//--- other includes --------------------------------------------------------//
 #include "midas.h"
 #include "TFile.h"
 #include "TTree.h"
 
-//--- project includes ---------------------------------------------//
+//--- project includes ------------------------------------------------------//
 #include "common.hh"
 #include "sync_trigger.hh"
 
-//--- globals ------------------------------------------------------//
+//--- global variables ------------------------------------------------------//
+#define FRONTEND_NAME "Sync Trigger"
+#define BANK_NAME "SHTR"
 
 extern "C" {
-  
+
   // The frontend name (client name) as seen by other MIDAS clients
-  char *frontend_name = (char*) "fast-sync-trigger";
+  char *frontend_name = (char *)FRONTEND_NAME;
+  char *bank_name = (char *)BANK_NAME;
 
   // The frontend file name, don't change it.
-  char *frontend_file_name = (char*) __FILE__;
-  
+  char *frontend_file_name = (char*)__FILE__;
+
   // frontend_loop is called periodically if this variable is TRUE
   BOOL frontend_call_loop = FALSE;
-  
+
   // A frontend status page is displayed with this frequency in ms.
   INT display_period = 1000;
-  
+
   // maximum event size produced by this frontend
-  INT max_event_size = 0x80000; // 80 kB
+  INT max_event_size = 0x100;
 
   // maximum event size for fragmented events (EQ_FRAGMENTED)
-  INT max_event_size_frag = 0x80000; 
-  
+  INT max_event_size_frag = 0x100;
+
   // buffer size to hold events
-  INT event_buffer_size = 0x800000; // 
-  
+  INT event_buffer_size = 0x800;
+
   // Function declarations
   INT frontend_init();
   INT frontend_exit();
@@ -74,57 +77,52 @@ extern "C" {
   INT interrupt_configure(INT cmd, INT source, PTYPE adr);
 
   // Equipment list
-
-  EQUIPMENT equipment[] = 
+  EQUIPMENT equipment[] =
     {
-      {"fast-sync-trigger", // equipment name 
-       { 10, 0,         // event ID, trigger mask 
-         "BUF1",        // event buffer 
-         EQ_POLLED,     // equipment type 
-         0,             // not used 
-         "MIDAS",       // format 
-         TRUE,          // enabled 
-         RO_RUNNING |   // read only when running 
-         RO_ODB,        // and update ODB 
-         10,            // poll for 10ms 
-         0,             // stop run after this event limit 
-         0,             // number of sub events 
-         0,             // don't log history 
+      {FRONTEND_NAME,   // equipment name
+       { 10, 0,         // event ID, trigger mask
+         "BUF1",        // event buffer
+         EQ_POLLED,     // equipment type
+         0,             // not used
+         "MIDAS",       // format
+         TRUE,          // enabled
+         RO_RUNNING |   // read only when running
+         RO_ODB,        // and update ODB
+         10,            // poll for 10ms
+         0,             // stop run after this event limit
+         0,             // number of sub events
+         0,             // don't log history
          "", "", "",
        },
-       read_trigger_event,      // readout routine 
+       read_trigger_event,      // readout routine
       },
-      
+
       {""}
     };
 
 } //extern C
 
-RUNINFO runinfo;
-
-// Anonymous namespace for my "globals"
+// Anonymous namespace for my "global" variables.
 namespace {
-const char *const mbank_name = (char *)"SHTR";
 unsigned long long num_events;
 
-// This is the trigger for the Measurements
-
+// This is the trigger for the Measurements.
 daq::SyncTrigger *readout_trigger;
-  //Brendan Adding another SyncTrigger in order to coordinate the stepper trigger separately
-  // Note -- Everywhere below we repeat everything that happens to "trigger" for "stepper_trigger", except we bind it to a different port (trigger's port +1)
+
+// This is the trigger for the stepper motor movement.
 daq::SyncTrigger *stepper_trigger;
 
 }
 
-//--- Frontend Init -------------------------------------------------//
-INT frontend_init() 
+//--- Frontend Init ---------------------------------------------------------//
+INT frontend_init()
 {
   //DATA part
   HNDLE hDB, hkey;
   INT status, tmp;
   char str[256], filename[256];
   int size;
-  
+
   // Get the config directory and file.
   cm_get_experiment_database(&hDB, NULL);
   db_find_key(hDB, 0, "Params/sync-trigger-address", &hkey);
@@ -154,7 +152,7 @@ INT frontend_init()
   return SUCCESS;
 }
 
-//--- Frontend Exit ------------------------------------------------//
+//--- Frontend Exit ---------------------------------------------------------//
 INT frontend_exit()
 {
   delete readout_trigger;
@@ -162,7 +160,7 @@ INT frontend_exit()
   return SUCCESS;
 }
 
-//--- Begin of Run --------------------------------------------------*/
+//--- Begin of Run ---------------------------------------------------------//
 INT begin_of_run(INT run_number, char *error)
 {
   num_events = 0;
@@ -174,7 +172,7 @@ INT begin_of_run(INT run_number, char *error)
   return SUCCESS;
 }
 
-//--- End of Run ----------------------------------------------------*/
+//--- End of Run -----------------------------------------------------------//
 INT end_of_run(INT run_number, char *error)
 {
   readout_trigger->FixNumClients(false);
@@ -184,7 +182,7 @@ INT end_of_run(INT run_number, char *error)
   return SUCCESS;
 }
 
-//--- Pause Run -----------------------------------------------------*/
+//--- Pause Run ------------------------------------------------------------//
 INT pause_run(INT run_number, char *error)
 {
   readout_trigger->StopTriggers();
@@ -192,7 +190,7 @@ INT pause_run(INT run_number, char *error)
   return SUCCESS;
 }
 
-//--- Resuem Run ----------------------------------------------------*/
+//--- Resuem Run -----------------------------------------------------------//
 INT resume_run(INT run_number, char *error)
 {
 
@@ -201,24 +199,17 @@ INT resume_run(INT run_number, char *error)
   return SUCCESS;
 }
 
-//--- Frontend Loop -------------------------------------------------*/
+//--- Frontend Loop --------------------------------------------------------//
 
 INT frontend_loop()
 {
-  // If frontend_call_loop is true, this routine gets called when
-  // the frontend is idle or once between every event
   return SUCCESS;
 }
 
-//-------------------------------------------------------------------*/
+//--------------------------------------------------------------------------//
 
-/********************************************************************\
-  
-  Readout routines for different events
 
-\********************************************************************/
-
-//--- Trigger event routines ----------------------------------------*/
+//--- Trigger event routines -----------------------------------------------//
 
 INT poll_event(INT source, INT count, BOOL test) {
   unsigned int i;
@@ -231,7 +222,7 @@ INT poll_event(INT source, INT count, BOOL test) {
     }
     return 0;
   }
-  
+
   if (poll_number++ % 100 == 0) {
 
     return 1;
@@ -242,7 +233,7 @@ INT poll_event(INT source, INT count, BOOL test) {
   }
 }
 
-//--- Interrupt configuration ---------------------------------------*/
+//--- Interrupt configuration ----------------------------------------------//
 
 INT interrupt_configure(INT cmd, INT source, PTYPE adr)
 {
@@ -259,7 +250,7 @@ INT interrupt_configure(INT cmd, INT source, PTYPE adr)
   return SUCCESS;
 }
 
-//--- Event readout -------------------------------------------------*/
+//--- Event readout --------------------------------------------------------//
 
 INT read_trigger_event(char *pevent, INT off)
 {
@@ -270,8 +261,8 @@ INT read_trigger_event(char *pevent, INT off)
   // And MIDAS output.
   bk_init32(pevent);
 
-  // Copy the shimming trolley data.
-  bk_create(pevent, mbank_name, TID_DWORD, &pdata);
+  // Send a small event to keep the Logger happy.
+  bk_create(pevent, bank_name, TID_DWORD, &pdata);
 
   *pdata = num_events++;
   pdata += sizeof(num_events) / sizeof(DWORD);

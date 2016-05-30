@@ -1,16 +1,16 @@
-/******************************************************************** \
+/*****************************************************************************\
 
 Name:   shim_platform.cxx
 Author: Matthias W. Smith
 Email:  mwsmith2@uw.edu
 
-About:  Implements a MIDAS frontend that is aware of the 
-        multiplexers.  It configures them, takes data in a 
+About:  Implements a MIDAS frontend that is aware of the
+        multiplexers.  It configures them, takes data in a
         sequence, and builds an event from all the data.
-        
-\********************************************************************/
 
-//--- std includes -------------------------------------------------//
+\*****************************************************************************/
+
+//--- std includes ----------------------------------------------------------//
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,44 +24,45 @@ About:  Implements a MIDAS frontend that is aware of the
 #include <ctime>
 using std::string;
 
-//--- other includes -----------------------------------------------//
+//--- other includes --------------------------------------------------------//
 #include "midas.h"
 #include "TFile.h"
 #include "TTree.h"
 #include <curl/curl.h>
 
-//--- project includes ---------------------------------------------//
+//--- project includes ------------------------------------------------------//
 #include "event_manager_trg_seq.hh"
 #include "sync_client.hh"
 #include "dio_stepper_motor.hh"
 #include "ino_stepper_motor.hh"
 #include "common.hh"
 
-//--- globals ------------------------------------------------------//
+//--- globals ---------------------------------------------------------------//
+#define FRONTEND_NAME "Shim Platform"
 
 extern "C" {
-  
+
   // The frontend name (client name) as seen by other MIDAS clients
-  char *frontend_name = (char*) "shim-platform";
+  char *frontend_name = (char *)FRONTEND_NAME;
 
   // The frontend file name, don't change it.
-  char *frontend_file_name = (char*) __FILE__;
-  
+  char *frontend_file_name = (char *) __FILE__;
+
   // frontend_loop is called periodically if this variable is TRUE
   BOOL frontend_call_loop = FALSE;
-  
+
   // A frontend status page is displayed with this frequency in ms.
   INT display_period = 1000;
-  
+
   // maximum event size produced by this frontend
   INT max_event_size = 0x100000; // 1 MB
 
   // maximum event size for fragmented events (EQ_FRAGMENTED)
-  INT max_event_size_frag = 0x800000;  
-  
+  INT max_event_size_frag = 0x800000;
+
   // buffer size to hold events
   INT event_buffer_size = 0x800000;
-  
+
   // Function declarations
   INT frontend_init();
   INT frontend_exit();
@@ -78,44 +79,25 @@ extern "C" {
 
   // Equipment list
 
-  EQUIPMENT equipment[] = 
+  EQUIPMENT equipment[] =
     {
-      {"shim-platform", // equipment name 
-       { 10, 0,          // event ID, trigger mask 
-         "BUF1",      // event buffer (use to be SYSTEM)
+      {FRONTEND_NAME,  // equipment name
+       { 10, 0,        // event ID, trigger mask
+         "BUF1",       // event buffer (use to be SYSTEM)
          EQ_POLLED |
-         EQ_EB,         // equipment type 
-         0,             // not used 
-         "MIDAS",       // format 
-         TRUE,          // enabled 
-         RO_RUNNING,    // read only when running 
-         10,            // poll for 10ms 
-         0,             // stop run after this event limit 
-         0,             // number of sub events 
-         0,             // don't log history 
+         EQ_EB,         // equipment type
+         0,             // not used
+         "MIDAS",       // format
+         TRUE,          // enabled
+         RO_RUNNING,    // read only when running
+         10,            // poll for 10ms
+         0,             // stop run after this event limit
+         0,             // number of sub events
+         0,             // don't log history
          "", "", "",
        },
-       read_platform_event,      // readout routine 
+       read_platform_event,      // readout routine
       },
-
-      // {"shim-fixed", // equipment name 
-      //  { 11, 0,          // event ID, trigger mask 
-      //    "SYSTEM",      // event buffer (use to be SYSTEM)
-      //    EQ_POLLED |
-      //    EQ_EB,         // equipment type 
-      //    0,             // not used 
-      //    "MIDAS",       // format 
-      //    TRUE,          // enabled 
-      //    RO_RUNNING |   // read only when running 
-      //    RO_ODB,        // and update ODB 
-      //    10,            // poll for 10ms 
-      //    0,             // stop run after this event limit 
-      //    0,             // number of sub events 
-      //    0,             // don't log history 
-      //    "", "", "",
-      //  },
-      //  read_fixed_event,      // readout routine 
-      // },
 
       {""}
     };
@@ -147,25 +129,22 @@ std::mutex data_mutex;
 
 daq::shim_platform_st data; // st = short trace
 daq::EventManagerTrgSeq *event_manager;
-daq::SyncClient *readout_listener;
+daq::SyncClient *readout_listener;  // for readout.
+daq::SyncClient *stepper_listener; // for the stepper motor
 daq::DioStepperMotor *dio_stepper = nullptr;
 daq::InoStepperMotor *ino_stepper = nullptr;
 
-  //Brendan Adding another SyncTrigger in order to coordinate the stepper trigger separately
-
-daq::SyncClient *stepper_listener;
-  
 const int nprobes = SHIM_PLATFORM_CH;
 const char *const mbank_name = (char *)"SHPF";
 }
 
 void trigger_loop();
 
-//--- Frontend Init -------------------------------------------------//
-INT frontend_init() 
+//--- Frontend Init ----------------------------------------------------------//
+INT frontend_init()
 {
   printf("\t\t\tInitializing the frontend via frontend_init()\n");
-  
+
   //DATA part
   string conf_dir;
   string conf_file;
@@ -173,11 +152,11 @@ INT frontend_init()
   INT status, tmp;
   char str[256], filename[256];
   int size;
-  
+
   // Get the config directory and file.
   cm_get_experiment_database(&hDB, NULL);
   db_find_key(hDB, 0, "Params/config-dir", &hkey);
-    
+
   if (hkey) {
     size = sizeof(str);
     db_get_data(hDB, hkey, str, &size, TID_STRING);
@@ -192,9 +171,9 @@ INT frontend_init()
   if (hkey) {
     size = sizeof(str);
     db_get_data(hDB, hkey, str, &size, TID_STRING);
-    
+
     conf_file = conf_dir + std::string(str);
-    
+
   } else {
 
     conf_file = conf_dir + std::string("fnal/fe_shim_platform.json");
@@ -207,9 +186,9 @@ INT frontend_init()
   if (hkey) {
     size = sizeof(str);
     db_get_data(hDB, hkey, str, &size, TID_STRING);
-    
+
     conf_file = conf_dir + std::string(str);
-    
+
   } else {
 
     conf_file = conf_dir + std::string("fnal/stepper_motor.json");
@@ -220,7 +199,7 @@ INT frontend_init()
     printf("\t\t\tfound the stepper-motor type key \n");
     size = sizeof(str);
     db_get_data(hDB, hkey, str, &size, TID_STRING);
-    
+
     if (std::string(str) == "INO") {
       printf("\t\tIdentified that we are supposed to use the INO stepper motor\n");
       ino_stepper_type = true;
@@ -229,7 +208,7 @@ INT frontend_init()
       printf("\t\tIdentified that we are supposed to use some other type of motor: %s \n",str);
       ino_stepper_type = false;
     }
-    
+
   } else {
 
     ino_stepper_type = false;
@@ -263,27 +242,27 @@ INT frontend_init()
 
   int trigger_port(tmp);
 
-  readout_listener = new daq::SyncClient(std::string(frontend_name), 
-                                         trigger_addr, 
+  readout_listener = new daq::SyncClient(std::string(frontend_name),
+                                         trigger_addr,
                                          trigger_port);
 
   //Brendan : Piggy-back off of the port information already extracted for the listener, and increment it by 1
 
-  stepper_listener = new daq::SyncClient(std::string(frontend_name), 
-                                         trigger_addr, 
+  stepper_listener = new daq::SyncClient(std::string(frontend_name),
+                                         trigger_addr,
                                          trigger_port + 30);
 
   // Load the steppper motor params.
   db_find_key(hDB, 0, "/Params/stepper-motor", &hkey);
 
-  if (hkey) { 
-    
+  if (hkey) {
+
     // Doubles first.
     size = sizeof(step_size);
-    db_get_value(hDB, hkey, "step_size", 
+    db_get_value(hDB, hkey, "step_size",
                  &step_size, &size, TID_DOUBLE, false);
 
-    db_get_value(hDB, hkey, "event_rate_limit", 
+    db_get_value(hDB, hkey, "event_rate_limit",
                  &event_rate_limit, &size, TID_DOUBLE, false);
 
     // Now ints.
@@ -293,7 +272,7 @@ INT frontend_init()
     // And finally the bool.
     BOOL tmp;
     size = sizeof(tmp);
-    db_get_value(hDB, hkey, "use_stepper", 
+    db_get_value(hDB, hkey, "use_stepper",
                  &tmp, &size, TID_BOOL, false);
     use_stepper = tmp;
   }
@@ -307,7 +286,7 @@ INT frontend_init()
   return SUCCESS;
 }
 
-//--- Frontend Exit ------------------------------------------------//
+//--- Frontend Exit ---------------------------------------------------------//
 INT frontend_exit()
 {
   run_in_progress = false;
@@ -320,7 +299,7 @@ INT frontend_exit()
   delete event_manager;
   delete readout_listener;
   delete stepper_listener;
-  
+
   if (dio_stepper != nullptr) {
     delete dio_stepper;
     dio_stepper = nullptr;
@@ -343,10 +322,10 @@ INT begin_of_run(INT run_number, char *error)
   BOOL flag;
   char str[256], filename[256];
   int size;
-    
+
   cm_get_experiment_database(&hDB, NULL);
   db_find_key(hDB, 0, "/Logger/Data dir", &hkey);
-    
+
   if (hkey) {
     size = sizeof(str);
     db_get_data(hDB, hkey, str, &size, TID_STRING);
@@ -354,7 +333,7 @@ INT begin_of_run(INT run_number, char *error)
       strcat(str, DIR_SEPARATOR_STR);
     }
   }
-    
+
   // Get the run number out of the MIDAS database.
   db_find_key(hDB, 0, "/Runinfo", &hkey);
   if (db_open_record(hDB, hkey, &runinfo, sizeof(runinfo), MODE_READ,
@@ -384,15 +363,15 @@ INT begin_of_run(INT run_number, char *error)
     t = new TTree("t_shpf", "Shim Platform Data");
     t->SetAutoSave(5);
     t->SetAutoFlush(20);
-    
+
     std::string br_name("shim_platform");
 
-    t->Branch(br_name.c_str(), 
-              &data.sys_clock[0], 
+    t->Branch(br_name.c_str(),
+              &data.sys_clock[0],
               daq::shim_platform_st_string);
   }
-    
-  
+
+
   //HW part
   event_manager->BeginOfRun();
   readout_listener->SetReady();
@@ -401,14 +380,14 @@ INT begin_of_run(INT run_number, char *error)
   // Reload the step structure.
   db_find_key(hDB, 0, "/Params/stepper-motor", &hkey);
 
-  if (hkey) { 
-    
+  if (hkey) {
+
     // Doubles first.
     size = sizeof(step_size);
-    db_get_value(hDB, hkey, "step_size", 
+    db_get_value(hDB, hkey, "step_size",
                  &step_size, &size, TID_DOUBLE, false);
 
-    db_get_value(hDB, hkey, "event_rate_limit", 
+    db_get_value(hDB, hkey, "event_rate_limit",
                  &event_rate_limit, &size, TID_DOUBLE, false);
 
     // Now ints.
@@ -422,7 +401,7 @@ INT begin_of_run(INT run_number, char *error)
     // And finally the bool.
     BOOL tmp;
     size = sizeof(tmp);
-    db_get_value(hDB, hkey, "use_stepper", 
+    db_get_value(hDB, hkey, "use_stepper",
                  &tmp, &size, TID_BOOL, false);
 
     use_stepper = tmp;
@@ -448,13 +427,13 @@ INT end_of_run(INT run_number, char *error)
     t->Write();
     root_file->Write();
     root_file->Close();
-    
+
     delete root_file;
   }
 
   run_in_progress = false;
   ready_to_move = false;
-  
+
   return SUCCESS;
 }
 
@@ -484,7 +463,7 @@ INT frontend_loop()
 //-------------------------------------------------------------------*/
 
 /********************************************************************\
-  
+
   Readout routines for different events
 
 \********************************************************************/
@@ -508,7 +487,7 @@ INT poll_event(INT source, INT count, BOOL test) {
     cm_msg(MINFO, frontend_name, "issuing trigger");
     event_manager->IssueTrigger();
   }
-  
+
   return ((event_manager->HasEvent() == true)? 1 : 0);
 }
 
@@ -548,7 +527,7 @@ INT read_platform_event(char *pevent, INT off)
 
   //BRENDAN cm_msg(MINFO, frontend_name, "got data");
   if (!run_in_progress) return 0;
-  
+
  auto shim_data = event_manager->GetCurrentEvent();
 
  if ((shim_data.sys_clock[0] == 0) && (shim_data.sys_clock[nprobes-1] == 0)) {
@@ -577,17 +556,17 @@ INT read_platform_event(char *pevent, INT off)
     }
 
     fid::Fid myfid(tm, wf);
-    
+
     // Make sure we got an FID signal
     if (myfid.isgood()) {
-      
+
       data.freq[idx] = myfid.CalcPhaseFreq();
       data.ferr[idx] = myfid.freq_err();
       data.snr[idx] = myfid.snr();
       data.len[idx] = myfid.fid_time();
-      
+
     } else {
-      
+
       myfid.DiagnosticInfo();
       data.freq[idx] = -1.0;
       data.ferr[idx] = -1.0;
@@ -595,58 +574,58 @@ INT read_platform_event(char *pevent, INT off)
       data.len[idx] = -1.0;
     }
   }
-  
+
   cm_msg(MINFO, frontend_name, "copying the data from event");
-  std::copy(shim_data.sys_clock.begin(), 
+  std::copy(shim_data.sys_clock.begin(),
             shim_data.sys_clock.begin() + nprobes,
             &data.sys_clock[0]);
 
-  std::copy(shim_data.gps_clock.begin(), 
+  std::copy(shim_data.gps_clock.begin(),
             shim_data.gps_clock.begin() + nprobes,
             &data.gps_clock[0]);
 
-  std::copy(shim_data.dev_clock.begin(), 
+  std::copy(shim_data.dev_clock.begin(),
             shim_data.dev_clock.begin() + nprobes,
             &data.dev_clock[0]);
-  
-  std::copy(shim_data.snr.begin(), 
+
+  std::copy(shim_data.snr.begin(),
             shim_data.snr.begin() + nprobes,
             &data.snr[0]);
-  
-  std::copy(shim_data.len.begin(), 
+
+  std::copy(shim_data.len.begin(),
             shim_data.len.begin() + nprobes,
             &data.len[0]);
-  
-  std::copy(shim_data.freq.begin(), 
+
+  std::copy(shim_data.freq.begin(),
             shim_data.freq.begin() + nprobes,
             &data.freq[0]);
-  
-  std::copy(shim_data.ferr.begin(), 
+
+  std::copy(shim_data.ferr.begin(),
             shim_data.ferr.begin() + nprobes,
             &data.ferr[0]);
 
-  std::copy(shim_data.freq_zc.begin(), 
+  std::copy(shim_data.freq_zc.begin(),
             shim_data.freq_zc.begin() + nprobes,
             &data.freq_zc[0]);
 
-  std::copy(shim_data.ferr_zc.begin(), 
+  std::copy(shim_data.ferr_zc.begin(),
             shim_data.ferr_zc.begin() + nprobes,
             &data.ferr_zc[0]);
 
-  std::copy(shim_data.method.begin(), 
+  std::copy(shim_data.method.begin(),
             shim_data.method.begin() + nprobes,
             &data.method[0]);
 
-  std::copy(shim_data.health.begin(), 
+  std::copy(shim_data.health.begin(),
             shim_data.health.begin() + nprobes,
             &data.health[0]);
 
   // for (int idx = 0; idx < nprobes; ++idx) {
-  //   std::copy(shim_data.trace[idx].begin(), 
-  //         shim_data.trace[idx].end(), 
+  //   std::copy(shim_data.trace[idx].begin(),
+  //         shim_data.trace[idx].end(),
   //         &data.trace[idx][0]);
   // }
-  
+
   data_mutex.unlock();
 
   if (write_root) {
@@ -656,7 +635,7 @@ INT read_platform_event(char *pevent, INT off)
     num_events++;
 
     if (num_events % 10 == 1) {
-      
+
       cm_msg(MINFO, frontend_name, "flushing TTree.");
       t->AutoSave("SaveSelf,FlushBaskets");
       root_file->Flush();
@@ -684,7 +663,7 @@ INT read_platform_event(char *pevent, INT off)
 
   // Brendan: At this point the multiplexors are done (and in fact all the data have been copied to root, midas, etc), but we have no guarantee that the laser tracker, environment, etc.... other frontends might still be going. So we really need to check in with the SyncTrigger that everyone ELSE is done before moving the motor
 
-  // E.G. 
+  // E.G.
   // Have a second SyncClient called stepper_listener
   // At this point issue the Trigger to stepper_listener
 
@@ -703,10 +682,10 @@ INT read_platform_event(char *pevent, INT off)
     //ready_to_move = true;
 
   } else {
-    
+
     readout_listener->SetReady();
   }
-  
+
   //  while( // stepper_listener isn't ready, wait
   // once stepper_listener has // the stepper l
 
@@ -728,7 +707,7 @@ void trigger_loop()
   while (thread_live) {
 
     if (run_in_progress) {
-      
+
        // Each loop in here is one data point with the stepper motor.
       while (run_in_progress) {
 
@@ -746,53 +725,53 @@ void trigger_loop()
           printf("READY TO MOVE: issuing step\n");
 
           ss_idx = (ss_idx + 1) % num_shots;
-          
+
           // If last step, end the run.
           if (num_events >= num_steps) {
-            
+
             cm_msg(MINFO, frontend_name, "Step sequence complete");
-            
+
             // Reset for next measurement.
             num_events = 0;
-            
+
             // Request an end run from MIDAS
             char str[256];
-            //	  cm_transition(TR_STOP, 0, str, sizeof(str), 
+            //	  cm_transition(TR_STOP, 0, str, sizeof(str),
             //			TR_MTHREAD | TR_ASYNC, FALSE);
-            
+
             CURL *curl;
             CURLcode res;
             curl = curl_easy_init();
             if (curl) {
-              
+
               string cmd;
               cmd += "nmr-daq";
               cmd += "?cmd=Stop";
-              
+
               FILE *f = fopen("/dev/null", "w+");
-              
+
               curl_easy_setopt(curl, CURLOPT_URL, cmd.c_str());
               curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
               curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)f);
-              
+
               res = curl_easy_perform(curl);
-              
+
               if (res != CURLE_OK)
                 fprintf(stderr, "curl_easy_perform() failed: %s\n",
                         curl_easy_strerror(res));
-              
-              /* always cleanup */ 
+
+              /* always cleanup */
               fclose(f);
               curl_easy_cleanup(curl);
             }
-            
+
             // Wait for the file to be written and exit.
             while (run_in_progress) {
               usleep(1000);
             }
-            
+
           } else if (ss_idx == 0) {
-            
+
             // Set up for the next data point.
             if (ino_stepper_type) {
               auto rc = ino_stepper->MoveCmForward(step_size);
@@ -819,7 +798,7 @@ void trigger_loop()
         }
       }
     }
-    
+
     // If we aren't running, just sleep a bit.
     if (!run_in_progress) {
       usleep(25000);
