@@ -2,7 +2,9 @@
 import os
 import sys
 
-import json
+from collections import OrderedDict
+import simplejson as json
+
 import midas
 
 def main():
@@ -18,12 +20,14 @@ def main():
         return 0
 
     if os.path.exists(fname):
-        json_data = json.loads(open(fname).read())
+        json_data = json.loads(open(fname).read(),
+                               object_pairs_hook=OrderedDict))
+                               
 
     else:
         json_data = {}
 
-    json_data[key] = json.loads(value)
+    json_data[key] = json.loads(value, object_pairs_hook=OrderedDict)
 
     f = open(fname, 'w')
     f.write(json.dumps(json_data, indent=2))
