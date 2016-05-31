@@ -101,9 +101,9 @@
   <script>
     window.onresize = function(){ location.reload(); };
 
-    var w = Math.max(document.documentElement.clientWidth, 
+    var w = Math.max(document.documentElement.clientWidth,
                      window.innerWidth || 0);
-    var h = Math.max(document.documentElement.clientHeight, 
+    var h = Math.max(document.documentElement.clientHeight,
                      window.innerHeight || 0)
 
     if (w > h) {
@@ -225,7 +225,7 @@
                m.push(1.0);
 
             } else if (i % 2 == 0) {
-          
+
                m.push(Math.pow(r, n) * Math.sin(n * phi));
 
             } else {
@@ -233,7 +233,7 @@
                m.push(Math.pow(r, n) * Math.cos(n * phi));
             }
         }
-       
+
         mp.push(m);
     }
 
@@ -265,7 +265,7 @@ test_data = {
             {'health': 1.0,  'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
             {'health': 1.0,  'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
             {'health': 1.0,  'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
-            {'health': 0.0, 'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]}, 
+            {'health': 0.0, 'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]},
             {'health': 0.0, 'id': 'UW-100', 'freqs': [47.0, 46.0, 4.80]}
         ],
 }
@@ -325,7 +325,7 @@ test_data = {
       .append('svg')
         .attr('width', size)
         .attr('height', 2 * size);
-    
+
     var vis = svg.append('g')
         .attr('id', 'platform')
         .attr('transform', 'translate(' + 0.5 * size + ',' +  0.5 * size + ')');
@@ -334,7 +334,7 @@ test_data = {
     var shim_platform = vis.selectAll('.shim-platform')
         .data(shim_data.platform)
       .enter().append('circle')
-        .attr('id', 'shim-platform')        
+        .attr('id', 'shim-platform')
         .attr('cx', function(d, i) { return d.x * scale; })
         .attr('cy', function(d, i) { return d.y * scale; })
         .attr('r', r_storage)
@@ -474,7 +474,7 @@ setInterval(function() {
     update_platform_probes();
     update_storage_field();
 }, 1000);
-                        
+
 setInterval(function() {
     redraw_plots();
 }, 5000);
@@ -488,7 +488,7 @@ function update_platform_probes() {
     ph = ODBGet("Custom/Data/shim-platform/health[*]", "%f", 0.0, 25, "TID_SHORT");
     for (var i = 0; i < data.length; ++i) {
         data[i].health = alpha * ph[i] + (1.0 - alpha) * data[i].health;
-    } 
+    }
     platform_probes.data(data).transition('platform-color')
        .duration(500)
        .style('fill', function(d, i) {
@@ -505,11 +505,11 @@ var prevMeanFreq = -1.0;
 function update_storage_field() {
     nevents += 1;
     pf = ODBGet("Custom/Data/shim-platform/freq[*]", "%f", 0.0, 25, "TID_DOUBLE");
-    thisPhi = ODBGet("/Equipment/laser-tracker/Variables/LTRK[4]", "%f", 0.0, 1, "TID_DOUBLE");
-        
+    thisPhi = ODBGet("/Equipment/Laser Tracker/Variables/LTRK[4]", "%f", 0.0, 1, "TID_DOUBLE");
+
     freq = []
     var sum = 0.0;
-    var d = new Date();       
+    var d = new Date();
     for (var i = 0; i < 25; ++i) {
         sum += parseFloat(pf[i]);
         freq.push(parseFloat(pf[i]) / 61.79e-3);
@@ -524,7 +524,7 @@ function update_storage_field() {
     };
 
     var y = numeric.dot(S, freq);
- 
+
     for (var i = 0; i < 16; i++) {
         fieldMultipoleData[i].x.push(d.toLocaleTimeString());
         fieldMultipoleData[i].y.push(y[i]);
@@ -539,7 +539,7 @@ function update_storage_field() {
 
     if (thisPhi < prevPhi) {
         prevPhi -= 360.0;
-    }                        
+    }
 
     if (thisPhi - prevPhi < 0.5) {
         var phi = parseInt(2.0 * thisPhi) * 0.5;
@@ -548,9 +548,9 @@ function update_storage_field() {
         var n = parseInt(2.0 * phi);
 
         fieldDipoleData[1].y[n] = w1 * prevMeanFreq + w2 * meanFreq;
-    }                        
+    }
 
-    prevPhi = thisPhi;                
+    prevPhi = thisPhi;
     prevMeanFreq = meanFreq;
 
     for (var i = 0; i < field_data.length; ++i) {
@@ -579,7 +579,7 @@ function healthcolor(x) {
     var r = Math.floor((1.0 - x) * 168);
     var g = Math.floor(x * 84)
     var b = Math.floor((1.0 - x) * 42 + x * 168);
-    return d3.rgb(r, g, b);        
+    return d3.rgb(r, g, b);
 };
 
 function fieldcolor(x) {
