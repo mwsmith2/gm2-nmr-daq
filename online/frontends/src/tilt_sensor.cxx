@@ -71,7 +71,7 @@ extern "C" {
   EQUIPMENT equipment[] =
     {
       {FRONTEND_NAME,  // equipment name
-       {11, 0,         // event ID, trigger mask
+       {11, 15,         // event ID, trigger mask
         "SYSTEM",      // event buffer (use to be SYSTEM)
         EQ_PERIODIC,   // equipment type
         0,             // not used
@@ -79,10 +79,10 @@ extern "C" {
         TRUE,          // enabled
         RO_ALWAYS |    // read only when running
         RO_ODB,        // and update ODB
-        1000,          // read every 2s
+        1000,          // read every 1s
         0,             // stop run after this event limit
         0,             // number of sub events
-        1,             // don't log history
+        1,             // do log history
         "", "", "",
        },
 

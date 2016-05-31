@@ -93,7 +93,7 @@ extern "C" {
     {
       {FE_NAME, //"Laser Tracker", // equipment name
        { 10, 0,          // event ID, trigger mask
-         "BUF2",      // event buffer (use to be SYSTEM)
+         "BUF1",      // event buffer (use to be SYSTEM)
          EQ_POLLED |
 	 EQ_EB,         // equipment type
          0,             // not used
@@ -103,7 +103,7 @@ extern "C" {
          10,            // poll for 10ms
          0,             // stop run after this event limit
          0,             // number of sub events
-         0,             // don't log history
+         1,             // don't log history
          "", "", "",
        },
        read_trigger_event,      // readout routine
