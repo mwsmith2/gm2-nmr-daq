@@ -44,6 +44,8 @@ double laser_machine_offset(int run) {
     return 544.0;
   } else if ((run > 3188) && (run < 3221)) {
     return 600.0;
+  } else if ((run > 3304) && (run < 3312)) {
+    return 36.0;
   } else {
     return 0.0;
   }
@@ -133,14 +135,14 @@ int main(int argc, char **argv)
   datafile = ss.str();
 
   pf_shpf = new TFile(datafile.c_str(), "read");
-  
+
   if (pf_shpf->GetListOfKeys()->Contains("t_shpf")) {
-    
+
     pt_shpf = (TTree *)pf_shpf->Get("t_shpf");
     flags.platform_data = true;
 
   } else {
-    
+
     pt_shpf = new TTree("t_shpf", "Shim Platform Data");
     pt_shpf->Branch("platform", &platform.sys_clock[0], platform_str);
     flags.platform_data = false;
@@ -162,7 +164,7 @@ int main(int argc, char **argv)
     flags.laser_swap = false;
 
   } else {
-    
+
     pt_ltrk = new TTree("t_ltrk", "Laser Tracker Data");
     pt_ltrk->Branch("laser", &laser.midas_time, laser_str);
     flags.laser_data = false;
@@ -184,7 +186,7 @@ int main(int argc, char **argv)
     flags.laser_data = true;
 
   } else {
-    
+
     pt_ctec = new TTree("t_ctec", "Capacitec Sensor Data");
     pt_ctec->Branch("ctec", &ctec.midas_time, capacitec_str);
     flags.laser_data = false;
@@ -203,7 +205,7 @@ int main(int argc, char **argv)
     flags.mscb_cart_data = true;
 
   } else {
-    
+
     pt_cart = new TTree("t_mscb_cart", "MSCB Data from Shimming Cart");
     flags.mscb_cart_data = false;
   }
@@ -239,7 +241,7 @@ int main(int argc, char **argv)
     flags.tilt_data = true;
 
   } else {
-    
+
     pt_tilt = new TTree("t_tilt", "Tilt Sensor Data");
     flags.tilt_data = false;
   }
@@ -257,7 +259,7 @@ int main(int argc, char **argv)
     flags.hall_data = true;
 
   } else {
-    
+
     pt_hall = new TTree("t_hall", "Hall Probe Data");
     flags.hall_data = false;
   }
@@ -275,7 +277,7 @@ int main(int argc, char **argv)
     flags.mlab_data = true;
 
   } else {
-    
+
     pt_mlab = new TTree("t_mlab", "Metrolab NMR Data");
     flags.mlab_data = false;
   }
@@ -317,12 +319,12 @@ int main(int argc, char **argv)
   boost::property_tree::read_json(attr_file, pt_user);
 
   ss.str("");
-  ss << std::setfill('0') << std::setw(5) << run_number << ".laser_point";
+  ss << "run_" << std::setfill('0') << std::setw(5) << run_number << ".laser_point";
   laser_point = pt.get<string>(ss.str());
   laser_point = pt_user.get<string>(ss.str(), laser_point);
 
   ss.str("");
-  ss << std::setfill('0') << std::setw(5) << run_number << ".laser_swap";
+  ss << "run_" << std::setfill('0') << std::setw(5) << run_number << ".laser_swap";
   laser_swap = pt.get<bool>(ss.str());
   laser_swap = pt_user.get<bool>(ss.str(), laser_swap);
 
@@ -336,7 +338,7 @@ int main(int argc, char **argv)
     nsync = pt_shpf->GetEntries();
     cout << "Setting nsync to " << nsync << endl;
   }
-  
+
   if ((pt_ltrk->GetEntries() < nsync) && (pt_ltrk->GetEntries() != 0)) {
     nsync = pt_ltrk->GetEntries();
     cout << "Setting nsync to " << nsync << endl;
@@ -357,12 +359,12 @@ int main(int argc, char **argv)
       pt_shpf->GetEntry(i);
       pt_ltrk->GetEntry(i);
       pt_ctec->GetEntry(i);
-  
+
       shpf_tm.push_back(platform.sys_clock[0] * 1.0e-6);
       ltrk_tm.push_back(laser.midas_time + laser_machine_offset(run_number));
       ctec_tm.push_back(ctec.midas_time);
     }
-  
+
     // Now determine offsets for proper synchronization.
     if (pt_shpf->GetEntries() == nsync) {
 
@@ -377,10 +379,10 @@ int main(int argc, char **argv)
 
       printf("laser - platform[%i]: %.2f, %.2f\n",
              shpf_offset,
-             ltrk_tm[0] - shpf_tm[shpf_offset], 
+             ltrk_tm[0] - shpf_tm[shpf_offset],
              ltrk_tm[1] - shpf_tm[shpf_offset]);
 
-      if (abs(ltrk_tm[0] - shpf_tm[shpf_offset]) < 
+      if (abs(ltrk_tm[0] - shpf_tm[shpf_offset]) <
           abs(ltrk_tm[1] - shpf_tm[shpf_offset])) {
         ltrk_offset = 0;
       } else {
@@ -389,10 +391,10 @@ int main(int argc, char **argv)
 
       printf("ctec - platform[%i]: %.2f, %.2f\n",
              shpf_offset,
-             ctec_tm[0] - shpf_tm[shpf_offset], 
+             ctec_tm[0] - shpf_tm[shpf_offset],
              ctec_tm[1] - shpf_tm[shpf_offset]);
 
-      if (abs(ctec_tm[0] - shpf_tm[shpf_offset]) < 
+      if (abs(ctec_tm[0] - shpf_tm[shpf_offset]) <
           abs(ctec_tm[1] - shpf_tm[shpf_offset])) {
         ctec_offset = 0;
       } else {
@@ -406,7 +408,7 @@ int main(int argc, char **argv)
 
       printf("laser - platform[0]: %.2f, %.2f\n",
              ltrk_tm[0] - shpf_tm[0], ltrk_tm[1] - shpf_tm[0]);
-    
+
       if (abs(ltrk_tm[0] - shpf_tm[0]) < abs(ltrk_tm[1] - shpf_tm[0])) {
         ltrk_offset = 0;
       } else {
@@ -415,10 +417,10 @@ int main(int argc, char **argv)
 
       printf("platform - laser[%i]: %.2f, %.2f\n",
              ltrk_offset,
-             shpf_tm[0] - ltrk_tm[ltrk_offset], 
+             shpf_tm[0] - ltrk_tm[ltrk_offset],
              shpf_tm[1] - ltrk_tm[ltrk_offset]);
 
-      if (abs(shpf_tm[0] - ltrk_tm[ltrk_offset]) < 
+      if (abs(shpf_tm[0] - ltrk_tm[ltrk_offset]) <
           abs(shpf_tm[1] - ltrk_tm[ltrk_offset])) {
         shpf_offset = 0;
       } else {
@@ -427,10 +429,10 @@ int main(int argc, char **argv)
 
       printf("ctec - laser[%i]: %.2f, %.2f\n",
              ltrk_offset,
-             ctec_tm[0] - ltrk_tm[ltrk_offset], 
+             ctec_tm[0] - ltrk_tm[ltrk_offset],
              ctec_tm[1] - ltrk_tm[ltrk_offset]);
 
-      if (abs(ctec_tm[0] - ltrk_tm[ltrk_offset]) < 
+      if (abs(ctec_tm[0] - ltrk_tm[ltrk_offset]) <
           abs(ctec_tm[1] - ltrk_tm[ltrk_offset])) {
         ctec_offset = 0;
       } else {
@@ -444,7 +446,7 @@ int main(int argc, char **argv)
 
       printf("laser - platform[0]: %.2f, %.2f\n",
              ctec_tm[0] - shpf_tm[0], ctec_tm[1] - shpf_tm[0]);
-    
+
       if (abs(ctec_tm[0] - shpf_tm[0]) < abs(ctec_tm[1] - shpf_tm[0])) {
         ctec_offset = 0;
       } else {
@@ -453,10 +455,10 @@ int main(int argc, char **argv)
 
       printf("platform - ctec[%i]: %.2f, %.2f\n",
              ctec_offset,
-             shpf_tm[0] - ctec_tm[ctec_offset], 
+             shpf_tm[0] - ctec_tm[ctec_offset],
              shpf_tm[1] - ctec_tm[ctec_offset]);
 
-      if (abs(shpf_tm[0] - ctec_tm[ctec_offset]) < 
+      if (abs(shpf_tm[0] - ctec_tm[ctec_offset]) <
           abs(shpf_tm[1] - ctec_tm[ctec_offset])) {
         shpf_offset = 0;
       } else {
@@ -465,10 +467,10 @@ int main(int argc, char **argv)
 
       printf("laser - ctec[%i]: %.2f, %.2f\n",
              ctec_offset,
-             ltrk_tm[0] - ctec_tm[ctec_offset], 
+             ltrk_tm[0] - ctec_tm[ctec_offset],
              ltrk_tm[1] - ctec_tm[ctec_offset]);
 
-      if (abs(ltrk_tm[0] - ctec_tm[ctec_offset]) < 
+      if (abs(ltrk_tm[0] - ctec_tm[ctec_offset]) <
           abs(ltrk_tm[1] - ctec_tm[ctec_offset])) {
         ltrk_offset = 0;
       } else {
@@ -488,11 +490,11 @@ int main(int argc, char **argv)
     pt_ctec->GetEntry(idx + ctec_offset);
 
     if (run_number < 787) {
-      
+
       if (laser_point == string("P1")) {
-        
+
         flags.laser_p1 = true;
-    
+
       } else if (laser_point == string("P2")) {
 
         flags.laser_p2 = true;
@@ -512,19 +514,19 @@ int main(int argc, char **argv)
       if (laser_point == string("P1")) {
         flags.laser_p1 = true;
       }
-      
+
       if (laser_point == string("P2")) {
         flags.laser_p2 = true;
       }
-      
+
       if (laser_swap) {
 
         flags.laser_swap = true;
-        
+
         double r_2 = laser.r_2;
         double z_2 = laser.z_2;
         double phi_2 = laser.phi_2;
-        
+
         laser.r_2 = laser.r_1;
         laser.z_2 = laser.z_1;
         laser.phi_2 = laser.phi_1;
@@ -533,8 +535,8 @@ int main(int argc, char **argv)
         laser.z_1 = z_2;
         laser.phi_1 = phi_2;
       }
-    } 
-    
+    }
+
     pt_sync->Fill();
   }
 
