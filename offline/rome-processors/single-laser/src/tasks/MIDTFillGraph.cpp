@@ -71,12 +71,12 @@ void MIDTFillGraph::BeginOfRun()
    treeFile += Form("%05i",gAnalyzer->GetODB()->GetRunNumber());
    treeFile += ".root";
 
-   fTreeFile = TFile::Open(treeFile.Data(), "RECREATE");   
+   fTreeFile = TFile::Open(treeFile.Data(), "RECREATE");
    fTreeFile->cd();
    fEventTree = new TTree("t_ltrk","Laser Tracker Data");
 
    // Set branches.
-   fEventTree->Branch("laser", laser.midas_time, gm2::laser_str);
+   fEventTree->Branch("laser", &laser.midas_time, gm2::laser_str);
 }
 
 //______________________________________________________________________________
@@ -85,7 +85,7 @@ void MIDTFillGraph::Event()
   if (IsMyGraphActive()) {
 
     laser.midas_time = gAnalyzer->GetActiveDAQ()->GetTimeStamp();
-    
+
     int N = gAnalyzer->GetMidasDAQ()->GetLTRKBankEntries();
 
     if (N > 0) {
