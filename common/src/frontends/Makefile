@@ -26,7 +26,7 @@ ROOTLIBS = $(shell root-config --libs)
 # The following lines define direcories. Adjust if necessary
 INC_DIR = $(MIDASSYS)/include
 LIB_DIR = $(MIDASSYS)/linux/lib
-LINK_DIR = ../../common/
+LINK_DIR = ../../../common/
 
 # Libraries && include flags
 LIB = -L$(LIB_DIR) -L$(NMR_DIR)/lib -L/usr/lib64/mysql
@@ -46,7 +46,7 @@ CXX = g++
 
 all: $(TARGETS)
 
-bin/%: src/%.cxx $(LIB_DIR)/mfe.o 
+bin/%: src/%.cxx $(LIB_DIR)/mfe.o
 	$(CXX) -o $@ $+ $(CXXFLAGS) $(CFLAGS) $(OSFLAGS) \
 	$(LIB) $(LIBS) $(ROOTFLAGS) $(ROOTLIBS)
 	ln -fs $(shell pwd)/$@ $(LINK_DIR)/$@
