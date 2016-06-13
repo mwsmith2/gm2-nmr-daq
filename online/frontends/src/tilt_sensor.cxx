@@ -129,6 +129,8 @@ INT frontend_init()
   if(db_find_key(hDB, 0, str, &hkey)==DB_SUCCESS){
       size = sizeof(TILT_SENSOR_SETTINGS);
       db_get_record(hDB, hkey, &tilt_sensor_settings, &size, 0);
+  } else {
+    cm_msg(MERROR, "init", "could not load settings from ODB");
   }
 
   char devname[100];
@@ -141,7 +143,7 @@ INT frontend_init()
 
     if ((serial_port < 0) && (n == 3)) {
       cm_msg(MERROR, "frontend_init", "error opening device");
-      return -1;
+      return FE_ERR_HW;
     }
   }
 
@@ -149,12 +151,11 @@ INT frontend_init()
 
   if (tcgetattr(serial_port, &options) < 0) {
     cm_msg(MERROR, "frontend_init", "tcgetattr");
-    return -2;
+    return FE_ERR_HW;
   }
 
   cfsetospeed(&options, B9600);
   cfsetispeed(&options, B9600);
-
 
   // Setting other port stuff.
   options.c_cflag &= ~PARENB;  // Make 8n1
@@ -171,7 +172,7 @@ INT frontend_init()
   options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG); // make raw
   options.c_oflag &= ~OPOST; // make raw
 
-  tcflush( serial_port, TCIFLUSH );
+  tcflush(serial_port, TCIFLUSH);
 
   if(tcsetattr(serial_port, TCSANOW, &options) < 0) {
     cm_msg(MERROR, "frontend_init", "tcsetattr");
