@@ -131,7 +131,7 @@ INT frontend_init()
     size = sizeof(str);
     db_get_data(hDB, hkey, str, &size, TID_STRING);
   } else {
-    cm_msg(MERROR, "shim_trigger_init", "sync-trigger-address not found ODB");
+    cm_msg(MERROR, "init", "sync-trigger-address not found ODB");
     return CM_DB_ERROR;
   }
 
@@ -143,7 +143,7 @@ INT frontend_init()
     size = sizeof(tmp);
     db_get_data(hDB, hkey, &tmp, &size, TID_INT);
   } else {
-    cm_msg(MERROR, "shim_trigger_init", "fast-trigger-address not found ODB");
+    cm_msg(MERROR, "init", "fast-trigger-address not found ODB");
     return CM_DB_ERROR;
   }
 
