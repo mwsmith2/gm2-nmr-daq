@@ -120,13 +120,13 @@ INT frontend_init()
   sprintf(str, "/Equipment/%s/Settings", FRONTEND_NAME);
   status = db_create_record(hDB, 0, str, METROLAB_SETTINGS_STR);
   if (status != DB_SUCCESS){
-    printf("Could not create record %s\n", str);
+    cm_msg(MERROR, "init", "Could not create record %s", str);
     return FE_ERR_ODB;
   }
 
-  if(db_find_key(hDB, 0, str, &hkey)==DB_SUCCESS){
-      size = sizeof(METROLAB_SETTINGS);
-      db_get_record(hDB, hkey, &metrolab_settings, &size, 0);
+  if (db_find_key(hDB, 0, str, &hkey) == DB_SUCCESS) {
+    size = sizeof(METROLAB_SETTINGS);
+    db_get_record(hDB, hkey, &metrolab_settings, &size, 0);
   }
 
   char devname[100];
