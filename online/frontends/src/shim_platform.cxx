@@ -73,7 +73,6 @@ extern "C" {
 
   INT frontend_loop();
   INT read_platform_event(char *pevent, INT off);
-  INT read_fixed_event(char *pevent, INT off);
   INT poll_event(INT source, INT count, BOOL test);
   INT interrupt_configure(INT cmd, INT source, POINTER_T adr);
 
@@ -108,7 +107,7 @@ RUNINFO runinfo;
 
 // Anonymous namespace for my "globals"
 namespace {
-  double step_size = 0.4;  //  23.375 mm per 1 step size // So pretty close to 1 inch per 1 step_size (note: this calibration occurred using a chord of about 3 meters, so the string was not moving along the azimuth. So there is a missing cos(theta) -- where theta is small -- that needs to be included
+double step_size = 0.4;  //  23.375 mm per 1 step size // So pretty close to 1 inch per 1 step_size (note: this calibration occurred using a chord of about 3 meters, so the string was not moving along the azimuth. So there is a missing cos(theta) -- where theta is small -- that needs to be included
 
 double event_rate_limit = 10.0;
 int num_steps = 50; // num_steps was 50
@@ -143,9 +142,7 @@ void trigger_loop();
 //--- Frontend Init ----------------------------------------------------------//
 INT frontend_init()
 {
-  printf("\t\t\tInitializing the frontend via frontend_init()\n");
-
-  //DATA part
+  // DATA part
   string conf_dir;
   string conf_file;
   HNDLE hDB, hkey;
@@ -163,6 +160,9 @@ INT frontend_init()
     if (str[strlen(str) - 1] != DIR_SEPARATOR) {
       strcat(str, DIR_SEPARATOR_STR);
     }
+  } else {
+
+    cm_msg(MERROR, "init", "Config directory not specified in ODB.");
   }
 
   conf_dir = std::string(str);
@@ -177,6 +177,12 @@ INT frontend_init()
   } else {
 
     conf_file = conf_dir + std::string("fnal/fe_shim_platform.json");
+
+    snprintf(str, 256,
+             "Shim platform config file not in ODB, using default: %s",
+             conf_file.c_str());
+
+    cm_msg(MLOG, "init", str);
   }
 
   // Set up the stepper motor.
@@ -192,35 +198,43 @@ INT frontend_init()
   } else {
 
     conf_file = conf_dir + std::string("fnal/stepper_motor.json");
+
+    snprintf(str, 256,
+             "Stepper motor config file not in ODB, using default: %s",
+             conf_file.c_str());
+
+    cm_msg(MLOG, "init", str);
   }
 
   db_find_key(hDB, 0, "Params/stepper-motor/type", &hkey);
   if (hkey) {
-    printf("\t\t\tfound the stepper-motor type key \n");
     size = sizeof(str);
     db_get_data(hDB, hkey, str, &size, TID_STRING);
 
     if (std::string(str) == "INO") {
-      printf("\t\tIdentified that we are supposed to use the INO stepper motor\n");
+
       ino_stepper_type = true;
 
     } else {
-      printf("\t\tIdentified that we are supposed to use some other type of motor: %s \n",str);
       ino_stepper_type = false;
     }
 
   } else {
 
     ino_stepper_type = false;
+    cm_msg(MINFO,
+           "init",
+           "Stepper motor type not in ODB, assuming not Arduino");
   }
 
   if (ino_stepper_type) {
-    printf("trying to initialize InoStepperMotor based on %s\n",conf_file.c_str());
     ino_stepper = new daq::InoStepperMotor(conf_file);
+    cm_msg(MLOG, "init", "Loading Arduino stepper motor type");
 
   } else {
 
     dio_stepper = new daq::DioStepperMotor(0x0, daq::BOARD_B, conf_file);
+    cm_msg(MLOG, "init", "Loading Acromag IO stepper motor type");
   }
 
   // Get the config for the synchronized trigger.
@@ -229,6 +243,10 @@ INT frontend_init()
   if (hkey) {
     size = sizeof(str);
     db_get_data(hDB, hkey, str, &size, TID_STRING);
+
+  } else {
+
+    cm_msg(MERROR, "init", "sync-trigger-address not specified in ODB");
   }
 
   string trigger_addr(str);
@@ -238,6 +256,10 @@ INT frontend_init()
   if (hkey) {
     size = sizeof(tmp);
     db_get_data(hDB, hkey, &tmp, &size, TID_INT);
+
+  } else {
+
+    cm_msg(MERROR, "init", "fast-trigger-port not specified in ODB");
   }
 
   int trigger_port(tmp);
@@ -246,7 +268,6 @@ INT frontend_init()
                                          trigger_addr,
                                          trigger_port);
 
-  //Brendan : Piggy-back off of the port information already extracted for the listener, and increment it by 1
 
   stepper_listener = new daq::SyncClient(std::string(frontend_name),
                                          trigger_addr,
@@ -259,6 +280,7 @@ INT frontend_init()
 
     // Doubles first.
     size = sizeof(step_size);
+
     db_get_value(hDB, hkey, "step_size",
                  &step_size, &size, TID_DOUBLE, false);
 
@@ -272,9 +294,13 @@ INT frontend_init()
     // And finally the bool.
     BOOL tmp;
     size = sizeof(tmp);
-    db_get_value(hDB, hkey, "use_stepper",
-                 &tmp, &size, TID_BOOL, false);
+    db_get_value(hDB, hkey, "use_stepper", &tmp, &size, TID_BOOL, false);
     use_stepper = tmp;
+
+  } else {
+
+    cm_msg(MERROR, "init", "stepper motor parameters not specified");
+    return CM_DB_ERROR;
   }
 
   thread_live = true;
@@ -283,6 +309,7 @@ INT frontend_init()
 
   trigger_thread = std::thread(::trigger_loop);
 
+  cm_msg(MINFO, "init", "Shim Platform initialization complete");
   return SUCCESS;
 }
 
@@ -310,6 +337,7 @@ INT frontend_exit()
     ino_stepper = nullptr;
   }
 
+  cm_msg(MINFO, "exit", "Shim Platform teardown complete");
   return SUCCESS;
 }
 
@@ -338,8 +366,8 @@ INT begin_of_run(INT run_number, char *error)
   db_find_key(hDB, 0, "/Runinfo", &hkey);
   if (db_open_record(hDB, hkey, &runinfo, sizeof(runinfo), MODE_READ,
 		     NULL, NULL) != DB_SUCCESS) {
-    cm_msg(MERROR, "shim_platform_init", "Can't open \"/Runinfo\" in ODB");
-    return 0;
+    cm_msg(MERROR, "begin_of_run", "Can't open \"/Runinfo\" in ODB");
+    return CM_DB_ERROR;
   }
 
   strcpy(filename, str);
@@ -395,7 +423,7 @@ INT begin_of_run(INT run_number, char *error)
     db_get_value(hDB, hkey, "num_shots", &num_shots, &size, TID_INT, false);
 
     if (num_steps < 1) {
-      num_steps = 3000000; // basically infinite.
+      num_steps = INT_MAX; // basically infinite.
     }
 
     // And finally the bool.
@@ -405,12 +433,15 @@ INT begin_of_run(INT run_number, char *error)
                  &tmp, &size, TID_BOOL, false);
 
     use_stepper = tmp;
-  }
+  } else {
 
-  cm_msg(MINFO, frontend_name, "begin_of_run completed");
+    cm_msg(MERROR, "begin_of_run", "Stepper parameters not found in ODB");
+  }
 
   run_in_progress = true;
   ready_to_move = false;
+
+  cm_msg(MLOG, "begin_of_run", "Completed successfully");
 
   return SUCCESS;
 }
@@ -434,6 +465,7 @@ INT end_of_run(INT run_number, char *error)
   run_in_progress = false;
   ready_to_move = false;
 
+  cm_msg(MLOG, "end_of_run", "Completed successfully");
   return SUCCESS;
 }
 
@@ -483,8 +515,8 @@ INT poll_event(INT source, INT count, BOOL test) {
   }
 
   if (readout_listener->HasTrigger()) {
-    printf("\nGot the trigger\n");
-    cm_msg(MINFO, frontend_name, "issuing trigger");
+    cm_msg(MINFO, "poll_event",
+           "Got trigger, beginning multiplexer sequence");
     event_manager->IssueTrigger();
   }
 
@@ -512,7 +544,7 @@ INT interrupt_configure(INT cmd, INT source, PTYPE adr)
 
 INT read_platform_event(char *pevent, INT off)
 {
-  printf("\nread_platform_event\n");
+  cm_msg(MLOG, "read_platform_event", "got data");
   using namespace daq;
   static unsigned long long num_events;
   static unsigned long long events_written;
@@ -525,14 +557,13 @@ INT read_platform_event(char *pevent, INT off)
   char bk_name[10];
   DWORD *pdata;
 
-  //BRENDAN cm_msg(MINFO, frontend_name, "got data");
   if (!run_in_progress) return 0;
 
- auto shim_data = event_manager->GetCurrentEvent();
+  auto shim_data = event_manager->GetCurrentEvent();
 
- if ((shim_data.sys_clock[0] == 0) && (shim_data.sys_clock[nprobes-1] == 0)) {
-   return 0;
- }
+  if ((shim_data.sys_clock[0] == 0) && (shim_data.sys_clock[nprobes-1] == 0)) {
+    return 0;
+  }
 
   // Set the time vector.
   if (tm.size() == 0) {
@@ -548,7 +579,6 @@ INT read_platform_event(char *pevent, INT off)
   data_mutex.lock();
 
   for (int idx = 0; idx < nprobes; ++idx) {
-    cm_msg(MINFO, frontend_name, "analyzing FID[%i]", idx);
 
     for (int n = 0; n < SHORT_FID_LN; ++n) {
       wf[n] = shim_data.trace[idx][n*10 + 1];
@@ -620,16 +650,10 @@ INT read_platform_event(char *pevent, INT off)
             shim_data.health.begin() + nprobes,
             &data.health[0]);
 
-  // for (int idx = 0; idx < nprobes; ++idx) {
-  //   std::copy(shim_data.trace[idx].begin(),
-  //         shim_data.trace[idx].end(),
-  //         &data.trace[idx][0]);
-  // }
-
   data_mutex.unlock();
 
   if (write_root) {
-    cm_msg(MINFO, frontend_name, "shim-platform: Filling TTree.");
+    cm_msg(MINFO, "read_platform_event", "Filling TTree");
     // Now that we have a copy of the latest event, fill the tree.
     t->Fill();
     num_events++;
@@ -639,7 +663,6 @@ INT read_platform_event(char *pevent, INT off)
       cm_msg(MINFO, frontend_name, "flushing TTree.");
       t->AutoSave("SaveSelf,FlushBaskets");
       root_file->Flush();
-
     }
   }
 
@@ -658,7 +681,7 @@ INT read_platform_event(char *pevent, INT off)
   }
 
   // Pop the event now that we are done copying it.
-  cm_msg(MINFO, frontend_name, "popping event manager data.");
+  cm_msg(MINFO, "read_platform_event", "Finished with event, popping from queue");
   event_manager->PopCurrentEvent();
 
   // Brendan: At this point the multiplexors are done (and in fact all the data have been copied to root, midas, etc), but we have no guarantee that the laser tracker, environment, etc.... other frontends might still be going. So we really need to check in with the SyncTrigger that everyone ELSE is done before moving the motor
@@ -679,22 +702,14 @@ INT read_platform_event(char *pevent, INT off)
   // if the stepper isn't used, then we simply ignore the stepper_listener and set our readout_listener->SetReady directly
   if (use_stepper == true) {
     stepper_listener->SetReady();
-    //ready_to_move = true;
+    // ready_to_move = true;
 
   } else {
 
     readout_listener->SetReady();
   }
 
-  //  while( // stepper_listener isn't ready, wait
-  // once stepper_listener has // the stepper l
-
   return bk_size(pevent);
-}
-
-INT read_fixed_event(char *pevent, INT off)
-{
-  return 0;
 }
 
 void trigger_loop()
@@ -711,25 +726,28 @@ void trigger_loop()
        // Each loop in here is one data point with the stepper motor.
       while (run_in_progress) {
 
-        // Wait for the next event.
         if (use_stepper && (stepper_listener->HasTrigger() == false)) {
 
+          // Wait for the next event.
           usleep(1000);
 
         } else if (!use_stepper) {
 
+          // Bypass the stepper motor phase if not in use.
           readout_listener->SetReady();
 
-        } else { //stepper_listener Had a Trigger, and now HasTrigger gets set back to false
+        } else {
 
-          printf("READY TO MOVE: issuing step\n");
+          // stepper_listener Had a Trigger, and now HasTrigger gets set back to false
+
+          cm_msg(MINFO, "trigger_loop", "READY TO MOVE: issuing step");
 
           ss_idx = (ss_idx + 1) % num_shots;
 
           // If last step, end the run.
           if (num_events >= num_steps) {
 
-            cm_msg(MINFO, frontend_name, "Step sequence complete");
+            cm_msg(MINFO, "trigger_loop", "Step sequence complete");
 
             // Reset for next measurement.
             num_events = 0;
@@ -756,11 +774,14 @@ void trigger_loop()
 
               res = curl_easy_perform(curl);
 
-              if (res != CURLE_OK)
-                fprintf(stderr, "curl_easy_perform() failed: %s\n",
+              if (res != CURLE_OK) {
+                cm_msg(MERROR,
+                       "stepper_loop",
+                       "curl_easy_perform() failed: %s",
                         curl_easy_strerror(res));
+              }
 
-              /* always cleanup */
+              // always cleanup
               fclose(f);
               curl_easy_cleanup(curl);
             }
@@ -792,7 +813,10 @@ void trigger_loop()
               readout_listener->HasTrigger();
             }
 
-            printf("Took a step: %i, %i\n\n", ss_idx, num_events);
+            cm_msg(MLOG, "trigger_loop",
+                   "step: %i, %i",
+                   ss_idx,
+                   num_events);
 
           }
         }
