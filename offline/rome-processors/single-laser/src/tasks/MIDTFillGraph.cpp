@@ -90,9 +90,16 @@ void MIDTFillGraph::Event()
 
     if (N > 0) {
 
-      laser.r_1 = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(0);
-      laser.z_1 = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(1);
-      laser.phi_1 = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(2);
+      if (gAnalyzer->GetODB()->GetRunNumber() < 662) {
+        laser.r_1 = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(0);
+        laser.z_1 = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(2);
+        laser.phi_1 = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(1);
+
+      } else {
+        laser.r_1 = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(0);
+        laser.z_1 = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(1);
+        laser.phi_1 = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(2);
+      }
 
       laser.r_2 = 0.0;
       laser.z_2 = 0.0;
