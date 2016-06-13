@@ -25,7 +25,6 @@ About:  Aggregates the data sources for the radial field measurement
 //--- other includes --------------------------------------------------------//
 #include "yocto_api.h"
 #include "yocto_temperature.h"
-
 #include "midas.h"
 
 //--- globals ---------------------------------------------------------------//
@@ -127,13 +126,15 @@ INT frontend_init()
   sprintf(str, "/Equipment/%s/Settings", FRONTEND_NAME);
   status = db_create_record(hDB, 0, str, HALL_PROBE_PLATFORM_SETTINGS_STR);
   if (status != DB_SUCCESS){
-    printf("Could not create record %s\n", str);
+    cm_msg(MERROR, "init", "could not create record %s", str);
     return FE_ERR_ODB;
   }
 
-  if (db_find_key(hDB, 0, str, &hkey)==DB_SUCCESS){
-      size = sizeof(HALL_PROBE_PLATFORM_SETTINGS);
-      db_get_record(hDB, hkey, &hall_probe_platform_settings, &size, 0);
+  if (db_find_key(hDB, 0, str, &hkey) == DB_SUCCESS) {
+    size = sizeof(HALL_PROBE_PLATFORM_SETTINGS);
+    db_get_record(hDB, hkey, &hall_probe_platform_settings, &size, 0);
+  } else {
+    cm_msg(MERROR, "init", "could not load settings from ODB");
   }
 
   // Get the handle for the Keithley 2100
@@ -168,11 +169,13 @@ INT frontend_init()
 
   // If the default didn't exist, skip it.
   if (keithley_port == -1) {
-    perror("Could not find Keithley 2100 device.\n");
+    cm_msg(MERROR, "init", "could not find Keithley 2100 device");
+    return FE_ERR_HW;
   }
 
   if (yokogawa_port == -1) {
-    perror("Could not find Yokogawa 2100 device.\n");
+    cm_msg(MERROR, "init", "could not find Yokogawa 2100 device");
+    return FE_ERR_HW;
   }
 
   // Get a handle for the temperature probe.
@@ -184,7 +187,8 @@ INT frontend_init()
   temp_probe = yFindTemperature(pt100_devname);
 
   if (temp_probe == nullptr) {
-    perror("Could not find Yoctopuce PT100 device");
+    cm_msg(MERROR, "init", "Could not find Yoctopuce PT100 device");
+    return FE_ERR_HW;
   }
 
   return SUCCESS;
@@ -304,6 +308,7 @@ INT read_trigger_event(char *pevent, INT off)
 
   } else {
 
+    cm_msg(MINFO, "read_trigger_event", "temperature probe not online");
     *(pdata++) = -1.0;
   }
 
@@ -317,6 +322,7 @@ INT read_trigger_event(char *pevent, INT off)
 
   } else {
 
+    cm_msg(MINFO, "read_trigger_event", "Keithley DMM not online");
     *(pdata++) = -1.0;
   }
 
