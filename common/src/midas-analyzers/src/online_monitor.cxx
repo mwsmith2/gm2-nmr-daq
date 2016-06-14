@@ -32,16 +32,16 @@ about:  Performs FFTs and plots those as well waveforms for simple
 
 //--- globals ---------------------------------------------------------------//
 
-// The analyzer name (client name) as seen by other MIDAS clients   
+// The analyzer name (client name) as seen by other MIDAS clients
 char *analyzer_name = (char *)"Online Monitor";
 
-// analyzer_loop is called with this interval in ms (0 to disable)  
+// analyzer_loop is called with this interval in ms (0 to disable)
 INT analyzer_loop_period = 500;
 
-// default ODB size 
+// default ODB size
 INT odb_size = DEFAULT_ODB_SIZE;
 
-// ODB structures 
+// ODB structures
 RUNINFO runinfo;
 
 int analyze_trigger_event(EVENT_HEADER * pheader, void *pevent);
@@ -70,19 +70,19 @@ BANK_LIST trigger_bank_list[] = {
 //-- Event request list -----------------------------------------------------//
 
 ANALYZE_REQUEST analyze_request[] = {
-  {"Online Monitor",           // equipment name 
-   {10,                        // event ID 
-    TRIGGER_ALL,               // trigger mask 
-    GET_NONBLOCKING,           // get some events 
-    "BUF1",                    // event buffer 
-    TRUE,                      // enabled 
+  {"Online Monitor",           // equipment name
+   {10,                        // event ID
+    TRIGGER_ALL,               // trigger mask
+    GET_NONBLOCKING,           // get some events
+    "BUF1",                    // event buffer
+    TRUE,                      // enabled
     "", "",},
-   analyze_trigger_event,      // analyzer routine 
-   NULL,                       // module list 
-   trigger_bank_list,          // list 
-   10000,                      // RWNT buffer size 
+   analyze_trigger_event,      // analyzer routine
+   NULL,                       // module list
+   trigger_bank_list,          // list
+   10000,                      // RWNT buffer size
   },
-  
+
   {""}
 };
 
@@ -128,23 +128,24 @@ INT analyzer_init()
   ::plot_waveforms_thread = std::thread(plot_waveforms_loop);
 
   // Register my own stop hook.
-  cm_register_transition(TR_STOP, tr_stop_hook, 900);  
+  cm_register_transition(TR_STOP, tr_stop_hook, 900);
 
   // following code opens ODB structures to make them accessible
-  // from the analyzer code as C structures 
+  // from the analyzer code as C structures
   cm_get_experiment_database(&hDB, NULL);
   db_find_key(hDB, 0, "/Custom/Path", &hkey);
-  
+
   if (hkey) {
     size = sizeof(str);
     db_get_data(hDB, hkey, str, &size, TID_STRING);
     if (str[strlen(str) - 1] != DIR_SEPARATOR) {
       strcat(str, DIR_SEPARATOR_STR);
     }
+  } else {
+    cm_msg(MERROR, "init", "/Custom/Path not defined");
   }
 
-  
-  // Filepaths are too long, so moving to /tmp
+  // Filepaths should start in the custom resources.
   figdir = std::string(str) + std::string("static/fig/");
   gROOT->SetBatch(true);
   gStyle->SetOptStat(false);
@@ -157,8 +158,8 @@ INT analyzer_init()
   if (hkey) {
     return SUCCESS;
   }
-   
-  // Sset up the ODB refs for histo images.
+
+  // Set up the ODB refs for histo images.
   for (i = 0; i < SHIM_FIXED_CH; i++) {
     char title[32], name[32], key[64], figpath[64];
 
@@ -205,15 +206,15 @@ INT analyzer_exit()
   time_for_breakdown = true;
 
   while(!merge_root_thread.joinable());
-  
+
   merge_root_thread.join();
 
   while(!plot_waveforms_thread.joinable());
-  
+
   plot_waveforms_thread.join();
 
   while(!archive_config_thread.joinable());
-  
+
   archive_config_thread.join();
 
   return CM_SUCCESS;
@@ -257,14 +258,14 @@ INT analyzer_loop()
 
 //-- Analyze Events --------------------------------------------------------//
 
-INT analyze_trigger_event(EVENT_HEADER * pheader, void *pevent)
+INT analyze_trigger_event(EVENT_HEADER *pheader, void *pevent)
 {
-  cm_msg(MINFO, analyzer_name, "analyzing event");
+  cm_msg(MLOG, "analyze_trigger_event", "nalyzing event");
 
   // We need these for each FID, so keep them allocated.
   HNDLE hDB, hkey;
-  unsigned int ch, idx;
   DWORD *pvme;
+  unsigned int ch, idx;
   float *pfreq;
   double *plaser;
   static double prev_phi = -1;
@@ -276,17 +277,17 @@ INT analyze_trigger_event(EVENT_HEADER * pheader, void *pevent)
   if (bk_locate(pevent, "SHPF", &pvme) != 0) {
 
     platform_data = *reinterpret_cast<daq::shim_platform_st *>(pvme);
-    
+
     cm_get_experiment_database(&hDB, NULL);
-    
+
     // First set the frequencies
     db_find_key(hDB, 0, "/Custom/Data/shim-platform/freq", &hkey);
 
     if (hkey) {
       db_set_data(hDB, hkey,
-                  platform_data.freq, 
-                  sizeof(platform_data.freq), 
-                  SHIM_PLATFORM_CH, 
+                  platform_data.freq,
+                  sizeof(platform_data.freq),
+                  SHIM_PLATFORM_CH,
                   TID_DOUBLE);
     }
 
@@ -296,8 +297,8 @@ INT analyze_trigger_event(EVENT_HEADER * pheader, void *pevent)
     if (hkey) {
       db_set_data(hDB, hkey,
                   platform_data.freq,
-                  sizeof(platform_data.health), 
-                  SHIM_PLATFORM_CH, 
+                  sizeof(platform_data.health),
+                  SHIM_PLATFORM_CH,
                   TID_WORD);
     }
 
@@ -306,7 +307,7 @@ INT analyze_trigger_event(EVENT_HEADER * pheader, void *pevent)
 
     if (hkey) {
       auto time = platform_data.sys_clock[0];
-      db_set_data(hDB, hkey, &time, sizeof(time), 1, TID_DOUBLE); 
+      db_set_data(hDB, hkey, &time, sizeof(time), 1, TID_DOUBLE);
     }
 
     // And increment the monotonic event ref.
@@ -315,12 +316,12 @@ INT analyze_trigger_event(EVENT_HEADER * pheader, void *pevent)
     if (hkey) {
       double id;
       int size = sizeof(id);
-      db_get_data(hDB, hkey, &id, &size, TID_DOUBLE); 
+      db_get_data(hDB, hkey, &id, &size, TID_DOUBLE);
 
       id += 1;
-      db_set_data(hDB, hkey, &id, sizeof(id), 1, TID_DOUBLE); 
+      db_set_data(hDB, hkey, &id, sizeof(id), 1, TID_DOUBLE);
     }
-    
+
     if (bk_locate(pevent, "LTRK", &plaser) != 0) {
       printf("Found laser\n");
       this_phi = plaser[4];
@@ -395,12 +396,12 @@ void plot_waveforms_loop()
   while (!time_for_breakdown) {
 
     if (new_platform_waveforms) {
-      
+
       cm_msg(MINFO, "online_analyzer", "Processing a shim_platform event.");
-      
+
       wf.resize(SHORT_FID_LN);
       tm.resize(SHORT_FID_LN);
-      
+
       // Set up the time vector.
       for (idx = 0; idx < SHORT_FID_LN; idx++){
         tm[idx] = idx * 0.001;  // @1 MHz, t = [0ms, 10ms]
@@ -409,58 +410,58 @@ void plot_waveforms_loop()
       // Copy and analyze each channel's FID separately.
       for (ch = 0; ch < SHIM_PLATFORM_CH; ++ch) {
 
-        std::copy(&platform_data.trace[ch][0], 
-                  &platform_data.trace[ch + 1][0], 
+        std::copy(&platform_data.trace[ch][0],
+                  &platform_data.trace[ch + 1][0],
                   wf.begin());
 
         fid::Fid myfid(wf, tm);
-        
+
         sprintf(name, "shim_platform_ch%02i_wf", ch);
         sprintf(title, "Channel %i Trace", ch);
-        ph_wfm = new TH1F(name, title, SHORT_FID_LN, myfid.tm()[0], 
+        ph_wfm = new TH1F(name, title, SHORT_FID_LN, myfid.tm()[0],
                           myfid.tm()[myfid.tm().size() - 1]);
 
         // Make sure ROOT lets us delete completely.
         ph_wfm->SetDirectory(0);
-        
+
         sprintf(name, "shim_platform_ch%02i_fft", ch);
         sprintf(title, "Channel %i Fourier Transform", ch);
-        ph_fft = new TH1F(name, title, SHORT_FID_LN, myfid.fftfreq()[0], 
+        ph_fft = new TH1F(name, title, SHORT_FID_LN, myfid.fftfreq()[0],
                           myfid.fftfreq()[myfid.fftfreq().size() - 1]);
 
         // Make sure ROOT lets us delete completely.
         ph_fft->SetDirectory(0);
-        
+
         // One histogram gets the waveform and another with the fft power.
         for (idx = 0; idx < myfid.psd().size(); ++idx){
           ph_wfm->SetBinContent(idx, myfid.wf()[idx]);
           ph_fft->SetBinContent(idx, myfid.psd()[idx]);
         }
-        
+
         // The waveform has more samples.
         for (; idx < SHORT_FID_LN; ++idx) {
           ph_wfm->SetBinContent(idx, myfid.wf()[idx]);
         }
-        
+
         c1.Clear();
         c1.SetLogx(0);
         c1.SetLogy(0);
         ph_wfm->Draw();
-        c1.Print(TString::Format("%s/%s.gif", 
-                                 figdir.c_str(), 
+        c1.Print(TString::Format("%s/%s.gif",
+                                 figdir.c_str(),
                                  ph_wfm->GetName()));
         c1.Clear();
         c1.SetLogx(1);
         c1.SetLogy(1);
         ph_fft->Draw();
-        c1.Print(TString::Format("%s/%s.gif", 
-                                 figdir.c_str(), 
+        c1.Print(TString::Format("%s/%s.gif",
+                                 figdir.c_str(),
                                  ph_fft->GetName()));
-        
+
         if (ph_wfm != nullptr) {
           delete ph_wfm;
         }
-        
+
         if (ph_fft != nullptr) {
           delete ph_fft;
         }
@@ -468,71 +469,71 @@ void plot_waveforms_loop()
 
       new_platform_waveforms = false;
     }
-    
+
     if (new_fixed_waveforms) {
       // Look for the first SHIM_FIXED traces.
       cm_msg(MINFO, "online_analyzer", "Processing a shim_fixed event.");
-      
+
       wf.resize(SHORT_FID_LN);
       tm.resize(SHORT_FID_LN);
-      
+
       // Set up the time vector.
       for (idx = 0; idx < SHORT_FID_LN; idx++){
         tm[idx] = idx * 0.0001;  // @10 MHz, t = [0ms, 10ms]
       }
-      
+
       // Copy and analyze each channel's FID separately.
       for (ch = 0; ch < SHIM_FIXED_CH; ++ch) {
-        
-        std::copy(&fixed_data.trace[ch][0], 
+
+        std::copy(&fixed_data.trace[ch][0],
                   &fixed_data.trace[ch + 1][0],
                   wf.begin());
-        
+
         fid::Fid myfid(wf, tm);
-        
+
         sprintf(name, "shim_fixed_ch%02i_wf", ch);
         sprintf(title, "NMR Probe %i Trace", ch + 1);
-        ph_wfm = new TH1F(name, title, SHORT_FID_LN, myfid.tm()[0], 
+        ph_wfm = new TH1F(name, title, SHORT_FID_LN, myfid.tm()[0],
                           myfid.tm()[myfid.tm().size() - 1]);
 
         // Make sure ROOT lets us delete completely.
         ph_wfm->SetDirectory(0);
-        
+
         sprintf(name, "shim_fixed_ch%02i_fft", ch);
         sprintf(title, "NMR Probe %i Fourier Transform", ch + 1);
-        ph_fft = new TH1F(name, title, SHORT_FID_LN, myfid.fftfreq()[0], 
+        ph_fft = new TH1F(name, title, SHORT_FID_LN, myfid.fftfreq()[0],
                           myfid.fftfreq()[myfid.fftfreq().size() - 1]);
-        
+
         // Make sure ROOT lets us delete completely.
         ph_fft->SetDirectory(0);
-        
+
         // One histogram gets the waveform and another with the fft power.
         for (idx = 0; idx < myfid.psd().size(); ++idx){
           ph_wfm->SetBinContent(idx, myfid.wf()[idx]);
           ph_fft->SetBinContent(idx, myfid.psd()[idx]);
         }
-        
+
         // The waveform has more samples.
         for (; idx < SHORT_FID_LN; ++idx) {
           ph_wfm->SetBinContent(idx, myfid.wf()[idx]);
         }
-        
+
         c1.Clear();
         c1.SetLogx(0);
         c1.SetLogy(0);
         ph_wfm->Draw();
         c1.Print(TString::Format("%s/%s.gif", figdir.c_str(), ph_wfm->GetName()));
-        
+
         c1.Clear();
         c1.SetLogx(1);
         c1.SetLogy(1);
         ph_fft->Draw();
         c1.Print(TString::Format("%s/%s.gif", figdir.c_str(), ph_fft->GetName()));
-        
+
         if (ph_wfm != nullptr) {
           delete ph_wfm;
         }
-        
+
         if (ph_fft != nullptr) {
           delete ph_fft;
         }
@@ -547,13 +548,13 @@ void plot_waveforms_loop()
 
 
 //-- Run Control Hooks -----------------------------------------------------//
-INT tr_stop_hook(INT run_number, char *error) 
+INT tr_stop_hook(INT run_number, char *error)
 {
   // Set the data merger info.
   atomic_run_number = run_number;
   new_run_to_process = true;
   new_config_to_archive = true;
-  
+
   return CM_SUCCESS;
 }
 
@@ -575,10 +576,10 @@ void merge_data_loop()
   TTree *pt_old_shim_fixed;
   TTree *pt_shim_platform;
   TTree *pt_shim_fixed;
-    
+
   cm_get_experiment_database(&hDB, NULL);
   db_find_key(hDB, 0, "/Logger/Data dir", &hkey);
-    
+
   if (hkey) {
     size = sizeof(str);
     db_get_data(hDB, hkey, str, &size, TID_STRING);
@@ -588,7 +589,7 @@ void merge_data_loop()
   }
 
   while (!time_for_breakdown) {
-    
+
     run_number = atomic_run_number;
 
     if (new_run_to_process && write_root) {
@@ -629,18 +630,18 @@ void merge_data_loop()
 
       // Make sure the file was written and clean up.
       pf_final = new TFile(filename);
-  
+
       if (!pf_final->IsZombie()) {
         char cmd[256];
         sprintf(cmd, "rm %s/fe_sis33*_run_%05i.root", str, run_number);
         system(cmd);
       }
-    
+
       pf_final->Close();
 
       ::new_run_to_process = false;
     }
-    
+
     usleep(100000);
   }
 }
@@ -700,7 +701,7 @@ void archive_config_loop()
   confdir = std::string(str);
 
   while (!time_for_breakdown) {
-    
+
     run_number = atomic_run_number;
 
     if (new_config_to_archive) {
@@ -765,7 +766,7 @@ void archive_config_loop()
         try {
           read_json(conf_file, pt_temp);
           pt_archive.put_child("fe_run_fixed", pt_temp);
-        
+
         } catch(...) {}
       }
 
@@ -785,26 +786,26 @@ void archive_config_loop()
 
             try {
               str1 = std::string(val2.second.data());
-              
+
             } catch (...) {
-              
+
               continue;
             }
 
             if (str1.find("json") != std::string::npos) {
-              
+
               conf_file = confdir + str1;
               read_json(conf_file, pt_temp);
-              
+
               pt_archive.put_child(val2.first, pt_temp);
-              
+
             }
           }
         }
-        
+
         // And all the other first level keys.
         for (auto &val : pt_archive.get_child(key)) {
-          
+
           try {
             str1 = std::string(val.second.data());
 
@@ -814,10 +815,10 @@ void archive_config_loop()
           }
 
           if (str1.find("json") != std::string::npos) {
-            
+
             conf_file = confdir + str1;
             read_json(conf_file, pt_temp);
-          
+
             pt_archive.put_child(val.first, pt_temp);
           }
         }
@@ -859,7 +860,7 @@ void archive_config_loop()
       if (hkey) {
         size = sizeof(str);
         db_get_data(hDB, hkey, str, &size, TID_STRING);
-    
+
         ptree pt_tags;
         std::string tag;
         std::istringstream ss(str);
@@ -868,7 +869,7 @@ void archive_config_loop()
           pt_tag.put("", tag);
           pt_tags.push_back(std::make_pair("", pt_tag));
         }
-    
+
         pt_run.put_child("tags", pt_tags);
       }
 
@@ -901,7 +902,7 @@ void archive_config_loop()
 
       // Get the laser tracker point from the ODB
       db_find_key(hDB,
-                  0, 
+                  0,
                   "/Experiment/Run Parameters/Laser Tracker Point",
                   &hkey);
 
