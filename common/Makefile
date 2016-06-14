@@ -1,6 +1,4 @@
 # Makefile for utilities
 
 all:
-	cd src;
-	make all;
-	cd ..;
+	$(MAKE) -C src all;
