@@ -23,4 +23,6 @@ embedded/subm_260/subm_260
 analyzer
 mscb_fe
 mscb_fe2
+mscb_cart
+mscb_ring
 DataLibraryDict.cpp
