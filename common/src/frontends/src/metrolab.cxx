@@ -4,12 +4,10 @@ Name:   Metrolab RS232 client
 Author: Peter Winter
 Email:  winterp@anl.gov
 
-About:  A simple frontend to communicate with the Metrolab via RS232 and
-      that is synchronized to the SyncTrigger class in shim_trigger using
-      a SyncClient. Boilerplate code is surrounded with @sync flags and
-      places needing user code are marked with @user.
+About:  A simple frontend to communicate with the Metrolab via RS232.
 
 \*****************************************************************************/
+
 
 //--- std includes ----------------------------------------------------------//
 #include <string>
@@ -102,7 +100,7 @@ typedef struct {
 METROLAB_SETTINGS metrolab_settings;
 
 #define METROLAB_SETTINGS_STR "\
-Address = STRING : [128] /dev/ttyUSB%i\n\
+device_path = STRING : [128] /dev/ttyUSB%i\n\
 "
 
 int serial_port;
