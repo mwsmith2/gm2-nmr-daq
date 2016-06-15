@@ -34,6 +34,7 @@ using std::endl;
 //--- project includes ------------------------------------------------------//
 #include "common.hh"
 #include "sync_trigger.hh"
+#include "frontend_utils.hh"
 
 //--- global variables ------------------------------------------------------//
 #define FRONTEND_NAME "Sync Trigger"
@@ -120,6 +121,10 @@ boost::property_tree::ptree conf;
 INT frontend_init()
 {
   int rc = load_settings(frontend_name, conf);
+  boost::property_tree::write_json(std::cout, conf);
+  if (rc != SUCCESS) {
+    return rc;
+  }
 
   string trigger_addr = conf.get<string>("sync_trigger_addr");
   int trigger_port = conf.get<int>("fast_trigger_port");
