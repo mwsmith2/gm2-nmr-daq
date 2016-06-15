@@ -26,20 +26,22 @@ using std::string;
 using namespace std;
 
 //--- other includes --------------------------------------------------------//
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/filesystem.hpp>
 #include "midas.h"
-#include "boost/property_tree/ptree.hpp"
-#include "boost/property_tree/json_parser.hpp"
 
 //--- project includes ------------------------------------------------------//
 #include "sync_client.hh"
+#include "frontend_utils.hh"
 
 //--- globals ---------------------------------------------------------------//
-#define FE_NAME "Capacitec"
+#define FRONTEND_NAME "Capacitec"
 
 extern "C" {
 
   // The frontend name (client name) as seen by other MIDAS clients
-  char *frontend_name = (char *)FE_NAME;
+  char *frontend_name = (char *)FRONTEND_NAME;
 
   // The frontend file name, don't change it.
   char *frontend_file_name = (char*) __FILE__;
@@ -76,7 +78,7 @@ extern "C" {
 
   EQUIPMENT equipment[] =
     {
-      {FE_NAME, //"capacitec", // equipment name
+      {FRONTEND_NAME, //"capacitec", // equipment name
        { 10, 0,          // event ID, trigger mask
          "BUF1",      // event buffer (use to be SYSTEM)
          EQ_POLLED |
@@ -99,58 +101,29 @@ extern "C" {
 
 } //extern C
 
+boost::property_tree::ptree conf;
+
 daq::SyncClient *listener_trigger;
 daq::SyncClient *listener_stepper;
+
 
 //--- Frontend Init -------------------------------------------------------//
 INT frontend_init()
 {
-  // DATA part
-  HNDLE hDB, hkey;
-  INT status, tmp;
-  char str[256], filename[256];
-  int size;
-
-  cm_get_experiment_database(&hDB, NULL);
-  db_find_key(hDB, 0, "Params/config-dir", &hkey);
-
-  if (hkey) {
-    size = sizeof(str);
-    db_get_data(hDB, hkey, str, &size, TID_STRING);
-    if (str[strlen(str) - 1] != DIR_SEPARATOR) {
-      strcat(str, DIR_SEPARATOR_STR);
-    }
+  int rc = load_settings(frontend_name, conf);
+  if (rc != SUCCESS) {
+    return rc;
   }
-
-  // Get the config for the synchronized trigger.
-  db_find_key(hDB, 0, "Params/sync-trigger-address", &hkey);
-
-  if (hkey) {
-    size = sizeof(str);
-    db_get_data(hDB, hkey, str, &size, TID_STRING);
-  }
-
-  string trigger_addr(str);
-
-  db_find_key(hDB, 0, "Params/fast-trigger-port", &hkey);
-
-  if (hkey) {
-    size = sizeof(tmp);
-    db_get_data(hDB, hkey, &tmp, &size, TID_INT);
-  }
-
-  int trigger_port(tmp);
 
   listener_trigger = new daq::SyncClient(std::string(frontend_name),
-                                         trigger_addr,
-                                         trigger_port);
+                                         conf.get<string>("sync_trigger_addr"),
+                                         conf.get<int>("fast_trigger_port"));
 
   listener_stepper = new daq::SyncClient(std::string(frontend_name),
-                                         trigger_addr,
-                                         trigger_port + 30);
+                                         conf.get<string>("sync_trigger_addr"),
+                                         conf.get<int>("fast_trigger_port") + 30);
 
   cm_msg(MDEBUG, "init_frontend", "success");
-
   return SUCCESS;
 }
 
