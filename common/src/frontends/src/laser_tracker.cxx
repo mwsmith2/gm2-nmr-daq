@@ -32,6 +32,7 @@ using namespace std;
 
 //--- project includes ---------------------------------------------//
 #include "sync_client.hh"
+#include "frontend_utils.hh"
 
 //--- globals ------------------------------------------------------//
 
@@ -44,10 +45,10 @@ extern "C" {
 
   // The frontend name (client name) as seen by other MIDAS clients
   // fe_name , as above
-  char * frontend_name = FE_NAME;
+  char * frontend_name = (char *)FE_NAME;
 
   // The frontend file name, don't change it.
-  char *frontend_file_name = (char*) __FILE__;
+  char *frontend_file_name = (char*)__FILE__;
 
   // frontend_loop is called periodically if this variable is TRUE
   BOOL frontend_call_loop = FALSE;
@@ -116,6 +117,8 @@ extern "C" {
 
 RUNINFO runinfo;
 
+boost::property_tree::ptree conf;
+
 // @sync: begin boilerplate
 daq::SyncClient *listener;
 daq::SyncClient *listenerStepper;
@@ -153,37 +156,15 @@ INT frontend_init()
   if (p2) printf("USING P2\n");
   sleep(2);
 
-  db_find_key(hDB, 0, "Params/config-dir", &hkey);
+  load_settings(frontend_name, conf);
 
-  if (hkey) {
-    size = sizeof(str);
-    db_get_data(hDB, hkey, str, &size, TID_STRING);
-    if (str[strlen(str) - 1] != DIR_SEPARATOR) {
-      strcat(str, DIR_SEPARATOR_STR);
-    }
-  }
+  listener = new daq::SyncClient(std::string(frontend_name),
+                                 conf.get<string>("sync_trigger_addr"),
+                                 conf.get<int>("fast_trigger_port"));
 
-  // Get the config for the synchronized trigger.
-  db_find_key(hDB, 0, "Params/sync-trigger-address", &hkey);
-
-  if (hkey) {
-    size = sizeof(str);
-    db_get_data(hDB, hkey, str, &size, TID_STRING);
-  }
-
-  string trigger_addr(str);
-
-  db_find_key(hDB, 0, "Params/fast-trigger-port", &hkey);
-
-  if (hkey) {
-    size = sizeof(tmp);
-    db_get_data(hDB, hkey, &tmp, &size, TID_INT);
-  }
-
-  int trigger_port(tmp);
-
-  listener = new daq::SyncClient(trigger_addr, trigger_port);
-  listenerStepper = new daq::SyncClient(trigger_addr, trigger_port+30);
+  listenerStepper = new daq::SyncClient(std::string(frontend_name),
+                                 conf.get<string>("sync_trigger_addr"),
+                                 conf.get<int>("fast_trigger_port") + 30);
 
  // @sync: end boilderplate
   // Note that if no address is specifed the SyncClient operates
