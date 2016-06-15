@@ -27,8 +27,10 @@ About:  Aggregates the data sources for the radial field measurement
 #include "yocto_temperature.h"
 #include "midas.h"
 
-//--- globals ---------------------------------------------------------------//
+//--- project includes ------------------------------------------------------//
+#include "frontend_utils.hh"
 
+//--- globals ---------------------------------------------------------------//
 #define FRONTEND_NAME "Hall Probe"
 
 extern "C" {
@@ -111,36 +113,19 @@ YTemperature *temp_probe;
 int keithley_port;
 int yokogawa_port;
 
+boost::property_tree::ptree conf;
+
 //--- Frontend Init -------------------------------------------------//
 INT frontend_init()
 {
-  HNDLE hDB, hkey;
-  INT status, tmp;
-  char str[256], filename[256];
-  int size;
-
   std::string err;
-
-  cm_get_experiment_database(&hDB, NULL);
-
-  sprintf(str, "/Equipment/%s/Settings", FRONTEND_NAME);
-  status = db_create_record(hDB, 0, str, HALL_PROBE_PLATFORM_SETTINGS_STR);
-  if (status != DB_SUCCESS){
-    cm_msg(MERROR, "init", "could not create record %s", str);
-    return FE_ERR_ODB;
-  }
-
-  if (db_find_key(hDB, 0, str, &hkey) == DB_SUCCESS) {
-    size = sizeof(HALL_PROBE_PLATFORM_SETTINGS);
-    db_get_record(hDB, hkey, &hall_probe_platform_settings, &size, 0);
-  } else {
-    cm_msg(MERROR, "init", "could not load settings from ODB");
-  }
 
   // Get the handle for the Keithley 2100
   char pt100_devname[128];
   char keithley_devname[128];
   char yokogawa_devname[128];
+
+  load_settings(frontend_name, conf);
 
   std::stringstream ss;
   std::string s;
@@ -149,6 +134,11 @@ INT frontend_init()
   if (in.good()) {
     ss << in.rdbuf();
     in.close();
+
+  } else {
+
+    cm_msg(MERROR, "init", "usbtmc devices not found");
+    return FE_ERR_HW;
   }
 
   for (int i = 0; i < 16; ++i) {
@@ -166,14 +156,15 @@ INT frontend_init()
   }
 
   keithley_port = open(keithley_devname, O_RDWR);
+  // yokogawa_port = open(yokogawa_devname, O_RDWR);
 
   // If the default didn't exist, skip it.
-  if (keithley_port == -1) {
+  if (keithley_port < 0) {
     cm_msg(MERROR, "init", "could not find Keithley 2100 device");
     return FE_ERR_HW;
   }
 
-  if (yokogawa_port == -1) {
+  if (yokogawa_port < 0) {
     cm_msg(MERROR, "init", "could not find Yokogawa 2100 device");
     return FE_ERR_HW;
   }
@@ -182,14 +173,16 @@ INT frontend_init()
   yRegisterHub("usb", err);
 
   sprintf(pt100_devname, "%s.temperature",
-          hall_probe_platform_settings.pt100_dev);
+          conf.get<string>("PT100 Device Name").c_str());
 
   temp_probe = yFindTemperature(pt100_devname);
 
   if (temp_probe == nullptr) {
-    cm_msg(MERROR, "init", "Could not find Yoctopuce PT100 device");
+    cm_msg(MERROR, "init", "could not find Yoctopuce PT100 device");
     return FE_ERR_HW;
   }
+
+  cm_msg(MDEBUG, "init", "successful initialization");
 
   return SUCCESS;
 }
