@@ -28,7 +28,7 @@ using std::string;
 #include "midas.h"
 #include "TFile.h"
 #include "TTree.h"
-#include <curl/curl.h>
+#include "curl/curl.h"
 
 //--- project includes ------------------------------------------------------//
 #include "event_manager_trg_seq.hh"
@@ -36,6 +36,7 @@ using std::string;
 #include "dio_stepper_motor.hh"
 #include "ino_stepper_motor.hh"
 #include "common.hh"
+#include "frontend_utils.hh"
 
 //--- globals ---------------------------------------------------------------//
 #define FRONTEND_NAME "Shim Platform"
@@ -46,7 +47,7 @@ extern "C" {
   char *frontend_name = (char *)FRONTEND_NAME;
 
   // The frontend file name, don't change it.
-  char *frontend_file_name = (char *) __FILE__;
+  char *frontend_file_name = (char *)__FILE__;
 
   // frontend_loop is called periodically if this variable is TRUE
   BOOL frontend_call_loop = FALSE;
@@ -126,6 +127,8 @@ std::atomic<bool> thread_live;
 std::thread trigger_thread;
 std::mutex data_mutex;
 
+boost::property_tree::ptree conf;
+
 daq::shim_platform_st data; // st = short trace
 daq::EventManagerTrgSeq *event_manager;
 daq::SyncClient *readout_listener;  // for readout.
@@ -138,169 +141,130 @@ const char *const mbank_name = (char *)"SHPF";
 }
 
 void trigger_loop();
+void set_json_tmpfiles();
+int load_device_classes();
 
-//--- Frontend Init ----------------------------------------------------------//
-INT frontend_init()
+void set_json_tmpfiles()
 {
-  // DATA part
-  string conf_dir;
-  string conf_file;
-  HNDLE hDB, hkey;
-  INT status, tmp;
-  char str[256], filename[256];
-  int size;
+  // Allocations
+  char tmp_file[256];
+  std::string conf_file;
+  boost::property_tree::ptree pt;
 
-  // Get the config directory and file.
-  cm_get_experiment_database(&hDB, NULL);
-  db_find_key(hDB, 0, "Params/config-dir", &hkey);
+  snprintf(tmp_file, 128, "/tmp/gm2-nmr-config_XXXXXX.json");
+  mkstemps(tmp_file, 5);
+  conf_file = std::string(tmp_file);
 
-  if (hkey) {
-    size = sizeof(str);
-    db_get_data(hDB, hkey, str, &size, TID_STRING);
-    if (str[strlen(str) - 1] != DIR_SEPARATOR) {
-      strcat(str, DIR_SEPARATOR_STR);
-    }
-  } else {
+  // Copy the json, and set to the temp file.
+  pt = conf.get_child("trg_seq_file");
+  conf.erase("trg_seq_file");
+  conf.put<std::string>("trg_seq_file", conf_file);
+  boost::property_tree::write_json(conf_file, pt);
 
-    cm_msg(MERROR, "init", "Config directory not specified in ODB.");
-  }
+  // Now the mux configuration
+  snprintf(tmp_file, 128, "/tmp/gm2-nmr-config_XXXXXX.json");
+  mkstemps(tmp_file, 5);
+  conf_file = std::string(tmp_file);
 
-  conf_dir = std::string(str);
+  // Copy the json, and set to the temp file.
+  pt = conf.get_child("mux_conf_file");
+  conf.erase("mux_conf_file");
+  conf.put<std::string>("mux_conf_file",  conf_file);
+  boost::property_tree::write_json(conf_file, pt);
 
-  db_find_key(hDB, 0, "Params/config-file/shim-platform", &hkey);
-  if (hkey) {
-    size = sizeof(str);
-    db_get_data(hDB, hkey, str, &size, TID_STRING);
+  // And the fid params.
+  snprintf(tmp_file, 128, "/tmp/gm2-nmr-config_XXXXXX.json");
+  mkstemps(tmp_file, 5);
+  conf_file = std::string(tmp_file);
 
-    conf_file = conf_dir + std::string(str);
+  // Copy the json, and set to the temp file.
+  pt = conf.get_child("fid_conf_file");
+  conf.erase("fid_conf_file");
+  conf.put<std::string>("fid_conf_file", conf_file);
+  boost::property_tree::write_json(conf_file, pt);
 
-  } else {
+  // And finally the stepper motor.
+  snprintf(tmp_file, 128, "/tmp/gm2-nmr-config_XXXXXX.json");
+  mkstemps(tmp_file, 5);
+  conf_file = std::string(tmp_file);
 
-    conf_file = conf_dir + std::string("fnal/fe_shim_platform.json");
+  // Copy the json, and set to the temp file.
+  pt = conf.get_child("stepper_motor_file");
+  conf.erase("stepper_motor_file");
+  conf.put<std::string>("stepper_motor_file", conf_file);
+  boost::property_tree::write_json(conf_file, pt);
 
-    snprintf(str, 256,
-             "Shim platform config file not in ODB, using default: %s",
-             conf_file.c_str());
+  // Now save the config to a temp file and feed it to the Event Manager.
+  snprintf(tmp_file, 128, "/tmp/gm2-nmr-config_XXXXXX.json");
+  mkstemps(tmp_file, 5);
+  conf_file = std::string(tmp_file);
+  boost::property_tree::write_json(conf_file, conf);
+}
 
-    cm_msg(MLOG, "init", str);
-  }
+int load_device_classes()
+{
+  // Allocations
+  char str[256];
+  std::string conf_file;
 
-  // Set up the stepper motor.
+  // Set up the event mananger.
+  conf_file = conf.get<std::string>("trg_seq_file");
   event_manager = new daq::EventManagerTrgSeq(conf_file, nprobes);
 
-  db_find_key(hDB, 0, "Params/config-file/stepper-motor", &hkey);
-  if (hkey) {
-    size = sizeof(str);
-    db_get_data(hDB, hkey, str, &size, TID_STRING);
+  if (conf.get<std::string>("stepper_type") == "INO") {
 
-    conf_file = conf_dir + std::string(str);
-
-  } else {
-
-    conf_file = conf_dir + std::string("fnal/stepper_motor.json");
-
-    snprintf(str, 256,
-             "Stepper motor config file not in ODB, using default: %s",
-             conf_file.c_str());
-
-    cm_msg(MLOG, "init", str);
-  }
-
-  db_find_key(hDB, 0, "Params/stepper-motor/type", &hkey);
-  if (hkey) {
-    size = sizeof(str);
-    db_get_data(hDB, hkey, str, &size, TID_STRING);
-
-    if (std::string(str) == "INO") {
-
-      ino_stepper_type = true;
-
-    } else {
-      ino_stepper_type = false;
-    }
+    ino_stepper_type = true;
 
   } else {
 
     ino_stepper_type = false;
-    cm_msg(MINFO,
-           "init",
-           "Stepper motor type not in ODB, assuming not Arduino");
   }
 
   if (ino_stepper_type) {
+
+    conf_file = conf.get<std::string>("stepper_motor_file");
     ino_stepper = new daq::InoStepperMotor(conf_file);
-    cm_msg(MLOG, "init", "Loading Arduino stepper motor type");
 
   } else {
 
+    conf_file = conf.get<std::string>("stepper_motor_file");
     dio_stepper = new daq::DioStepperMotor(0x0, daq::BOARD_B, conf_file);
-    cm_msg(MLOG, "init", "Loading Acromag IO stepper motor type");
   }
-
-  // Get the config for the synchronized trigger.
-  db_find_key(hDB, 0, "Params/sync-trigger-address", &hkey);
-
-  if (hkey) {
-    size = sizeof(str);
-    db_get_data(hDB, hkey, str, &size, TID_STRING);
-
-  } else {
-
-    cm_msg(MERROR, "init", "sync-trigger-address not specified in ODB");
-  }
-
-  string trigger_addr(str);
-
-  db_find_key(hDB, 0, "Params/fast-trigger-port", &hkey);
-
-  if (hkey) {
-    size = sizeof(tmp);
-    db_get_data(hDB, hkey, &tmp, &size, TID_INT);
-
-  } else {
-
-    cm_msg(MERROR, "init", "fast-trigger-port not specified in ODB");
-  }
-
-  int trigger_port(tmp);
 
   readout_listener = new daq::SyncClient(std::string(frontend_name),
-                                         trigger_addr,
-                                         trigger_port);
+                                         conf.get<string>("sync_trigger_addr"),
+                                         conf.get<int>("fast_trigger_port"));
 
+  //Brendan : Piggy-back off of the port information already extracted for the listener, and increment it by 1
 
   stepper_listener = new daq::SyncClient(std::string(frontend_name),
-                                         trigger_addr,
-                                         trigger_port + 30);
+                                         conf.get<string>("sync_trigger_addr"),
+                                         conf.get<int>("fast_trigger_port") + 30);
 
   // Load the steppper motor params.
-  db_find_key(hDB, 0, "/Params/stepper-motor", &hkey);
+  step_size = conf.get<double>("step_size");
+  event_rate_limit = conf.get<double>("event_rate_limit");
+  num_steps = conf.get<int>("num_steps");
+  num_shots = conf.get<int>("num_shots");
+  use_stepper = conf.get<bool>("use_stepper");
 
-  if (hkey) {
+  return SUCCESS;
+}
 
-    // Doubles first.
-    size = sizeof(step_size);
+//--- Frontend Init ----------------------------------------------------------//
+INT frontend_init()
+{
+  INT rc = load_settings(frontend_name, conf);
 
-    db_get_value(hDB, hkey, "step_size",
-                 &step_size, &size, TID_DOUBLE, false);
+  if (rc != SUCCESS) {
+    return rc;
+  }
 
-    db_get_value(hDB, hkey, "event_rate_limit",
-                 &event_rate_limit, &size, TID_DOUBLE, false);
+  set_json_tmpfiles();
 
-    // Now ints.
-    db_get_value(hDB, hkey, "num_steps", &num_steps, &size, TID_INT, false);
-    db_get_value(hDB, hkey, "num_shots", &num_shots, &size, TID_INT, false);
-
-    // And finally the bool.
-    BOOL tmp;
-    size = sizeof(tmp);
-    db_get_value(hDB, hkey, "use_stepper", &tmp, &size, TID_BOOL, false);
-    use_stepper = tmp;
-
-  } else {
-
-    cm_msg(MERROR, "init", "stepper motor parameters not specified");
-    return CM_DB_ERROR;
+  rc = load_device_classes();
+  if (rc != SUCCESS) {
+    return rc;
   }
 
   thread_live = true;
@@ -341,28 +305,36 @@ INT frontend_exit()
   return SUCCESS;
 }
 
-//--- Begin of Run --------------------------------------------------*/
+//--- Begin of Run --------------------------------------------------//
 INT begin_of_run(INT run_number, char *error)
 {
-  //DATA part
-  HNDLE hDB, hkey;
-  INT status;
-  BOOL flag;
-  char str[256], filename[256];
-  int size;
+  INT rc = load_settings(frontend_name, conf);
 
-  cm_get_experiment_database(&hDB, NULL);
-  db_find_key(hDB, 0, "/Logger/Data dir", &hkey);
-
-  if (hkey) {
-    size = sizeof(str);
-    db_get_data(hDB, hkey, str, &size, TID_STRING);
-    if (str[strlen(str) - 1] != DIR_SEPARATOR) {
-      strcat(str, DIR_SEPARATOR_STR);
-    }
+  if (rc != SUCCESS) {
+    return rc;
   }
 
-  // Get the run number out of the MIDAS database.
+  set_json_tmpfiles();
+
+  rc = load_device_classes();
+  if (rc != SUCCESS) {
+    return rc;
+  }
+
+   // ODB parameters
+  HNDLE hDB, hkey;
+  char str[256];
+  int size;
+  BOOL flag;
+
+  // Set up the data.
+  std::string datadir;
+  std::string filename;
+
+  // Grab the database handle.
+  cm_get_experiment_database(&hDB, NULL);
+
+  // Get the run info out of the ODB.
   db_find_key(hDB, 0, "/Runinfo", &hkey);
   if (db_open_record(hDB, hkey, &runinfo, sizeof(runinfo), MODE_READ,
 		     NULL, NULL) != DB_SUCCESS) {
@@ -370,13 +342,24 @@ INT begin_of_run(INT run_number, char *error)
     return CM_DB_ERROR;
   }
 
-  strcpy(filename, str);
+  // Get the data directory from the ODB.
+  snprintf(str, sizeof(str), "/Logger/Data dir");
+  db_find_key(hDB, 0, str, &hkey);
 
-  sprintf(str, "root/platform_run_%05d.root", runinfo.run_number);
-  strcat(filename, str);
+  if (hkey) {
+    size = sizeof(str);
+    db_get_data(hDB, hkey, str, &size, TID_STRING);
+    datadir = std::string(str);
+  }
+
+  // Set the filename
+  snprintf(str, sizeof(str), "root/platform_run_%05d.root", runinfo.run_number);
+
+  // Join the directory and filename using boost filesystem.
+  filename = (boost::filesystem::path(datadir) / boost::filesystem::path(str)).string();
 
   // Get the parameter for root output.
-  db_find_key(hDB, 0, "/Params/root-output", &hkey);
+  db_find_key(hDB, 0, "/Experiment/Run Parameters/Root Output", &hkey);
 
   if (hkey) {
     size = sizeof(flag);
@@ -387,7 +370,7 @@ INT begin_of_run(INT run_number, char *error)
 
   if (write_root) {
     // Set up the ROOT data output.
-    root_file = new TFile(filename, "recreate");
+    root_file = new TFile(filename.c_str(), "recreate");
     t = new TTree("t_shpf", "Shim Platform Data");
     t->SetAutoSave(5);
     t->SetAutoFlush(20);
@@ -399,44 +382,22 @@ INT begin_of_run(INT run_number, char *error)
               daq::shim_platform_st_string);
   }
 
-
   //HW part
   event_manager->BeginOfRun();
   readout_listener->SetReady();
   stepper_listener->UnsetReady(); // Make sure the stepper is not set yet
 
   // Reload the step structure.
-  db_find_key(hDB, 0, "/Params/stepper-motor", &hkey);
+  step_size = conf.get<double>("step_size");
+  event_rate_limit = conf.get<double>("step_size");
+  num_steps = conf.get<int>("num_steps");
 
-  if (hkey) {
-
-    // Doubles first.
-    size = sizeof(step_size);
-    db_get_value(hDB, hkey, "step_size",
-                 &step_size, &size, TID_DOUBLE, false);
-
-    db_get_value(hDB, hkey, "event_rate_limit",
-                 &event_rate_limit, &size, TID_DOUBLE, false);
-
-    // Now ints.
-    db_get_value(hDB, hkey, "num_steps", &num_steps, &size, TID_INT, false);
-    db_get_value(hDB, hkey, "num_shots", &num_shots, &size, TID_INT, false);
-
-    if (num_steps < 1) {
-      num_steps = INT_MAX; // basically infinite.
-    }
-
-    // And finally the bool.
-    BOOL tmp;
-    size = sizeof(tmp);
-    db_get_value(hDB, hkey, "use_stepper",
-                 &tmp, &size, TID_BOOL, false);
-
-    use_stepper = tmp;
-  } else {
-
-    cm_msg(MERROR, "begin_of_run", "Stepper parameters not found in ODB");
+  if (num_steps < 1) {
+    num_steps = INT_MAX; // basically infinite.
   }
+
+  // And finally the bool.
+  use_stepper = conf.get<bool>("use_stepper");
 
   run_in_progress = true;
   ready_to_move = false;
