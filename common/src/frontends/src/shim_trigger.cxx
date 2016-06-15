@@ -112,42 +112,17 @@ daq::SyncTrigger *readout_trigger;
 // This is the trigger for the stepper motor movement.
 daq::SyncTrigger *stepper_trigger;
 
+boost::property_tree::ptree conf;
+
 }
 
 //--- Frontend Init ---------------------------------------------------------//
 INT frontend_init()
 {
-  //DATA part
-  HNDLE hDB, hkey;
-  INT status, tmp;
-  char str[256], filename[256];
-  int size;
+  int rc = load_settings(frontend_name, conf);
 
-  // Get the config directory and file.
-  cm_get_experiment_database(&hDB, NULL);
-  db_find_key(hDB, 0, "Params/sync-trigger-address", &hkey);
-
-  if (hkey) {
-    size = sizeof(str);
-    db_get_data(hDB, hkey, str, &size, TID_STRING);
-  } else {
-    cm_msg(MERROR, "init", "sync-trigger-address not found ODB");
-    return CM_DB_ERROR;
-  }
-
-  string trigger_addr(str);
-
-  db_find_key(hDB, 0, "Params/fast-trigger-port", &hkey);
-
-  if (hkey) {
-    size = sizeof(tmp);
-    db_get_data(hDB, hkey, &tmp, &size, TID_INT);
-  } else {
-    cm_msg(MERROR, "init", "fast-trigger-address not found ODB");
-    return CM_DB_ERROR;
-  }
-
-  int trigger_port(tmp);
+  string trigger_addr = conf.get<string>("sync_trigger_addr");
+  int trigger_port = conf.get<int>("fast_trigger_port");
 
   readout_trigger = new daq::SyncTrigger(trigger_addr, trigger_port);
   readout_trigger->SetName("readout-trigger");
