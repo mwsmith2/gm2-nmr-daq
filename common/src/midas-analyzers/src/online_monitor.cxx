@@ -688,144 +688,11 @@ void archive_config_loop()
 
   logdir = std::string(str);
 
-  // Get the config directory.
-  db_find_key(hDB, 0, "/Params/config-dir", &hkey);
-  if (hkey) {
-    size = sizeof(str);
-    db_get_data(hDB, hkey, str, &size, TID_STRING);
-    if (str[strlen(str) - 1] != DIR_SEPARATOR) {
-      strcat(str, DIR_SEPARATOR_STR);
-    }
-  }
-
-  confdir = std::string(str);
-
   while (!time_for_breakdown) {
-
-    run_number = atomic_run_number;
 
     if (new_config_to_archive) {
 
-      sprintf(str, "%srun%05d_config.json", histdir.c_str(), run_number);
-      std::string conf_archive(str);
-      std::string conf_file;
-      std::string str1;
-
-      ptree pt_archive;
-      ptree pt_temp;
-
-      // Open all the files.
-      db_find_key(hDB, 0, "/Params/config-file/shim-platform", &hkey);
-      if (hkey) {
-
-        db_get_data(hDB, hkey, str, &size, TID_STRING);
-        conf_file = confdir + std::string(str);
-
-        try {
-          read_json(conf_file, pt_temp);
-          pt_archive.put_child("fe_shim_platform", pt_temp);
-
-        } catch(...) {}
-      }
-
-      // Open all the files.
-      db_find_key(hDB, 0, "/Params/config-file/shim-fixed", &hkey);
-      if (hkey) {
-
-        db_get_data(hDB, hkey, str, &size, TID_STRING);
-        conf_file = confdir + std::string(str);
-
-        try {
-          read_json(conf_file, pt_temp);
-          pt_archive.put_child("fe_shim_fixed", pt_temp);
-
-        } catch(...) {}
-      }
-
-      // Open all the files.
-      db_find_key(hDB, 0, "/Params/config-file/run-trolley", &hkey);
-      if (hkey) {
-
-        db_get_data(hDB, hkey, str, &size, TID_STRING);
-        conf_file = confdir + std::string(str);
-
-        try {
-          read_json(conf_file, pt_temp);
-          pt_archive.put_child("fe_run_trolley", pt_temp);
-
-        } catch(...) {}
-      }
-
-      // Open all the files.
-      db_find_key(hDB, 0, "/Params/config-file/run-fixed", &hkey);
-      if (hkey) {
-
-        db_get_data(hDB, hkey, str, &size, TID_STRING);
-        conf_file = confdir + std::string(str);
-
-        try {
-          read_json(conf_file, pt_temp);
-          pt_archive.put_child("fe_run_fixed", pt_temp);
-
-        } catch(...) {}
-      }
-
-      // Now go through all the keys, and add the ones that are json files.
-      std::vector<std::string> keys;
-
-      // Get the keys first, otherwise it iterates over added keys too.
-      for (auto &kv : pt_archive)
-        keys.push_back(kv.first);
-
-      // Check the devices for each front-end.
-      for (auto &key : keys) {
-
-        for (auto &val : pt_archive.get_child(key).get_child("devices")) {
-
-          for (auto &val2 : val.second) {
-
-            try {
-              str1 = std::string(val2.second.data());
-
-            } catch (...) {
-
-              continue;
-            }
-
-            if (str1.find("json") != std::string::npos) {
-
-              conf_file = confdir + str1;
-              read_json(conf_file, pt_temp);
-
-              pt_archive.put_child(val2.first, pt_temp);
-
-            }
-          }
-        }
-
-        // And all the other first level keys.
-        for (auto &val : pt_archive.get_child(key)) {
-
-          try {
-            str1 = std::string(val.second.data());
-
-          } catch (...) {
-
-            continue;
-          }
-
-          if (str1.find("json") != std::string::npos) {
-
-            conf_file = confdir + str1;
-            read_json(conf_file, pt_temp);
-
-            pt_archive.put_child(val.first, pt_temp);
-          }
-        }
-      }
-
-      // Write out the archive of config data.
-      write_json(conf_archive, pt_archive, std::locale(), false);
+      run_number = atomic_run_number;
 
       // Now take care of the runlog file with Comments and tags.
       ptree pt_runlog;
@@ -892,7 +759,7 @@ void archive_config_loop()
       }
 
       // Get the step size from the ODB
-      db_find_key(hDB, 0, "/Params/stepper-motor/step_size", &hkey);
+      db_find_key(hDB, 0, "/Experiment/Run Parameters/Step Size", &hkey);
       if (hkey) {
         size = sizeof(temp_double);
         db_get_data(hDB, hkey, &temp_double, &size, TID_DOUBLE);
