@@ -11,7 +11,7 @@ About:  A simple frontend to communicate with the tilt sensors via RS232 and
 
 \*****************************************************************************/
 
-// ---std includes ----------------------------------------------------------//
+//--- std includes ----------------------------------------------------------//
 #include <unistd.h>
 #include <termios.h>
 #include <fcntl.h>
@@ -25,6 +25,9 @@ using namespace std;
 
 //--- other includes --------------------------------------------------------//
 #include "midas.h"
+
+//--- project includes ------------------------------------------------------//
+#include "frontend_utils.hh"
 
 //--- global variables ------------------------------------------------------//
 #define FRONTEND_NAME "Tilt Sensor"
@@ -104,10 +107,11 @@ typedef struct {
 TILT_SENSOR_SETTINGS tilt_sensor_settings;
 
 #define TILT_SENSOR_SETTINGS_STR "\
-Address = STRING : [128] /dev/ttyUSB1\n\
+device_path = STRING : [128] /dev/ttyUSB1\n\
 "
 
 int serial_port;
+boost::property_tree::ptree conf;
 
 //--- frontend init ---------------------------------------------------------//
 INT frontend_init()
@@ -116,21 +120,20 @@ INT frontend_init()
   INT status, tmp;
   char str[256], filename[256];
   int size;
+  int rc;
 
   cm_get_experiment_database(&hDB, NULL);
 
   sprintf(str,"/Equipment/%s/Settings",FRONTEND_NAME);
   status = db_create_record(hDB, 0, str, TILT_SENSOR_SETTINGS_STR);
   if (status != DB_SUCCESS){
-    cm_msg(MERROR, "frontend_init", "could not create record %s\n", str);
+    cm_msg(MERROR, "frontend_init", "could not create record \"%s\"", str);
     return FE_ERR_ODB;
   }
 
-  if(db_find_key(hDB, 0, str, &hkey)==DB_SUCCESS){
-      size = sizeof(TILT_SENSOR_SETTINGS);
-      db_get_record(hDB, hkey, &tilt_sensor_settings, &size, 0);
-  } else {
-    cm_msg(MERROR, "init", "could not load settings from ODB");
+  rc = load_settings(frontend_name, conf);
+  if (rc != SUCCESS) {
+    return rc;
   }
 
   char devname[100];
@@ -138,7 +141,7 @@ INT frontend_init()
 
   // Try opening several serial port, since USB serials change number.
   for (int n = 0; n < 4; ++n) {
-    sprintf(devname, tilt_sensor_settings.address);
+    sprintf(devname, conf.get<string>("device_path").c_str());
     serial_port = open(devname, O_RDWR | O_NOCTTY | O_NDELAY | O_NONBLOCK);
 
     if ((serial_port < 0) && (n == 3)) {
