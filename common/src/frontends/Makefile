@@ -9,7 +9,7 @@
 #####################################################################
 
 NMR_DIR = core
-OBJECTS = $(wildcard $(NMR_DIR)/build/*.o)
+OBJECTS = $(patsubst obj/%.cxx, build/%.o, $(wildcard obj/*.cxx))
 TARGETS = $(patsubst src/%.cxx,bin/%,$(wildcard src/*.cxx))
 
 #-------------------------------------------------------------------
@@ -31,8 +31,10 @@ LINK_DIR = ../../../common/
 # Libraries && include flags
 LIB = -L$(LIB_DIR) -L$(NMR_DIR)/lib -L/usr/lib64/mysql
 LIB += -lmidas-shared -lmysqlclient -lsqlite3 -lCAENDigitizer -lusb-1.0
-LIB += -ljson_spirit -lfid -luwlab -lcurl -lboost_system -lboost_filesystem
-CFLAGS += -I$(INC_DIR) -I$(NMR_DIR)/include -I$(NMR_DIR)/include/drs -Iinclude
+LIB += -ljson_spirit -lfid -lgm2fieldcore -llabdaq -lcurl
+LIB += -lboost_system -lboost_filesystem
+CFLAGS += -I$(INC_DIR) -I$(NMR_DIR)/include -Iobj -Iinclude
+CFLAGS += -I/usr/local/include/labdaq
 CFLAGS += -Wl,-rpath,/usr/local/lib
 
 # Set compilers
@@ -44,12 +46,15 @@ CXX = g++
 
 # Make commands
 
-all: $(TARGETS)
+all: $(OBJECTS) $(TARGETS)
 
-bin/%: src/%.cxx $(LIB_DIR)/mfe.o
+build/%.o: obj/%.cxx obj/%.hh
+	$(CXX) $(CXXFLAGS) $(CFLAGS) $(OSFLAGS) $(ROOTFLAGS) -c $< -o $@
+
+bin/%: src/%.cxx $(LIB_DIR)/mfe.o $(OBJECTS)
 	$(CXX) -o $@ $+ $(CXXFLAGS) $(CFLAGS) $(OSFLAGS) \
 	$(LIB) $(LIBS) $(ROOTFLAGS) $(ROOTLIBS)
 	ln -fs $(shell pwd)/$@ $(LINK_DIR)/$@
 
 clean:
-	rm -f *~ $(TARGETS)
+	rm -f *~ $(TARGETS) $(OBJECTS)

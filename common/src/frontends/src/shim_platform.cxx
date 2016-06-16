@@ -31,11 +31,10 @@ using std::string;
 #include "curl/curl.h"
 
 //--- project includes ------------------------------------------------------//
-#include "event_manager_trg_seq.hh"
 #include "sync_client.hh"
 #include "dio_stepper_motor.hh"
 #include "ino_stepper_motor.hh"
-#include "common.hh"
+#include "nmr_sequencer.hh"
 #include "frontend_utils.hh"
 
 //--- globals ---------------------------------------------------------------//
@@ -129,12 +128,13 @@ std::mutex data_mutex;
 
 boost::property_tree::ptree conf;
 
-daq::shim_platform_st data; // st = short trace
-daq::EventManagerTrgSeq *event_manager;
 daq::SyncClient *readout_listener;  // for readout.
 daq::SyncClient *stepper_listener; // for the stepper motor
 daq::DioStepperMotor *dio_stepper = nullptr;
 daq::InoStepperMotor *ino_stepper = nullptr;
+
+gm2::platform_t data; // st = short trace
+gm2::NmrSequencer *event_manager;
 
 const int nprobes = SHIM_PLATFORM_CH;
 const char *const mbank_name = (char *)"SHPF";
@@ -209,7 +209,7 @@ int load_device_classes()
 
   // Set up the event mananger.
   conf_file = conf.get<std::string>("trg_seq_file");
-  event_manager = new daq::EventManagerTrgSeq(conf_file, nprobes);
+  event_manager = new gm2::NmrSequencer(conf_file, nprobes);
 
   if (conf.get<std::string>("stepper_type") == "INO") {
 
@@ -377,9 +377,7 @@ INT begin_of_run(INT run_number, char *error)
 
     std::string br_name("shim_platform");
 
-    t->Branch(br_name.c_str(),
-              &data.sys_clock[0],
-              daq::shim_platform_st_string);
+    t->Branch(br_name.c_str(), &data.sys_clock[0], gm2::platform_str);
   }
 
   //HW part
@@ -529,10 +527,10 @@ INT read_platform_event(char *pevent, INT off)
   // Set the time vector.
   if (tm.size() == 0) {
 
-    tm.resize(SHORT_FID_LN);
-    wf.resize(SHORT_FID_LN);
+    tm.resize(SAVE_FID_LN);
+    wf.resize(SAVE_FID_LN);
 
-    for (int n = 0; n < SHORT_FID_LN; ++n) {
+    for (int n = 0; n < SAVE_FID_LN; ++n) {
       tm[n] = 0.001 * n;
     }
   }
@@ -541,7 +539,7 @@ INT read_platform_event(char *pevent, INT off)
 
   for (int idx = 0; idx < nprobes; ++idx) {
 
-    for (int n = 0; n < SHORT_FID_LN; ++n) {
+    for (int n = 0; n < SAVE_FID_LN; ++n) {
       wf[n] = shim_data.trace[idx][n*10 + 1];
       data.trace[idx][n] = wf[n];
     }
