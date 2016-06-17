@@ -14,6 +14,7 @@ about:  Performs FFTs and plots those as well waveforms for simple
 #include <time.h>
 #include <cstring>
 #include <iostream>
+#include <thread>
 
 //--- other includes --------------------------------------------------------//
 #include "TFile.h"
@@ -28,7 +29,7 @@ about:  Performs FFTs and plots those as well waveforms for simple
 //--- project includes ------------------------------------------------------//
 #include "experim.h"
 #include "fid.h"
-#include "nmr/common.hh"
+#include "shim_structs.hh"
 
 //--- globals ---------------------------------------------------------------//
 
@@ -62,7 +63,7 @@ INT tr_stop_hook(INT run_number, char *error);
 
 // We anticipate three SIS3302 digitizers, but only use one for now.
 BANK_LIST trigger_bank_list[] = {
-  {"SHPF", TID_DWORD, sizeof(daq::shim_platform_st), NULL},
+  {"SHPF", TID_DWORD, sizeof(gm2::platform_t), NULL},
   {"LTRK", TID_DOUBLE, 6, NULL},
   {""}
 };
@@ -91,8 +92,8 @@ namespace {
 // Histograms for a subset of MIDAS banks.
 std::string figdir;
 bool write_root;
-daq::shim_platform_st platform_data;
-daq::shim_fixed_st fixed_data;
+gm2::platform_t platform_data;
+gm2::fixed_t fixed_data;
 std::atomic<bool> new_run_to_process;
 std::atomic<bool> new_config_to_archive;
 std::atomic<bool> new_platform_waveforms;
@@ -276,7 +277,7 @@ INT analyze_trigger_event(EVENT_HEADER *pheader, void *pevent)
   // Look for the first SHIM_PLATFORM traces.
   if (bk_locate(pevent, "SHPF", &pvme) != 0) {
 
-    platform_data = *reinterpret_cast<daq::shim_platform_st *>(pvme);
+    platform_data = *reinterpret_cast<gm2::platform_t *>(pvme);
 
     cm_get_experiment_database(&hDB, NULL);
 
@@ -370,7 +371,7 @@ INT analyze_trigger_event(EVENT_HEADER *pheader, void *pevent)
 
   if (bk_locate(pevent, "SHFX", &pvme) != 0) {
 
-    fixed_data = *reinterpret_cast<daq::shim_fixed_st *>(pvme);
+    fixed_data = *reinterpret_cast<gm2::fixed_t *>(pvme);
 
     new_fixed_waveforms = true;
   }
@@ -399,11 +400,11 @@ void plot_waveforms_loop()
 
       cm_msg(MINFO, "online_analyzer", "Processing a shim_platform event.");
 
-      wf.resize(SHORT_FID_LN);
-      tm.resize(SHORT_FID_LN);
+      wf.resize(SAVE_FID_LN);
+      tm.resize(SAVE_FID_LN);
 
       // Set up the time vector.
-      for (idx = 0; idx < SHORT_FID_LN; idx++){
+      for (idx = 0; idx < SAVE_FID_LN; idx++){
         tm[idx] = idx * 0.001;  // @1 MHz, t = [0ms, 10ms]
       }
 
@@ -418,7 +419,7 @@ void plot_waveforms_loop()
 
         sprintf(name, "shim_platform_ch%02i_wf", ch);
         sprintf(title, "Channel %i Trace", ch);
-        ph_wfm = new TH1F(name, title, SHORT_FID_LN, myfid.tm()[0],
+        ph_wfm = new TH1F(name, title, SAVE_FID_LN, myfid.tm()[0],
                           myfid.tm()[myfid.tm().size() - 1]);
 
         // Make sure ROOT lets us delete completely.
@@ -426,7 +427,7 @@ void plot_waveforms_loop()
 
         sprintf(name, "shim_platform_ch%02i_fft", ch);
         sprintf(title, "Channel %i Fourier Transform", ch);
-        ph_fft = new TH1F(name, title, SHORT_FID_LN, myfid.fftfreq()[0],
+        ph_fft = new TH1F(name, title, SAVE_FID_LN, myfid.fftfreq()[0],
                           myfid.fftfreq()[myfid.fftfreq().size() - 1]);
 
         // Make sure ROOT lets us delete completely.
@@ -439,7 +440,7 @@ void plot_waveforms_loop()
         }
 
         // The waveform has more samples.
-        for (; idx < SHORT_FID_LN; ++idx) {
+        for (; idx < SAVE_FID_LN; ++idx) {
           ph_wfm->SetBinContent(idx, myfid.wf()[idx]);
         }
 
@@ -474,11 +475,11 @@ void plot_waveforms_loop()
       // Look for the first SHIM_FIXED traces.
       cm_msg(MINFO, "online_analyzer", "Processing a shim_fixed event.");
 
-      wf.resize(SHORT_FID_LN);
-      tm.resize(SHORT_FID_LN);
+      wf.resize(SAVE_FID_LN);
+      tm.resize(SAVE_FID_LN);
 
       // Set up the time vector.
-      for (idx = 0; idx < SHORT_FID_LN; idx++){
+      for (idx = 0; idx < SAVE_FID_LN; idx++){
         tm[idx] = idx * 0.0001;  // @10 MHz, t = [0ms, 10ms]
       }
 
@@ -493,7 +494,7 @@ void plot_waveforms_loop()
 
         sprintf(name, "shim_fixed_ch%02i_wf", ch);
         sprintf(title, "NMR Probe %i Trace", ch + 1);
-        ph_wfm = new TH1F(name, title, SHORT_FID_LN, myfid.tm()[0],
+        ph_wfm = new TH1F(name, title, SAVE_FID_LN, myfid.tm()[0],
                           myfid.tm()[myfid.tm().size() - 1]);
 
         // Make sure ROOT lets us delete completely.
@@ -501,7 +502,7 @@ void plot_waveforms_loop()
 
         sprintf(name, "shim_fixed_ch%02i_fft", ch);
         sprintf(title, "NMR Probe %i Fourier Transform", ch + 1);
-        ph_fft = new TH1F(name, title, SHORT_FID_LN, myfid.fftfreq()[0],
+        ph_fft = new TH1F(name, title, SAVE_FID_LN, myfid.fftfreq()[0],
                           myfid.fftfreq()[myfid.fftfreq().size() - 1]);
 
         // Make sure ROOT lets us delete completely.
@@ -514,7 +515,7 @@ void plot_waveforms_loop()
         }
 
         // The waveform has more samples.
-        for (; idx < SHORT_FID_LN; ++idx) {
+        for (; idx < SAVE_FID_LN; ++idx) {
           ph_wfm->SetBinContent(idx, myfid.wf()[idx]);
         }
 

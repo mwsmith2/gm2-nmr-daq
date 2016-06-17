@@ -26,7 +26,7 @@ TARGETS += $(patsubst src/%.cxx,bin/%,$(wildcard src/*.cxx))
 # This is for Linux
 OSFLAGS = -DOS_LINUX -DHAVE_USB -DHAVE_LIBUSB10 -Dextname
 CFLAGS = -fpermissive -O2
-CXXFLAGS = -std=c++0x 
+CXXFLAGS = -std=c++0x
 LIBS = -lm -lz -lpthread -lfftw3 -lzmq -lcurl -lodbc
 
 ROOTFLAGS = $(shell root-config --cflags)
@@ -37,7 +37,7 @@ ROOTLIBS = $(shell root-config --libs)
 # Libraries && include flags
 LIB = -L$(LIB_DIR) -Lpkg/lib -L/usr/lib64/mysql
 LIB += -lmidas-shared -lfid -lmysqlclient -lsqlite3 -lboost_system
-CFLAGS += -I$(INC_DIR) -Ipkg/include -Iinclude -Wl,-rpath,/usr/local/lib
+CFLAGS += -I$(INC_DIR) -Icore/include -Iinclude -Wl,-rpath,/usr/local/lib
 
 # Set compilers
 CC = gcc
@@ -60,19 +60,19 @@ print_vars:
 
 bin/%: src/%.cxx $(LIB_DIR)/rmana.o $(OBJECTS)
 	$(CXX) $(CXXFLAGS) $(CFLAGS) $(OSFLAGS) $(ROOTFLAGS) -o $@ $+ \
-	$(LIB) $(LIBS) $(ROOTLIBS) 
-	ln -fs $(shell pwd)/$@ $(LINK_DIR)/$@ 
+	$(LIB) $(LIBS) $(ROOTLIBS)
+	ln -fs $(shell pwd)/$@ $(LINK_DIR)/$@
 
 bin/%: src/%.c $(LIB_DIR)/mana.o $(OBJECTS)
 	$(CC) $(CFLAGS) $(OSFLAGS) -o $@ $+ \
-	$(LIB) $(LIBS) $(ROOTLIBS) 
-	ln -fs $(shell pwd)/$@ $(LINK_DIR)/$@ 
+	$(LIB) $(LIBS) $(ROOTLIBS)
+	ln -fs $(shell pwd)/$@ $(LINK_DIR)/$@
 
-build/%.o: modules/%.cxx 
+build/%.o: modules/%.cxx
 	$(CXX) $(CXXFLAGS) $(CFLAGS) $(OSFLAGS) $(ROOTFLAGS) -c $< -o $@
 
 build/%.o: modules/%.c
 	$(CC) $(CFLAGS) $(OSFLAGS) -c $< -o $@
 
 clean:
-	rm -f *~ $(OBJECTS) $(TARGETS) 
+	rm -f *~ $(OBJECTS) $(TARGETS)
