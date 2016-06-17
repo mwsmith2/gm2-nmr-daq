@@ -79,19 +79,19 @@ void MIDTFillGraph_SHPF::BeginOfRun()
 {
   TString treeFile = "data-out/platform_tree_";
   treeFile += Form("%05i.root", gAnalyzer->GetODB()->GetRunNumber());
-  
-  fTreeFile = TFile::Open(treeFile.Data(), "RECREATE");   
+
+  fTreeFile = TFile::Open(treeFile.Data(), "RECREATE");
   fTreeFile->cd();
   fEventTree = new TTree("t_shpf","Shimming Plaform Data");
   fEventTree->Branch("platform", &platform.sys_clock[0], gm2::platform_str);
 
-  tvec.resize(SHORT_FID_LN);
-  wvfm.resize(SHORT_FID_LN);
+  tvec.resize(SAVE_FID_LN);
+  wvfm.resize(SAVE_FID_LN);
   double dt = 0.001;
   double t0 = 0.0;
 
   // Set the tvec vector.
-  for (int i = 0; i < SHORT_FID_LN; ++i) {
+  for (int i = 0; i < SAVE_FID_LN; ++i) {
     tvec[i] = i * dt + t0;
   }
 }
@@ -108,26 +108,26 @@ void MIDTFillGraph_SHPF::Event()
       for (int i = 0; i < N; i++) {
         buffer[i] = gAnalyzer->GetMidasDAQ()->GetSHPFBankAt(i);
       }
-      
+
       // Then cast it to a platform_t type.
-      std::copy(&buffer[0], 
+      std::copy(&buffer[0],
                 &buffer[shim_platform_size],
                 (int *)(&platform.sys_clock[0]));
-      
+
 
       for (int ch = 0; ch < SHIM_PLATFORM_CH; ++ch) {
-        
+
         // Re-analyze all the FIDs.
-        
-        for (int i = 0; i < SHORT_FID_LN; ++i) {
+
+        for (int i = 0; i < SAVE_FID_LN; ++i) {
           wvfm[i] = platform.trace[ch][i];
         }
-        
+
         fid::Fid myfid(wvfm, tvec);
-        
+
         // Make sure we got an FID signal
         if (myfid.isgood()) {
-          
+
           platform.snr[ch] = myfid.snr();
           platform.len[ch] = myfid.fid_time();
           platform.freq[ch] = myfid.CalcPhaseFreq();
@@ -136,9 +136,9 @@ void MIDTFillGraph_SHPF::Event()
           platform.health[ch] = myfid.health();
           platform.freq_zc[ch] = myfid.CalcZeroCountFreq();
           platform.ferr_zc[ch] = myfid.freq_err();
-        
+
         } else {
-       
+
           platform.snr[ch] = 0.0;
           platform.len[ch] = 0.0;
           platform.freq[ch] = 0.0;
@@ -156,14 +156,14 @@ void MIDTFillGraph_SHPF::Event()
       if (run_number < 1475) {
 
         // Copy the original platform data.
-        gm2::platform_t p = platform; 
+        gm2::platform_t p = platform;
 
         gm2::platform_t p_blank;
         p_blank.health[0];
 
         for (int j = 0; j < SHIM_PLATFORM_CH; ++j) {
 
-          switch (j) 
+          switch (j)
             {
             case 2:
               gm2::platform_copy_channel(platform, j, p, 8);
@@ -201,13 +201,13 @@ void MIDTFillGraph_SHPF::Event()
         }
 
       } else if (run_number == 1654) {
-      
+
         // This run had an off by one problem in the sequencing,
         // so I'm hardcoding the permutation back.
 
         cout << "Remapping sequence for run 1654" << endl;
 
-        gm2::platform_t p = platform; 
+        gm2::platform_t p = platform;
 
         // gm2::platform_copy_channel(platform, 0, p, 4);
         // gm2::platform_copy_channel(platform, 1, p, 16);
