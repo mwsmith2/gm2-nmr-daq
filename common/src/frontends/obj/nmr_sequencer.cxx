@@ -60,7 +60,7 @@ int NmrSequencer::BeginOfRun()
 
   if (fid_conf_file_ != std::string("")) {
 
-    if (fid_conf_file_[0] != '/') {
+    if ((fid_conf_file_[0] != '/') && (fid_conf_file_[0] != '\\')) {
       fid::load_params(daq::conf_dir + fid_conf_file_);
 
     } else {
@@ -70,20 +70,20 @@ int NmrSequencer::BeginOfRun()
   }
 
   int sis_idx = 0;
-  for (auto &v : conf.get_child("devices.sis_3302")) {
+  // for (auto &v : conf.get_child("devices.sis_3302")) {
 
-    std::string name(v.first);
-    std::string dev_conf_file = std::string(v.second.data());
+  //   std::string name(v.first);
+  //   std::string dev_conf_file = std::string(v.second.data());
 
-    if (dev_conf_file[0] != '/') {
-      dev_conf_file = daq::conf_dir + std::string(v.second.data());
-    }
+  //   if (dev_conf_file[0] != '/') {
+  //     dev_conf_file = daq::conf_dir + std::string(v.second.data());
+  //   }
 
-    sis_idx_map_[name] = sis_idx++;
+  //   sis_idx_map_[name] = sis_idx++;
 
-    LogDebug("loading hw: %s, %s", name.c_str(), dev_conf_file.c_str());
-    workers_.PushBack(new daq::WorkerSis3302(name, dev_conf_file));
-  }
+  //   LogDebug("loading hw: %s, %s", name.c_str(), dev_conf_file.c_str());
+  //   workers_.PushBack(new daq::WorkerSis3302(name, dev_conf_file));
+  // }
 
   sis_idx = 0;
   for (auto &v : conf.get_child("devices.sis_3316")) {
@@ -102,20 +102,20 @@ int NmrSequencer::BeginOfRun()
   }
 
   sis_idx = 0;
-  for (auto &v : conf.get_child("devices.sis_3350")) {
+  // for (auto &v : conf.get_child("devices.sis_3350")) {
 
-    std::string name(v.first);
-    std::string dev_conf_file = std::string(v.second.data());
+  //   std::string name(v.first);
+  //   std::string dev_conf_file = std::string(v.second.data());
 
-    if (dev_conf_file[0] != '/') {
-      dev_conf_file = daq::conf_dir + std::string(v.second.data());
-    }
+  //   if (dev_conf_file[0] != '/') {
+  //     dev_conf_file = daq::conf_dir + std::string(v.second.data());
+  //   }
 
-    sis_idx_map_[name] = sis_idx++;
+  //   sis_idx_map_[name] = sis_idx++;
 
-    LogDebug("loading hw: %s, %s", name.c_str(), dev_conf_file.c_str());
-    workers_.PushBack(new daq::WorkerSis3350(name, dev_conf_file));
-  }
+  //   LogDebug("loading hw: %s, %s", name.c_str(), dev_conf_file.c_str());
+  //   workers_.PushBack(new daq::WorkerSis3350(name, dev_conf_file));
+  // }
 
   // Set up the NMR pulser trigger.
   char bid = conf.get<char>("devices.nmr_pulser.dio_board_id");

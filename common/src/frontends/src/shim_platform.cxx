@@ -112,13 +112,17 @@ double step_size = 0.4;  //  23.375 mm per 1 step size // So pretty close to 1 i
 double event_rate_limit = 10.0;
 int num_steps = 50; // num_steps was 50
 int num_shots = 1;
+int trigger_count = 0;
+int event_number = 0;
 bool write_root = false;
+bool save_full_waveforms = false;
 bool write_midas = true;
 bool use_stepper = true;
 bool ino_stepper_type = false;
 
-TFile *root_file;
-TTree *t;
+TFile *pf;
+TTree *pt_shim;
+TTree *pt_full;
 
 std::atomic<bool> run_in_progress;
 std::atomic<bool> ready_to_move;
@@ -127,13 +131,15 @@ std::thread trigger_thread;
 std::mutex data_mutex;
 
 boost::property_tree::ptree conf;
+std::string nmr_sequence_conf_file;
 
 daq::SyncClient *readout_listener;  // for readout.
 daq::SyncClient *stepper_listener; // for the stepper motor
 daq::DioStepperMotor *dio_stepper = nullptr;
 daq::InoStepperMotor *ino_stepper = nullptr;
 
-gm2::platform_t data; // st = short trace
+gm2::platform_t data;
+gm2::long_platform_t full_data;
 gm2::NmrSequencer *event_manager;
 
 const int nprobes = SHIM_PLATFORM_CH;
@@ -150,7 +156,37 @@ void set_json_tmpfiles()
   char tmp_file[256];
   std::string conf_file;
   boost::property_tree::ptree pt;
+  boost::property_tree::ptree pt_child;
 
+  // Copy the wfd config file.
+  snprintf(tmp_file, 128, "/tmp/gm2-nmr-config_XXXXXX.json");
+  mkstemps(tmp_file, 5);
+  conf_file = std::string(tmp_file);
+
+  // Copy the json, and set to the temp file.
+  pt = conf.get_child("devices.sis_3316");
+  boost::property_tree::write_json(conf_file, pt.get_child("sis_3316_0"));
+  pt.clear();
+  pt.put("sis_3316_0", conf_file);
+
+  conf.get_child("devices.sis_3316").erase("sis_3316_0");
+  conf.put_child("devices.sis_3316", pt);
+
+  // // Copy the nmr_pulser file
+  // snprintf(tmp_file, 128, "/tmp/gm2-nmr-config_XXXXXX.json");
+  // mkstemps(tmp_file, 5);
+  // conf_file = std::string(tmp_file);
+
+  // // Copy the json, and set to the temp file.
+  // pt = conf.get_child("devices");
+  // boost::property_tree::write_json(conf_file, pt.get_child("nmr_pulser"));
+  // pt.erase("nmr_pulser");
+  // pt.put<std::string>("nmr_pulser", conf_file);
+
+  // conf.get_child("devices").erase("nmr_pulser");
+  // conf.put_child("devices", pt);
+
+  // Copy the trigger sequence file.
   snprintf(tmp_file, 128, "/tmp/gm2-nmr-config_XXXXXX.json");
   mkstemps(tmp_file, 5);
   conf_file = std::string(tmp_file);
@@ -195,10 +231,12 @@ void set_json_tmpfiles()
   boost::property_tree::write_json(conf_file, pt);
 
   // Now save the config to a temp file and feed it to the Event Manager.
+  boost::property_tree::write_json(std::cout, conf);
   snprintf(tmp_file, 128, "/tmp/gm2-nmr-config_XXXXXX.json");
   mkstemps(tmp_file, 5);
-  conf_file = std::string(tmp_file);
-  boost::property_tree::write_json(conf_file, conf);
+  nmr_sequence_conf_file = std::string(tmp_file);
+  boost::property_tree::write_json(nmr_sequence_conf_file, conf);
+  boost::property_tree::write_json(std::cout, conf);
 }
 
 int load_device_classes()
@@ -208,8 +246,7 @@ int load_device_classes()
   std::string conf_file;
 
   // Set up the event mananger.
-  conf_file = conf.get<std::string>("trg_seq_file");
-  event_manager = new gm2::NmrSequencer(conf_file, nprobes);
+  event_manager = new gm2::NmrSequencer(nmr_sequence_conf_file, nprobes);
 
   if (conf.get<std::string>("stepper_type") == "INO") {
 
@@ -368,19 +405,42 @@ INT begin_of_run(INT run_number, char *error)
     write_root = flag;
   }
 
+  // Check if we want to save full waveforms.
+  if (write_root) {
+
+    db_find_key(hDB, 0, "/Experiment/Run Parameters/Save Full Waveforms", &hkey);
+
+    if (hkey) {
+      size = sizeof(flag);
+      db_get_data(hDB, hkey, &flag, &size, TID_BOOL);
+
+      save_full_waveforms = flag;
+    }
+  }
+
   if (write_root) {
     // Set up the ROOT data output.
-    root_file = new TFile(filename.c_str(), "recreate");
-    t = new TTree("t_shpf", "Shim Platform Data");
-    t->SetAutoSave(5);
-    t->SetAutoFlush(20);
+    pf = new TFile(filename.c_str(), "recreate");
+    pt_shim = new TTree("t_shpf", "Shim Platform Data");
+    pt_shim->SetAutoSave(5);
+    pt_shim->SetAutoFlush(20);
 
     std::string br_name("shim_platform");
 
-    t->Branch(br_name.c_str(), &data.sys_clock[0], gm2::platform_str);
+    pt_shim->Branch(br_name.c_str(), &data.sys_clock[0], gm2::platform_str);
+
+    if (save_full_waveforms) {
+      std::string br_name("full_shim_platform");
+      pt_full->SetAutoSave(5);
+      pt_full->SetAutoFlush(20);
+
+      pt_full->Branch(br_name.c_str(),
+                      &full_data.sys_clock[0],
+                      gm2::long_platform_str);
+    }
   }
 
-  //HW part
+  // HW part
   event_manager->BeginOfRun();
   readout_listener->SetReady();
   stepper_listener->UnsetReady(); // Make sure the stepper is not set yet
@@ -389,14 +449,13 @@ INT begin_of_run(INT run_number, char *error)
   step_size = conf.get<double>("step_size");
   event_rate_limit = conf.get<double>("step_size");
   num_steps = conf.get<int>("num_steps");
+  use_stepper = conf.get<bool>("use_stepper");
 
   if (num_steps < 1) {
     num_steps = INT_MAX; // basically infinite.
   }
 
-  // And finally the bool.
-  use_stepper = conf.get<bool>("use_stepper");
-
+  event_number = 0;
   run_in_progress = true;
   ready_to_move = false;
 
@@ -414,11 +473,17 @@ INT end_of_run(INT run_number, char *error)
 
   // Make sure we write the ROOT data.
   if (run_in_progress && write_root) {
-    t->Write();
-    root_file->Write();
-    root_file->Close();
 
-    delete root_file;
+    pt_shim->Write();
+
+    if (save_full_waveforms) {
+      pt_full->Write();
+    }
+
+    pf->Write();
+    pf->Close();
+
+    delete pf;
   }
 
   run_in_progress = false;
@@ -476,6 +541,7 @@ INT poll_event(INT source, INT count, BOOL test) {
   if (readout_listener->HasTrigger()) {
     cm_msg(MINFO, "poll_event",
            "Got trigger, beginning multiplexer sequence");
+    trigger_count = readout_listener->trigger_counter();
     event_manager->IssueTrigger();
   }
 
@@ -540,7 +606,7 @@ INT read_platform_event(char *pevent, INT off)
   for (int idx = 0; idx < nprobes; ++idx) {
 
     for (int n = 0; n < SAVE_FID_LN; ++n) {
-      wf[n] = shim_data.trace[idx][n*10 + 1];
+      wf[n] = shim_data.trace[idx][n*10 + 1]; // Offset avoid spikes in sis3302
       data.trace[idx][n] = wf[n];
     }
 
@@ -614,14 +680,24 @@ INT read_platform_event(char *pevent, INT off)
   if (write_root) {
     cm_msg(MINFO, "read_platform_event", "Filling TTree");
     // Now that we have a copy of the latest event, fill the tree.
-    t->Fill();
+    pt_shim->Fill();
+
+    if (save_full_waveforms) {
+      pt_full->Fill();
+    }
+
     num_events++;
 
     if (num_events % 10 == 1) {
 
       cm_msg(MINFO, frontend_name, "flushing TTree.");
-      t->AutoSave("SaveSelf,FlushBaskets");
-      root_file->Flush();
+      pt_shim->AutoSave("SaveSelf,FlushBaskets");
+
+      if (save_full_waveforms) {
+        pt_full->AutoSave("SaveSelf,FlushBaskets");
+      }
+
+      pf->Flush();
     }
   }
 

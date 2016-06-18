@@ -23,7 +23,7 @@ odb = midas.ODB('gm2-nmr')
 nworkers = 4
 maxcount = 20
 datadir = odb.get_value('/Logger/Data dir').rstrip()
-offline_dir = os.path.abspath(os.path.dirname(__file__) + '/..')
+offline_dir = os.path.abspath(os.path.dirname(__file__) + '/../..')
 
 # Set up the zmq socket for data.
 crunch_sck = context.socket(zmq.PULL)
@@ -70,7 +70,7 @@ def main():
     log.info('gm2-nmr-crunchd has started as process %i' % os.getpid())
 
     polltime = 20
-        
+
     # Now process jobs as they come.
     while True:
         jobs = []
@@ -79,7 +79,7 @@ def main():
         jobs.append(gevent.spawn(logger_sck.poll, timeout=polltime))
         jobs.append(gevent.spawn(status_sck.poll, timeout=polltime))
         gevent.joinall(jobs)
-        
+
         # Put number of messages into an array.
         nevents = [job.value for job in jobs]
 
@@ -87,7 +87,7 @@ def main():
         if nevents[0]:
             while (crunch_sck.poll(timeout=polltime)):
                 msg_queue.append(crunch_sck.recv_json())
-        
+
         if nevents[1]:
             while (logger_sck.poll(timeout=polltime)):
                 log_queue.append(logger_sck.recv_json())
@@ -133,7 +133,7 @@ def parse_jobs():
 
                 except(KeyError):
                     job_queue[msg['run']] = []
-            
+
                 for jobs in standard_job_set(msg):
                     job_queue[msg['run']].append(jobs)
 
@@ -157,7 +157,7 @@ def parse_jobs():
 
             except(KeyError):
                 job_queue[msg['run']] = []
-            
+
             for jobs in bundle_job_set(msg):
                 job_queue[msg['run']].append(jobs)
 
@@ -175,7 +175,7 @@ def standard_job_set(msg):
     run_num = msg['run']
     jobs = [[], [], [], [], []]
     new_dep = {'time': None, 'md5': None}
-        
+
     # Add ROME jobs first
     cmd_prefix = "./midanalyzer.exe -b -i romeConfig.xml -r "
     cmd_suffix = " -m offline -p 0 -q"
@@ -211,14 +211,14 @@ def standard_job_set(msg):
     job['deps'] = {}
     job['deps'][job['dir'] + '/midanalyzer.exe'] = new_dep
     jobs[0].append(job)
-    
+
     job = copy.copy(job)
     job['name'] = 'metrolab'
     job['dir'] = rome_dir + '/metrolab'
     job['deps'] = {}
     job['deps'][job['dir'] + '/midanalyzer.exe'] = new_dep
     jobs[0].append(job)
-    
+
     job = copy.copy(job)
     job['name'] = 'mscb-cart'
     job['dir'] = rome_dir + '/mscb-cart'
@@ -246,23 +246,23 @@ def standard_job_set(msg):
     job['deps'] = {}
     job['deps'][job['dir'] + '/midanalyzer.exe'] = new_dep
     jobs[0].append(job)
-    
+
     # Make sure run attributes are extracted.
     job = {}
     job['name'] = 'extract_run_attr'
-    job['dir'] = offline_dir
+    job['dir'] = offline_dir + '/crunchers'
     job['cmd'] = 'python scripts/extract_run_attr.py %i' % run_num
     job['clean'] = None
     job['meta'] = datadir + '/crunched/.crunchd_metadata.json'
     job['deps'] = {}
     jobs[0].append(job)
-    
+
     # Now the data bundling job.
     job = {}
     job['name'] = 'make-shim-dataset'
     job['cmd'] = 'bin/make_shim_dataset %i' % run_num
     job['clean'] = None
-    job['dir'] = offline_dir
+    job['dir'] = offline_dir + '/crunchers'
     job['meta'] = datadir + '/shim/.crunchd_metadata.json'
     job['deps'] = {}
     job['deps'][offline_dir + '/bin/make_shim_dataset'] = new_dep
@@ -286,7 +286,7 @@ def standard_job_set(msg):
     # Automatically generate extracted dataset
     job = {}
     job['name'] = 'extraction'
-    job['dir'] = offline_dir
+    job['dir'] = offline_dir + '/crunchers'
     job['cmd'] = 'bin/make_extracted_dataset '
     job['cmd'] += 'data/crunched/run_%05i.root' % run_num
     job['clean'] = None
@@ -312,7 +312,7 @@ def bundle_job_set(msg):
     job['name'] = 'make-%s' % msg['type']
     job['cmd'] = 'bin/make_bundled_dataset %s %i' % bundle_info
     job['meta'] = datadir + '/bundles/.crunchd_metadata.json'
-    job['dir'] = offline_dir
+    job['dir'] = offline_dir + '/crunchers'
     job['clean'] = None
     job['deps'] = {}
 
@@ -324,14 +324,14 @@ def bundle_job_set(msg):
 
     job['deps'][offline_dir + '/bin/make_bundled_dataset'] = new_dep
     jobs[0].append(job)
-        
+
     return jobs
 
 
 def check_job(run_num, job):
 
     run_key = str(run_num).zfill(5)
-            
+
     try:
         f = open(job['meta'], 'r')
         f.close()
@@ -369,7 +369,7 @@ def check_job(run_num, job):
                 # Compute the check sum.
                 with open(fkey) as f:
                     md5sum = hashlib.md5(f.read()).hexdigest()
-            
+
                     job['deps'][fkey]['md5'] = md5sum
 
             return True
@@ -393,7 +393,7 @@ def check_job(run_num, job):
             # Compute the check sum.
             with open(fkey) as f:
                 md5sum = hashlib.md5(f.read()).hexdigest()
-            
+
             job['deps'][fkey]['md5'] = md5sum
             continue
 
@@ -406,7 +406,7 @@ def check_job(run_num, job):
             # Compute the check sum to see if the file really changed.
             with open(fkey) as f:
                 md5sum = hashlib.md5(f.read()).hexdigest()
-            
+
             job['deps'][fkey]['md5'] = md5sum
 
             if metadata['deps'][fkey]['md5'] != md5sum:
@@ -440,7 +440,7 @@ def check_job(run_num, job):
 
 
 def check_job_set(run_num, job_set):
-    
+
     for jobs in job_set:
 
         for job in jobs:
@@ -467,16 +467,16 @@ def spawn_jobs():
 
     if len(workers) >= nworkers:
         return
-    
+
     for run in job_queue.keys():
-            
+
         if len(job_queue[run][0]) == 0:
             job_queue[run].pop(0)
 
         if len(job_queue[run]) == 0:
             del job_queue[run]
             continue
-        
+
         if len(workers) > nworkers:
             return
 
@@ -490,15 +490,15 @@ def spawn_jobs():
             fdump = open(logdir + '/crunchd.dump', 'a')
 
             log.info("Starting job %s for run %05i." % (job['name'], int(run)))
-            
+
             if check_job(run, job) == True:
-                
+
                 if job['clean'] == None:
                     cmd = job['cmd']
 
                 else:
                     cmd = ' && '.join([job['cmd'], job['clean']])
-          
+
                 worker = Popen(cmd,
                                cwd=job['dir'],
                                env=os.environ,
@@ -522,7 +522,7 @@ def spawn_jobs():
             msg['log'] = {}
             msg['log'][job['name']] = {'attempted': True}
             msg['log'][job['name']]['deps'] = job['deps']
-            
+
             worker_sck.send(json.dumps(msg))
 
             if len(workers) >= nworkers:
@@ -535,27 +535,27 @@ def write_reps():
 
     # Process the next set.
     for count, req in enumerate(req_queue):
-        
+
         rep = {}
 
         if req['type'] == 'check':
-            
+
             if req['body']['type'] == 'standard':
                 job_set = standard_job_set(req['body']['msg'])
                 run_num = req['body']['msg']['run']
                 rep['result'] = check_job_set(run_num, job_set)
-            
+
             else:
                 rep['result'] = False
 
         if req['type'] == 'var':
-            
+
             if req['body'] == 'nworkers':
                 rep['result'] = nworkers
-            
+
             elif req['body'] == 'njobs':
                 rep['result'] = len(job_queue)
-            
+
             else:
                 rep['result'] = None
 
@@ -565,7 +565,7 @@ def write_reps():
             jobs = ' '.join(['(%s, %s)' % (w[1], w[2]['name']) for w in workers])
             status.append('    running jobs: %s' % jobs)
             status.append('    queue has %i jobs' % len(job_queue))
-            
+
             req['result'] = '\n'.join(status)
 
         try:
@@ -578,7 +578,7 @@ def write_reps():
 
         if count > maxcount:
             break
-            
+
 
 def write_logs():
     """Write data to the log file for crunchd."""
@@ -596,10 +596,10 @@ def write_logs():
 
             for key in msg['log'][entry].keys():
                 loginfo[entry][key] = msg['log'][entry][key]
-        
+
         with open(msg['info'], 'r') as f:
             metadata = json.load(f)
-            
+
         try:
             metadata[msg['run']]
 
@@ -612,7 +612,7 @@ def write_logs():
 
         elif msg['cmd'] == 'reset':
             metadata[msg['run']] = {}
-            
+
         with open(msg['info'], 'w') as f:
             f.write(json.dumps(metadata, indent=2, sort_keys=True))
 
