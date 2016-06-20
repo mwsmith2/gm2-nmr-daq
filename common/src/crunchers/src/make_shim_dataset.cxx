@@ -349,7 +349,8 @@ int main(int argc, char **argv)
     cout << "Setting nsync to " << nsync << endl;
   }
 
-  if (nsync > 3) {
+  // Correct the synchronization if we know the offset.
+  if ((nsync > 3) && (abs(laser_machine_offset(run_number)) > 0.000001)) {
 
     vector<double> shpf_tm;
     vector<double> ltrk_tm;
