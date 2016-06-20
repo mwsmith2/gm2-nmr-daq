@@ -54,7 +54,7 @@ double laser_machine_offset(int run) {
 int main(int argc, char **argv)
 {
   // Allocate parameters
-  const double dt = 10.0 / SHORT_FID_LN;
+  const double dt = 10.0 / SAVE_FID_LN;
   const double t0 = 0.0;
   double platform_coord[SHIM_PLATFORM_CH][2];
 

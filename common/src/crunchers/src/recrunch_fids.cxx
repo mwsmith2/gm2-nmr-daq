@@ -43,12 +43,12 @@ int main(int argc, char **argv)
   const int id = 2L; 
 
   // Allocate parameters
-  const double dt = 10.0 / SHORT_FID_LN;
+  const double dt = 10.0 / SAVE_FID_LN;
   const double t0 = 0.0;
   double platform_coord[SHIM_PLATFORM_CH][2];
 
-  std::vector<double> wf(SHORT_FID_LN, 0.0);
-  std::vector<double> tm(SHORT_FID_LN, 0.0);
+  std::vector<double> wf(SAVE_FID_LN, 0.0);
+  std::vector<double> tm(SAVE_FID_LN, 0.0);
 
   int run_number;
   string datafile;
@@ -147,7 +147,7 @@ int main(int argc, char **argv)
   pt_out->Branch("flags", &flags.platform_data, data_flags_str);
 
   // Set the time vector.
-  for (int i = 0; i < SHORT_FID_LN; ++i) {
+  for (int i = 0; i < SAVE_FID_LN; ++i) {
     tm[i] = i * dt + t0;
   }
 
@@ -163,7 +163,7 @@ int main(int argc, char **argv)
 
       // Re-analyze all the FIDs.
 
-      for (int i = 0; i < SHORT_FID_LN; ++i) {
+      for (int i = 0; i < SAVE_FID_LN; ++i) {
         wf[i] = idata.trace[ch][i];
       }
 

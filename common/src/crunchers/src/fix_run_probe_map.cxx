@@ -289,5 +289,5 @@ void copy_platform_ch(platform_t& pa, int a, platform_t& pb, int b)
   pa.ferr_zc[a] = pb.ferr_zc[b];
   pa.health[a] = pb.health[b];
   pa.method[a] = pb.method[b];
-  std::copy(&pb.trace[b][0], &pb.trace[b][SHORT_FID_LN], &pa.trace[a][0]);
+  std::copy(&pb.trace[b][0], &pb.trace[b][SAVE_FID_LN], &pa.trace[a][0]);
 }
