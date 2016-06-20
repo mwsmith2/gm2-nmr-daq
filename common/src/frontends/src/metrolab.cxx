@@ -118,7 +118,7 @@ INT frontend_init()
   sprintf(str, "/Equipment/%s/Settings", FRONTEND_NAME);
   status = db_create_record(hDB, 0, str, METROLAB_SETTINGS_STR);
   if (status != DB_SUCCESS){
-    cm_msg(MERROR, "init", "Could not create record %s", str);
+    cm_msg(MERROR, "init", "Could not create record \"%s\"", str);
     return FE_ERR_ODB;
   }
 
@@ -136,16 +136,16 @@ INT frontend_init()
     serial_port = open(devname, O_RDWR | O_NOCTTY | O_NDELAY | O_NONBLOCK);
 
     if ((serial_port < 0) && (n == 3)) {
-      cm_msg(MERROR, "frontend_init", "error opening device");
-      return -1;
+      cm_msg(MERROR, "frontend_init", "error opening device \"%s\"", devname);
+      return FE_ERR_HW;
     }
   }
 
   fcntl(serial_port, F_SETFL, 0); // return immediately if no data
 
   if (tcgetattr(serial_port, &options) < 0) {
-    cm_msg(MERROR, "frontend_init", "tcgetattr");
-    return -2;
+    cm_msg(MERROR, "frontend_init", "error in calling tcgetattr");
+    return FE_ERR_HW;
   }
 
   cfsetospeed(&options, B9600);
@@ -169,8 +169,8 @@ INT frontend_init()
   tcflush( serial_port, TCIFLUSH );
 
   if(tcsetattr(serial_port, TCSANOW, &options) < 0) {
-    cm_msg(MERROR, "frontend_init", "tcsetattr");
-    return -3;
+    cm_msg(MERROR, "frontend_init", "error in calling tcsetattr");
+    return FE_ERR_HW;
   }
 
   char line[200];
@@ -292,7 +292,7 @@ INT read_trigger_event(char *pevent, INT off)
 
   } else {
 
-    cm_msg(MLOG, "read_trigger_event", "no valid readback value found");
+    cm_msg(MDEBUG, "read_trigger_event", "no valid readback value found");
 
     return 0;
   }

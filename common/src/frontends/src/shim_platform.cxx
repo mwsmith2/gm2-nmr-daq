@@ -257,6 +257,7 @@ INT frontend_init()
   INT rc = load_settings(frontend_name, conf);
 
   if (rc != SUCCESS) {
+    // Error already logged in load_settings.
     return rc;
   }
 
@@ -264,6 +265,7 @@ INT frontend_init()
 
   rc = load_device_classes();
   if (rc != SUCCESS) {
+    // Error already logged in load_device_classes.
     return rc;
   }
 
@@ -503,7 +505,7 @@ INT interrupt_configure(INT cmd, INT source, PTYPE adr)
 
 INT read_platform_event(char *pevent, INT off)
 {
-  cm_msg(MLOG, "read_platform_event", "got data");
+  cm_msg(MDEBUG, "read_platform_event", "got data");
   using namespace daq;
   static unsigned long long num_events;
   static unsigned long long events_written;

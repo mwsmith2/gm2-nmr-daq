@@ -121,8 +121,8 @@ boost::property_tree::ptree conf;
 INT frontend_init()
 {
   int rc = load_settings(frontend_name, conf);
-  boost::property_tree::write_json(std::cout, conf);
   if (rc != SUCCESS) {
+    // Error already logged in load_settings.
     return rc;
   }
 

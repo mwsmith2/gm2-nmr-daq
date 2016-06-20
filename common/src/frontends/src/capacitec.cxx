@@ -123,7 +123,7 @@ INT frontend_init()
                                          conf.get<string>("sync_trigger_addr"),
                                          conf.get<int>("fast_trigger_port") + 30);
 
-  cm_msg(MDEBUG, "init_frontend", "success");
+  cm_msg(MINFO, "init_frontend", "success");
   return SUCCESS;
 }
 
