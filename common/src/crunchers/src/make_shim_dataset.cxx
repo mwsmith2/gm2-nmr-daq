@@ -65,6 +65,7 @@ int main(int argc, char **argv)
   data_flags_t flags;
   string laser_point;
   bool laser_swap;
+  double laser_phi_offset;
 
   int run_number;
   string datafile;
@@ -328,6 +329,11 @@ int main(int argc, char **argv)
   laser_swap = pt.get<bool>(ss.str());
   laser_swap = pt_user.get<bool>(ss.str(), laser_swap);
 
+  ss.str("");
+  ss << "run_" << std::setfill('0') << std::setw(5) << run_number << ".laser_phi_offset";
+  laser_phi_offset = pt.get<double>(ss.str());
+  laser_phi_offset = pt_user.get<double>(ss.str(), laser_phi_offset);
+
   // Need to determine the number of good synchronized entries.
   uint shpf_offset = 0;
   uint ltrk_offset = 0;
@@ -502,7 +508,7 @@ int main(int argc, char **argv)
 
         laser.r_2 = laser.r_1;
         laser.z_2 = laser.z_1;
-        laser.phi_2 = laser.phi_1;
+        laser.phi_2 = laser.phi_1 + laser_phi_offset;
 
         laser.r_1 = 0.0;
         laser.z_1 = 0.0;
@@ -530,11 +536,11 @@ int main(int argc, char **argv)
 
         laser.r_2 = laser.r_1;
         laser.z_2 = laser.z_1;
-        laser.phi_2 = laser.phi_1;
+        laser.phi_2 = laser.phi_1 + laser_phi_offset;
 
         laser.r_1 = r_2;
         laser.z_1 = z_2;
-        laser.phi_1 = phi_2;
+        laser.phi_1 = phi_2 + laser_phi_offset;
       }
     }
 
