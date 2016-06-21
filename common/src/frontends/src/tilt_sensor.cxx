@@ -109,7 +109,6 @@ TILT_SENSOR_SETTINGS tilt_sensor_settings;
 #define TILT_SENSOR_SETTINGS_STR "\
 device_path = STRING : [128] /dev/ttyUSB1\n\
 "
-
 int serial_port;
 boost::property_tree::ptree conf;
 
@@ -117,10 +116,8 @@ boost::property_tree::ptree conf;
 INT frontend_init()
 {
   HNDLE hDB, hkey;
-  INT status, tmp;
+  INT rc, size, status, tmp;
   char str[256], filename[256];
-  int size;
-  int rc;
 
   cm_get_experiment_database(&hDB, NULL);
 
@@ -145,7 +142,7 @@ INT frontend_init()
     serial_port = open(devname, O_RDWR | O_NOCTTY | O_NDELAY | O_NONBLOCK);
 
     if ((serial_port < 0) && (n == 3)) {
-      cm_msg(MERROR, "frontend_init", "error opening device");
+      cm_msg(MERROR, "frontend_init", "error opening device \"%s\"", str);
       return FE_ERR_HW;
     }
   }
@@ -153,7 +150,7 @@ INT frontend_init()
   fcntl(serial_port, F_SETFL, 0); // return immediately if no data
 
   if (tcgetattr(serial_port, &options) < 0) {
-    cm_msg(MERROR, "frontend_init", "tcgetattr");
+    cm_msg(MERROR, "frontend_init", "error in calling tcgetattr");
     return FE_ERR_HW;
   }
 
@@ -178,7 +175,7 @@ INT frontend_init()
   tcflush(serial_port, TCIFLUSH);
 
   if(tcsetattr(serial_port, TCSANOW, &options) < 0) {
-    cm_msg(MERROR, "frontend_init", "tcsetattr");
+    cm_msg(MERROR, "frontend_init", "error in calling tcsetattr");
     return -3;
   }
 

@@ -261,7 +261,7 @@ INT analyzer_loop()
 
 INT analyze_trigger_event(EVENT_HEADER *pheader, void *pevent)
 {
-  cm_msg(MLOG, "analyze_trigger_event", "nalyzing event");
+  cm_msg(MDEBUG, "analyze_trigger_event", "analyzing event");
 
   // We need these for each FID, so keep them allocated.
   HNDLE hDB, hkey;
@@ -658,6 +658,7 @@ void archive_config_loop()
   char str[256], filename[256];
   double temp_double;
   DWORD temp_int;
+  BOOL temp_bool;
   int size, run_number;
   std::string histdir;
   std::string confdir;
@@ -768,17 +769,41 @@ void archive_config_loop()
         pt_run.put("step_size", temp_double);
       }
 
+      // Get the metrolab angle from the ODB
+      db_find_key(hDB, 0, "/Experiment/Run Parameters/Metrolab Angle", &hkey);
+      if (hkey) {
+        size = sizeof(temp_double);
+        db_get_data(hDB, hkey, &temp_double, &size, TID_DOUBLE);
+
+        pt_run.put("metrolab_angle", temp_double);
+      }
+
+      // Get the laser phi offset from the ODB
+      db_find_key(hDB, 0, "/Experiment/Run Parameters/Laser Phi Offset", &hkey);
+      if (hkey) {
+        size = sizeof(temp_double);
+        db_get_data(hDB, hkey, &temp_double, &size, TID_DOUBLE);
+
+        pt_run.put("laser_phi_offset", temp_double);
+      }
+
+     // Get the laser phi offset from the ODB
+      db_find_key(hDB, 0, "/Experiment/Run Parameters/Laser Phi Offset", &hkey);
+      if (hkey) {
+        size = sizeof(temp_double);
+        db_get_data(hDB, hkey, &temp_double, &size, TID_DOUBLE);
+
+        pt_run.put("laser_phi_offset", temp_double);
+      }
+
       // Get the laser tracker point from the ODB
-      db_find_key(hDB,
-                  0,
-                  "/Experiment/Run Parameters/Laser Tracker Point",
-                  &hkey);
+      db_find_key(hDB, 0, "/Experiment/Run Parameters/Field On", &hkey);
 
       if (hkey) {
         size = sizeof(str);
-        db_get_data(hDB, hkey, str, &size, TID_STRING);
+        db_get_data(hDB, hkey, str, &size, TID_BOOL);
 
-        pt_run.put("laser_point", std::string(str));
+        pt_run.put("field_on", std::string(str));
       }
 
       pt_run.put("laser_swap", false);

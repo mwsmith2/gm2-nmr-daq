@@ -46,7 +46,7 @@ inline int load_settings(char *frontend, boost::property_tree::ptree& conf)
   db_find_key(hDB, 0, str, &hkey);
 
   if (hkey) {
-    db_copy_json_values(hDB, hkey, &json_buf, &size, &bytes_written, 0, 0, 0);
+    db_copy_json_values(hDB, hkey, &json_buf, &size, &bytes_written, 1, 1, 1);
 
   } else {
 

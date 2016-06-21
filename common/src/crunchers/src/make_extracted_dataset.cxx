@@ -231,7 +231,7 @@ int main(int argc, char *argv[])
     otilt.rad = w0 * tilt_0.rad + w1 * itilt.rad;
 
     hall_probe_t hall_0;
-    
+
     pt_hall->GetEntry(j++);
     while (ihall.midas_time < t && j < pt_hall->GetEntries()) {
       hall_0 = ihall;
@@ -270,6 +270,8 @@ int main(int argc, char *argv[])
       ofield.snr[i] = iplatform.snr[i];
       ofield.len[i] = iplatform.len[i];
     }
+
+    ofield.phi = olaser.phi_2 - laser_p2_to_nmr_phi_offset;
 
     // Fill in probe 19 with average of closest probes.
     if (oflags.missing_probe19) {
