@@ -9,17 +9,17 @@ def main():
     arch_dir = '/home/newg2/Applications/gm2-nmr/resources/history'
 
     try:
-        run_attr = json.loads(open(attr_file).read(), 
+        run_attr = json.loads(open(attr_file).read(),
                               object_pairs_hook=OrderedDict)
 
     except:
         run_attr = json.loads('{}', object_pairs_hook=OrderedDict)
-    
+
     odb = midas.ODB('gm2-nmr')
     start = 1
     stop = int(odb.get_value('/Runinfo/Run number').rstrip())
-    
-    if (odb.get_value('/Runinfo/State').rstrip() != '1'): 
+
+    if (odb.get_value('/Runinfo/State').rstrip() != '1'):
         stop -= 1
 
     for run_num in range(start, stop + 1):
@@ -27,15 +27,18 @@ def main():
         key = "run_%05i" % run_num
         run_attr[key] = OrderedDict()
 
-        # Set the order.
+        # Set the order and initialize.
         run_attr[key]['comment'] = ''
         run_attr[key]['tags'] = []
         run_attr[key]['start_time'] = 0
         run_attr[key]['stop_time'] = 0
+        run_attr[key]['field_on'] = False
         run_attr[key]['step_size'] = 0.0
         run_attr[key]['laser_point'] = ''
         run_attr[key]['laser_swap'] = False
-        
+        run_attr[key]['laser_phi_offset'] = 0.0
+        run_attr[key]['metrolab_angle'] = -1.0
+
         for f in run_files:
 
             got_step_size = False
@@ -43,7 +46,7 @@ def main():
             for line in open(f):
 
                 if 'xml' in f:
-                    
+
                     if '"Comment" type="STRING" size="80"' in line:
                         comment = line.split('>')[1].split('<')[0].rstrip()
                         run_attr[key]['comment'] = comment
@@ -60,12 +63,16 @@ def main():
                         stop_time = int(line.split('>')[1].split('<')[0])
                         run_attr[key]['stop_time'] = stop_time
 
-                    if '"step_size" type="DOUBLE"' in line:
+                    if '"Field On" type="BOOL"' in line:
+                        field_on = float(line.split('>')[1].split('<')[0])
+                        run_attr[key]['field_on'] = field_on
+
+                    if '"Step Size" type="DOUBLE"' in line:
                         step_size = float(line.split('>')[1].split('<')[0])
                         if not got_step_size:
                             run_attr[key]['step_size'] = step_size
                             got_step_size = True
-                            
+
                     if '"Laser Tracker Point" type="STRING"' in line:
 
                         laser_point = line.split('>')[1].split('<')[0].upper()
@@ -75,6 +82,14 @@ def main():
                             laser_point = 'N'
 
                         run_attr[key]['laser_point'] = laser_point
+
+                    if '"Laser Phi Offset" type="DOUBLE"' in line:
+                        laser_phi_offset = float(line.split('>')[1].split('<')[0])
+                        run_attr[key]['laser_phi_offset'] = laser_phi_offset
+
+                    if '"Metrolab Angle" type="DOUBLE"' in line:
+                        metrolab_angle = float(line.split('>')[1].split('<')[0])
+                        run_attr[key]['metrolab_angle'] = metrolab_angle
 
                 else:
 
@@ -94,12 +109,16 @@ def main():
                         stop_time = int(line.split(':')[1])
                         run_attr[key]['stop_time'] = stop_time
 
-                    if 'step_size = DOUBLE' in line:
+                    if 'Field On = BOOL' in line:
+                        field_on =  bool(line.split(':')[1])
+                        run_attr[key]['field_on'] = field_on
+
+                    if 'Step Size = DOUBLE' in line:
                         step_size = float(line.split(':')[1])
                         if not got_step_size:
                             run_attr[key]['step_size'] = step_size
                             got_step_size = True
-                            
+
                     if 'Laser Tracker Point = STRING' in line:
 
                         laser_point = line.split(':')[1].split(']')[1].upper()
@@ -109,6 +128,14 @@ def main():
                             laser_point = 'N'
 
                         run_attr[key]['laser_point'] = laser_point
+
+                    if 'Laser Phi Offset = DOUBLE' in line:
+                        laser_phi_offset = float(line.split(':')[1])
+                        run_attr[key]['laser_phi_offset'] = laser_phi_offset
+
+                    if 'Metrolab Angle = FLOAT' in line:
+                        metrolab_angle = float(line.split(':')[1])
+                        run_attr[key]['metrolab_angle'] = metrolab_angle
 
         try:
             run_attr[key]['step_size']
@@ -127,9 +154,9 @@ def main():
 
         except:
             run_attr[key]['laser_swap'] = False
- 
+
         print run_attr[key]
-    
+
     with open(attr_file, 'w') as f:
         f.write(json.dumps(run_attr, indent=2))
 
