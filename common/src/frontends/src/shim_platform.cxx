@@ -231,12 +231,10 @@ void set_json_tmpfiles()
   boost::property_tree::write_json(conf_file, pt);
 
   // Now save the config to a temp file and feed it to the Event Manager.
-  boost::property_tree::write_json(std::cout, conf);
   snprintf(tmp_file, 128, "/tmp/gm2-nmr-config_XXXXXX.json");
   mkstemps(tmp_file, 5);
   nmr_sequence_conf_file = std::string(tmp_file);
   boost::property_tree::write_json(nmr_sequence_conf_file, conf);
-  boost::property_tree::write_json(std::cout, conf);
 }
 
 int load_device_classes()

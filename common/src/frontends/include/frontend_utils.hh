@@ -35,7 +35,7 @@ inline int load_settings(char *frontend, boost::property_tree::ptree& conf)
   int bytes_written = 0;
   int rc = 0;
 
-  char *json_buf = new char[0x1000];
+  char *json_buf = new char[0x8000];
   boost::property_tree::ptree pt;
   std::stringstream ss;
 
@@ -59,10 +59,10 @@ inline int load_settings(char *frontend, boost::property_tree::ptree& conf)
   boost::property_tree::read_json(ss, conf);
 
   // Check if we need to alter the logfile path.
-  std::string logfile = pt.get<std::string>("logfile", "");
+  std::string logfile = conf.get<std::string>("logfile", "");
 
   // If none or absolute path do nothing
-  if (!(logfile == "") && !(logfile.find("/") == 0)) {
+  if ((logfile.length() != 0) && (logfile.find("/") != 0)) {
 
     snprintf(str, 256, "/Logger/Log Dir");
     db_find_key(hDB, 0, str, &hkey);
