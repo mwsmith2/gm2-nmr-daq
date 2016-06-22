@@ -508,7 +508,7 @@ int main(int argc, char **argv)
 
         laser.r_2 = laser.r_1;
         laser.z_2 = laser.z_1;
-        laser.phi_2 = laser.phi_1 + laser_phi_offset;
+        laser.phi_2 = laser.phi_1 - laser_phi_offset;
 
         laser.r_1 = 0.0;
         laser.z_1 = 0.0;
@@ -536,11 +536,11 @@ int main(int argc, char **argv)
 
         laser.r_2 = laser.r_1;
         laser.z_2 = laser.z_1;
-        laser.phi_2 = laser.phi_1 + laser_phi_offset;
+        laser.phi_2 = laser.phi_1 - laser_phi_offset;
 
         laser.r_1 = r_2;
         laser.z_1 = z_2;
-        laser.phi_1 = phi_2 + laser_phi_offset;
+        laser.phi_1 = phi_2 - laser_phi_offset;
       }
     }
 
