@@ -56,6 +56,7 @@
 TFile *fTreeFile = NULL;
 TTree *fEventTree = NULL;
 gm2::laser_t laser;
+int run_number;
 
 ClassImp(MIDTFillGraph)
 
@@ -67,22 +68,27 @@ void MIDTFillGraph::Init()
 //______________________________________________________________________________
 void MIDTFillGraph::BeginOfRun()
 {
-   TString treeFile = "data-out/laser_tree_";
-   treeFile += Form("%05i",gAnalyzer->GetODB()->GetRunNumber());
-   treeFile += ".root";
+  // Get the run number.  This module become obsolete after run number 787.
+  run_number = gAnalyzer->GetODB()->GetRunNumber();
 
-   fTreeFile = TFile::Open(treeFile.Data(), "RECREATE");
-   fTreeFile->cd();
-   fEventTree = new TTree("t_ltrk","Laser Tracker Data");
+  if (run_number < 787) {
+    TString treeFile = "data-out/laser_tree_";
+    treeFile += Form("%05i", run_number);
+    treeFile += ".root";
 
-   // Set branches.
-   fEventTree->Branch("laser", &laser.midas_time, gm2::laser_str);
+    fTreeFile = TFile::Open(treeFile.Data(), "RECREATE");
+    fTreeFile->cd();
+    fEventTree = new TTree("t_ltrk","Laser Tracker Data");
+
+    // Set branches.
+    fEventTree->Branch("laser", &laser.midas_time, gm2::laser_str);
+  }
 }
 
 //______________________________________________________________________________
 void MIDTFillGraph::Event()
 {
-  if (IsMyGraphActive()) {
+  if (IsMyGraphActive() && (run_number < 787)) {
 
     laser.midas_time = gAnalyzer->GetActiveDAQ()->GetTimeStamp();
 
@@ -107,19 +113,6 @@ void MIDTFillGraph::Event()
 
       fEventTree->Fill();
     }
-
-    // if (N == 6) {
-
-    //   laser.r_1 = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(0);
-    //   laser.z_1 = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(1);
-    //   laser.phi_1 = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(2);
-
-    //   laser.r_2 = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(3);
-    //   laser.z_2 = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(4);
-    //   laser.phi_2 = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(5);
-
-    //   fEventTree->Fill();
-    // }
   }
 }
 

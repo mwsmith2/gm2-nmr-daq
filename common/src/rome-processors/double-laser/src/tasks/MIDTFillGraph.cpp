@@ -56,7 +56,8 @@
 // uncomment if you want to include headers of all folders
 //#include "MIDAllFolders.h"
 
-int   evID = 0.;
+int evID = 0.;
+int run_number;
 gm2::laser_t laser;
 
 static TFile *fTreeFile = NULL;
@@ -72,30 +73,34 @@ void MIDTFillGraph::Init()
 //______________________________________________________________________________
 void MIDTFillGraph::BeginOfRun()
 {
-   TString treeFile = "data-out/laser_tree_";
-   treeFile += Form("%05i",gAnalyzer->GetODB()->GetRunNumber());
-   treeFile += ".root";
+  run_number = gAnalyzer->GetODB()->GetRunNumber();
 
-   fTreeFile = TFile::Open(treeFile.Data(), "RECREATE");   
-   fTreeFile->cd();
+  if (run_number >= 787) {
+    TString treeFile = "data-out/laser_tree_";
+    treeFile += Form("%05i", run_number);
+    treeFile += ".root";
 
-   fEventTree = new TTree("t_ltrk","Laser Tracker Data");
-   fEventTree->Branch("laser", &laser.midas_time, gm2::laser_str);
+    fTreeFile = TFile::Open(treeFile.Data(), "RECREATE");
+    fTreeFile->cd();
+
+    fEventTree = new TTree("t_ltrk","Laser Tracker Data");
+    fEventTree->Branch("laser", &laser.midas_time, gm2::laser_str);
+  }
 }
 
 //_____________________________________________________________________________
 void MIDTFillGraph::Event()
 {
-  if (IsMyGraphActive()) {
+  if (IsMyGraphActive() && (run_number >= 787)) {
 
     // Tree stuff.
     laser.midas_time = gAnalyzer->GetActiveDAQ()->GetTimeStamp();
 
     int N = gAnalyzer->GetMidasDAQ()->GetLTRKBankEntries();
     bool laser_in_inches = false;
-    
+
     if (gAnalyzer->GetMidasDAQ()->GetLTRKBankEntries() > 0) {
-      
+
       laser.r_1 = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(0);
       laser.phi_1 = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(1);
       laser.z_1 = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(2);
