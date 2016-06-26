@@ -837,7 +837,12 @@ void trigger_loop()
               auto rc = dio_stepper->MoveCmForward(step_size);
             }
 
-            usleep(1.0e6 / event_rate_limit);
+            // Waste CPU cycles so that trigger sequence doesn't start too soon.
+            for (int i = 0; i < 10000; ++i) {
+              usleep(10);
+            }
+
+            // usleep(1.0e6 / event_rate_limit);
             ++num_events;
             ready_to_move = false;
             readout_listener->SetReady();
