@@ -186,14 +186,15 @@ def standard_job_set(msg):
     job['cmd'] = cmd_prefix + str(run_num) + cmd_suffix
     job['clean'] = 'rm histos*.root run*.root'
 
-    if run_num < 787:
-        job['dir'] = rome_dir + '/single-laser'
-        job['name'] = 'laser'
+    job['name'] = 'single-laser'
+    job['dir'] = rome_dir + '/single-laser'
+    job['deps'] = {}
+    job['deps'][job['dir'] + '/midanalyzer.exe'] = new_dep
+    jobs[0].append(job)
 
-    else:
-        job['dir'] = rome_dir + '/double-laser'
-        job['name'] = 'laser'
-
+    job = copy.copy(job)
+    job['name'] = 'double-laser'
+    job['dir'] = rome_dir + '/double-laser'
     job['deps'] = {}
     job['deps'][job['dir'] + '/midanalyzer.exe'] = new_dep
     jobs[0].append(job)
@@ -265,7 +266,7 @@ def standard_job_set(msg):
     job['dir'] = offline_dir + '/crunchers'
     job['meta'] = datadir + '/shim/.crunchd_metadata.json'
     job['deps'] = {}
-    job['deps'][offline_dir + '/bin/make_shim_dataset'] = new_dep
+    job['deps'][offline_dir + '/crunchers/bin/make_shim_dataset'] = new_dep
     job['deps']['data/shim/*%05i.root' % run_num] = new_dep
     jobs[1].append(job)
 
@@ -292,7 +293,7 @@ def standard_job_set(msg):
     job['clean'] = None
     job['meta'] = datadir + '/extracted/.crunchd_metadata.json'
     job['deps'] = {}
-    job['deps'][offline_dir + '/bin/make_extracted_dataset'] = new_dep
+    job['deps'][offline_dir + '/crunchers/bin/make_extracted_dataset'] = new_dep
     job['deps'][datadir + '/crunched/run_%05i.root' % run_num] = new_dep
     jobs[3].append(job)
 
@@ -322,7 +323,7 @@ def bundle_job_set(msg):
     for run in runs:
         job['deps'][datadir + '/crunched/run_%05i.root' % run] = new_dep
 
-    job['deps'][offline_dir + '/bin/make_bundled_dataset'] = new_dep
+    job['deps'][offline_dir + '/crunchers/bin/make_bundled_dataset'] = new_dep
     jobs[0].append(job)
 
     return jobs
