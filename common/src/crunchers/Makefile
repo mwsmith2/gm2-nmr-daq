@@ -23,17 +23,23 @@ ifeq ($(UNAME_S), Linux)
 	FLAGS = -std=c++0x $(DEBUG)
 endif
 
-LIBS = -Wl,-rpath,/usr/local/lib
-LIBS += -L/usr/local/lib -lfftw3 -lm -lboost_filesystem -lboost_system -lfid
-LIBS += -Lcore/lib -lgm2fieldcore
+FLAGS += -Iinclude -Icore/include -Icore
+LIBS += -Wl,-rpath,/usr/local/lib -L/usr/lib64/mysql -L/usr/local/lib
+LIBS += -lfftw3 -lm -lmysqlclient -lsqlite3 -lboost_filesystem -lboost_system -lfid
+LIBS += -Lcore/lib -lgm2fieldcore -lodbc
 
-FLAGS += $(shell root-config --cflags) -Iinclude -Icore/include -Icore
+# ROOT flags
+FLAGS += $(shell root-config --cflags)
 LIBS  += $(shell root-config --libs)
+
+# MIDAS flags
+FLAGS += -I$(MIDASSYS)/include
+LIBS  += -L$(MIDASSYS)/linux/lib -lmidas-shared
 
 all: $(TARGETS)
 
 build/%.o: src/%.cxx
-	$(CXX) $(FLAGS) -o $@ -c $< 
+	$(CXX) $(FLAGS) -o $@ -c $<
 
 bin/%: build/%.o
 	$(CXX) $(FLAGS) -o $@ $+ $(LIBS)
