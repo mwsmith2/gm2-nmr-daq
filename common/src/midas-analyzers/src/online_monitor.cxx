@@ -300,7 +300,7 @@ INT analyze_trigger_event(EVENT_HEADER *pheader, void *pevent)
                   platform_data.freq,
                   sizeof(platform_data.health),
                   SHIM_PLATFORM_CH,
-                  TID_WORD);
+                  TID_SHORT);
     }
 
     // Give the event a timestamp.
@@ -773,7 +773,7 @@ void archive_config_loop()
       db_find_key(hDB, 0, "/Experiment/Run Parameters/Metrolab Angle", &hkey);
       if (hkey) {
         size = sizeof(temp_double);
-        db_get_data(hDB, hkey, &temp_double, &size, TID_DOUBLE);
+        db_get_data(hDB, hkey, &temp_double, &size, TID_FLOAT);
 
         pt_run.put("metrolab_angle", temp_double);
       }
