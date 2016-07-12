@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
         strcpy(odb_path, argv[++i]);
       else
         {
-usage:
+        usage:
         printf("usage: test [-h Hostname] [-e Experiment]\n\n");
         return 1;
         }
@@ -40,11 +40,13 @@ usage:
     }
 
   // Get the experiment database handle.
-  rc = cm_connect_experiment(host_name, exp_name, "json-client", NULL);
+  rc = cm_connect_experiment(host_name, exp_name, "json-query", NULL);
 
   rc = cm_get_experiment_database(&hDB, NULL);
 
-  if (hDB == NULL);
+  if (hDB == NULL) {
+    return rc;
+  }
 
   db_find_key(hDB, 0, odb_path, &hkey);
 
