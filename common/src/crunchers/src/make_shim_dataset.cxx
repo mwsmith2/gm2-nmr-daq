@@ -1,5 +1,5 @@
 /*===========================================================================*\
-v
+
 author: Matthias W. Smith
 email:  mwsmith2@uw.edu
 date:   2016/05/10
@@ -46,6 +46,8 @@ double laser_machine_offset(int run) {
     return 600.0;
   } else if ((run > 3304) && (run < 3312)) {
     return 36.0;
+  } else if (run == 3510) {
+    return 64.0;
   } else {
     return 0.0;
   }
@@ -502,6 +504,8 @@ int main(int argc, char **argv)
 
         flags.laser_p1 = true;
 
+        laser.phi_1 = laser.phi_1 - laser_phi_offset;
+
       } else if (laser_point == string("P2")) {
 
         flags.laser_p2 = true;
@@ -518,6 +522,11 @@ int main(int argc, char **argv)
 
     } else {
 
+      // Apply the measured laser tracker offset.
+      laser.phi_1 = laser.phi_1 - laser_phi_offset;
+      laser.phi_2 = laser.phi_2 - laser_phi_offset;
+
+      // Set the appropriate flags.
       if (laser_point == string("P1")) {
         flags.laser_p1 = true;
       }
@@ -526,9 +535,14 @@ int main(int argc, char **argv)
         flags.laser_p2 = true;
       }
 
+      // Swap if wrong point was used.
       if (laser_swap) {
 
         flags.laser_swap = true;
+
+        // Swap the flags as well.
+        flags.laser_p1 = ~flags.laser_p1;
+        flags.laser_p2 = ~flags.laser_p2;
 
         double r_2 = laser.r_2;
         double z_2 = laser.z_2;
@@ -536,11 +550,17 @@ int main(int argc, char **argv)
 
         laser.r_2 = laser.r_1;
         laser.z_2 = laser.z_1;
-        laser.phi_2 = laser.phi_1 - laser_phi_offset;
+        laser.phi_2 = laser.phi_1;
 
         laser.r_1 = r_2;
         laser.z_1 = z_2;
-        laser.phi_1 = phi_2 - laser_phi_offset;
+        laser.phi_1 = phi_2;
+
+        if (flags.laser_p2) {
+          laser.phi_1 = laser.phi_2 - laser_p2_to_p1_phi_offset;
+        } else if (flags.laser_p1) {
+          laser.phi_2 = laser.phi_1 + laser_p2_to_p1_phi_offset;
+        }
       }
     }
 
