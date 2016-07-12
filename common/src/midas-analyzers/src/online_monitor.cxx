@@ -656,6 +656,7 @@ void archive_config_loop()
   HNDLE hDB, hkey;
   INT status;
   char str[256], filename[256];
+  float temp_float;
   double temp_double;
   DWORD temp_int;
   BOOL temp_bool;
@@ -701,6 +702,8 @@ void archive_config_loop()
       ptree pt_run;
       std::string runlog_file = logdir + "midas_runlog.json";
 
+      cm_msg(MINFO, "Writing runlog: %s", runlog_file.c_str());
+
       try {
         read_json(runlog_file, pt_runlog);
 
@@ -715,16 +718,7 @@ void archive_config_loop()
         pt_run.put("comment", std::string(str));
       }
 
-      // Get the comment from the ODB
-      db_find_key(hDB, 0, "/Experiment/Run Parameters/Comment", &hkey);
-      if (hkey) {
-        size = sizeof(str);
-        db_get_data(hDB, hkey, str, &size, TID_STRING);
-
-        pt_run.put("comment", std::string(str));
-      }
-
-      // Get the comment from the ODB
+      // Get the tags from the ODB
       db_find_key(hDB, 0, "/Experiment/Run Parameters/Tags", &hkey);
       if (hkey) {
         size = sizeof(str);
@@ -772,10 +766,10 @@ void archive_config_loop()
       // Get the metrolab angle from the ODB
       db_find_key(hDB, 0, "/Experiment/Run Parameters/Metrolab Angle", &hkey);
       if (hkey) {
-        size = sizeof(temp_double);
-        db_get_data(hDB, hkey, &temp_double, &size, TID_FLOAT);
+        size = sizeof(temp_float);
+        db_get_data(hDB, hkey, &temp_float, &size, TID_FLOAT);
 
-        pt_run.put("metrolab_angle", temp_double);
+        pt_run.put("metrolab_angle", temp_float);
       }
 
       // Get the laser phi offset from the ODB
@@ -788,12 +782,12 @@ void archive_config_loop()
       }
 
      // Get the laser phi offset from the ODB
-      db_find_key(hDB, 0, "/Experiment/Run Parameters/Laser Phi Offset", &hkey);
+      db_find_key(hDB, 0, "/Experiment/Run Parameters/Laser Tracker Point", &hkey);
       if (hkey) {
-        size = sizeof(temp_double);
-        db_get_data(hDB, hkey, &temp_double, &size, TID_DOUBLE);
+        size = sizeof(str);
+        db_get_data(hDB, hkey, &str, &size, TID_STRING);
 
-        pt_run.put("laser_phi_offset", temp_double);
+        pt_run.put("laser_point", std::string(str));
       }
 
       // Get the laser tracker point from the ODB
