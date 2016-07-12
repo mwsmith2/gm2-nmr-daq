@@ -1,3 +1,4 @@
+import sys
 from collections import OrderedDict
 import re
 import simplejson as json
@@ -16,11 +17,21 @@ def main():
         run_attr = json.loads('{}', object_pairs_hook=OrderedDict)
 
     odb = midas.ODB('gm2-nmr')
-    start = 1
-    stop = int(odb.get_value('/Runinfo/Run number').rstrip())
 
-    if (odb.get_value('/Runinfo/State').rstrip() != '1'):
-        stop -= 1
+    if len(sys.argv) > 2:
+        start = int(sys.argv[1])
+
+    else:
+        start = 1
+
+    if len(sys.argv) > 3:
+        stop = int(sys.argv[2])
+
+    else:
+        stop = int(odb.get_value('/Runinfo/Run number').rstrip())
+
+        if (odb.get_value('/Runinfo/State').rstrip() != '1'):
+            stop -= 1
 
     for run_num in range(start, stop + 1):
         run_files = glob.glob(arch_dir + '/*%05i*' % run_num)
