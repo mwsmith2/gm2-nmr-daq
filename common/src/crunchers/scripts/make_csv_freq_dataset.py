@@ -24,11 +24,30 @@ def main():
     t = f.Get('t_sync')
     data = np.empty([29, t.GetEntries()])
 
+    bad_laser_points = []
+
+    if datafile == 'data/bundles/full_scan_047.root':
+        bad_laser_points.append(167)
+        bad_laser_points.append(1766)
+        bad_laser_points.append(5932)
+
     for n in xrange(t.GetEntries()):
 
         t.GetEntry(n)
 
-        data[0, n] = t.phi_2
+        if n in bad_laser_points:
+            t.GetEntry(n - 1)
+            data[0, n] = 0.5 * (t.phi_2 - 1.36)
+
+            t.GetEntry(n + 1)
+            data[0, n] += 0.5 * (t.phi_2 - 1.36)
+
+            data[0, n] = data[0, n] % 360
+
+            t.GetEntry(n)
+
+        else:
+            data[0, n] = (t.phi_2 - 1.36) % 360
 
         for i in xrange(28):
 
