@@ -156,6 +156,8 @@ INT frontend_init()
   }
 
   keithley_port = open(keithley_devname, O_RDWR);
+  //  std::cout<<"keithley on port"<<keithley_devname<<std::endl;
+  //int x; std::cin>>x;
   // yokogawa_port = open(yokogawa_devname, O_RDWR);
 
   // If the default didn't exist, skip it.
@@ -172,15 +174,17 @@ INT frontend_init()
   // Get a handle for the temperature probe.
   yRegisterHub("usb", err);
 
-  sprintf(pt100_devname, "%s.temperature",
-          conf.get<string>("PT100 Device Name").c_str());
+  // NOTE : Removing all uses of pt100_devname and temp_probe here and in the readout routine
+  //sprintf(pt100_devname, "%s.temperature",
+  //       conf.get<string>("PT100 Device Name").c_str());
 
-  temp_probe = yFindTemperature(pt100_devname);
+  // temp_probe = yFindTemperature(pt100_devname);
 
-  if (temp_probe == nullptr) {
-    cm_msg(MERROR, "init", "could not find Yoctopuce PT100 device");
-    return FE_ERR_HW;
-  }
+  //if (temp_probe == nullptr) {
+  // cm_msg(MERROR, "init", "could not find Yoctopuce PT100 device");
+  //  return FE_ERR_HW;
+  //}
+  // NOTE: End removal in frontend_init
 
   cm_msg(MDEBUG, "init", "successful initialization");
 
@@ -295,9 +299,10 @@ INT read_trigger_event(char *pevent, INT off)
   bk_init32(pevent);
   bk_create(pevent, bk_name, TID_DOUBLE, &pdata);
 
-  if (temp_probe->isOnline()) {
+  //NOTE : Removing call to uninitialized variable temp_probe
+  if (0){//temp_probe->isOnline()) {
 
-    *(pdata++) = temp_probe->get_currentValue();
+    // *(pdata++) = temp_probe->get_currentValue();
 
   } else {
 
@@ -311,6 +316,7 @@ INT read_trigger_event(char *pevent, INT off)
     n = write(keithley_port, line, strlen(line));
     b = read(keithley_port, &buf, strlen(buf));
 
+    //    std::cout<<"keithely reads: "<<atof(buf)<<std::endl;
     *(pdata++) = atof(buf);
 
   } else {
