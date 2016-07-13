@@ -7,7 +7,7 @@ import ROOT as rt
 
 def beam_quad_field(phi):
         phi= (phi - 335.0 + 180.0) % 360 - 180.0
-        return -4 * np.exp(-(phi / 20.0)**2)
+        return -4 * 61.79e-3 * np.exp(-(phi / 20.0)**2)
 
 def main():
 
