@@ -4,6 +4,7 @@ from copy import copy
 
 import numpy as np
 import ROOT as rt
+from scipy.interpolate import interp1d
 
 def main():
 
@@ -46,7 +47,7 @@ def main():
             t.GetEntry(n + 1)
             data[0, n] += 0.5 * (t.phi_2 - 1.36)
 
-            data[0, n] = data[0, n] % 360
+            data[0, n] = (data[0, n]) % 360
 
             t.GetEntry(n)
 
@@ -90,21 +91,26 @@ def main():
         phi_min = new_data[0, 0]
         phi_max = new_data[0, t.GetEntries() - 1]
 
-        print phi_min, phi_max
-
         old_data = copy(data)
 
+        # Make phi for convenience.
         phi = old_data[0, :]
+
+        # Find where the new data will replace the old.
         dphi = (phi_max - phi_min) % 360.0
         idx = np.where((phi - phi_min) % 360.0 > dphi)[0]
         data = np.empty([29, t.GetEntries() + len(idx)])
 
+        # Calculate values to negate drift
+        b_i = interp1d(phi, old_data[1, :])(phi_min)
+        b_offset = new_data[1, 0] - b_i
+
+        new_data[1:, :] -= b_offset
 
         data[:, :t.GetEntries()] = new_data
         data[:, t.GetEntries():] = old_data[:, idx]
 
         data = data[:, data[0, :].argsort()]
-        print data.shape
 
     output = 'data/auxilliary/csv/spliced_'
     output += os.path.basename(full_scan_file).replace('root', 'csv')
