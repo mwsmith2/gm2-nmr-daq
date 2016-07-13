@@ -18,13 +18,13 @@ def main():
 
     odb = midas.ODB('gm2-nmr')
 
-    if len(sys.argv) > 2:
+    if len(sys.argv) > 1:
         start = int(sys.argv[1])
 
     else:
         start = 1
 
-    if len(sys.argv) > 3:
+    if len(sys.argv) > 2:
         stop = int(sys.argv[2])
 
     else:
@@ -75,7 +75,7 @@ def main():
                         run_attr[key]['stop_time'] = stop_time
 
                     if '"Field On" type="BOOL"' in line:
-                        field_on = float(line.split('>')[1].split('<')[0])
+                        field_on = bool(line.split('>')[1].split('<')[0])
                         run_attr[key]['field_on'] = field_on
 
                     if '"Step Size" type="DOUBLE"' in line:
