@@ -31,7 +31,7 @@ using std::string;
 
 //--- project includes ------------------------------------------------------//
 #include "sync_client.hh"
-#include "nmr_sequencer.hh"
+#include "fixed_probe_sequencer.hh"
 #include "frontend_utils.hh"
 
 //--- globals ---------------------------------------------------------------//
@@ -78,10 +78,9 @@ extern "C" {
   EQUIPMENT equipment[] =
     {
       {FRONTEND_NAME,  // equipment name
-       { 10, 0,        // event ID, trigger mask
-         "BUF1",       // event buffer (use to be SYSTEM)
-         EQ_POLLED |
-         EQ_EB,         // equipment type
+       { 18, 13,        // event ID, trigger mask
+         "SYSTEM",      // event buffer (use to be SYSTEM)
+         EQ_PERIODIC,   // equipment type
          0,             // not used
          "MIDAS",       // format
          TRUE,          // enabled
@@ -129,7 +128,7 @@ std::string nmr_sequence_conf_file;
 
 gm2::fixed_t data;
 gm2::long_fixed_t full_data;
-gm2::NmrSequencer *event_manager;
+gm2::FixedProbeSequencer *event_manager;
 
 const int nprobes = SHIM_FIXED_CH;
 const char *const mbank_name = (char *)"FXPR";
@@ -208,7 +207,7 @@ int load_device_classes()
   std::string conf_file;
 
   // Set up the event mananger.
-  event_manager = new gm2::NmrSequencer(nmr_sequence_conf_file, nprobes);
+  event_manager = new gm2::FixedProbeSequencer(nmr_sequence_conf_file, nprobes);
   event_rate_limit = conf.get<double>("event_rate_limit");
 
   return SUCCESS;
@@ -310,6 +309,7 @@ INT begin_of_run(INT run_number, char *error)
     db_get_data(hDB, hkey, &flag, &size, TID_BOOL);
 
     write_root = flag;
+    write_root = true;
   }
 
   // Check if we want to save full waveforms.
@@ -328,7 +328,7 @@ INT begin_of_run(INT run_number, char *error)
   if (write_root) {
     // Set up the ROOT data output.
     pf = new TFile(filename.c_str(), "recreate");
-    pt_shim = new TTree("t_shpf", "Shim Fixed Data");
+    pt_shim = new TTree("t_fxpr", "Shim Fixed Probe Data");
     pt_shim->SetAutoSave(5);
     pt_shim->SetAutoFlush(20);
 
@@ -349,7 +349,7 @@ INT begin_of_run(INT run_number, char *error)
 
   // HW part
   event_manager->BeginOfRun();
-  event_rate_limit = conf.get<double>("step_size");
+  event_rate_limit = conf.get<double>("event_rate_limit");
 
   event_number = 0;
   run_in_progress = true;
@@ -430,19 +430,21 @@ INT poll_event(INT source, INT count, BOOL test) {
     return 0;
   }
 
-  if (!triggered) {
-    event_manager->IssueTrigger();
-    triggered = true;
-  }
+  // if (!triggered) {
+  //   event_manager->IssueTrigger();
+  //   triggered = true;
+  // }
 
-  if (triggered && event_manager->HasEvent()) {
+  // if (triggered && event_manager->HasEvent()) {
 
-    return 1;
+  //   triggered = false;
+  //   return 1;
 
-  } else {
+  // } else {
 
-    return 0;
-  }
+  //   return 0;
+  // }
+  return 0;
 }
 
 //--- Interrupt configuration ---------------------------------------*/
@@ -466,8 +468,8 @@ INT interrupt_configure(INT cmd, INT source, PTYPE adr)
 
 INT read_fixed_probe_event(char *pevent, INT off)
 {
-  cm_msg(MDEBUG, "read_fixed_event", "got data");
   using namespace daq;
+  static bool triggered;
   static unsigned long long num_events;
   static unsigned long long events_written;
 
@@ -479,7 +481,18 @@ INT read_fixed_probe_event(char *pevent, INT off)
   char bk_name[10];
   DWORD *pdata;
 
-  if (!run_in_progress) return 0;
+  if (!triggered) {
+    event_manager->IssueTrigger();
+    triggered = true;
+  }
+
+  if (triggered && !event_manager->HasEvent()) {
+    return 0;
+
+  } else {
+
+    cm_msg(MDEBUG, "read_fixed_event", "got data");
+  }
 
   auto shim_data = event_manager->GetCurrentEvent();
 
@@ -615,6 +628,9 @@ INT read_fixed_probe_event(char *pevent, INT off)
   // Pop the event now that we are done copying it.
   cm_msg(MINFO, "read_fixed_event", "Finished with event, popping from queue");
   event_manager->PopCurrentEvent();
+
+  // Let the front-end know we are ready for another trigger.
+  triggered = false;
 
   return bk_size(pevent);
 }
