@@ -1,6 +1,6 @@
 import sys
 import json
-import subprocess 
+import subprocess
 import hashlib
 import zmq
 import numpy as np
@@ -10,7 +10,7 @@ import midas
 
 
 def main():
-    
+
     # Create the ZMQ sockets that talk to the job scheduler.
     ctx = zmq.Context()
     job_sck = ctx.socket(zmq.PUSH)
@@ -21,7 +21,8 @@ def main():
 
     # Grab the data directory from the experiment's ODB.
     odb = midas.ODB('gm2-nmr')
-    datadir = odb.get_value('/Logger/Data dir').rstrip() + '/'
+#    datadir = odb.get_value('/Logger/Data dir').rstrip() + '/'
+    datadir = '/home/newg2/data/'
 
     if len(sys.argv) < 2:
         print "Insufficient arguments."
@@ -47,7 +48,7 @@ def main():
 
         print 'Next full scan is run number %i.' % run_num
         print 'Writing the run list.'
-    
+
         runfile = datadir + '/bundles/run_list_full_scan_%03i.txt'
         runfile = runfile % run_num
 
@@ -59,7 +60,7 @@ def main():
         print ''
         print 'python scripts/full_scan_helper.py update %i' % run_num
         print ''
-        
+
     elif sys.argv[1] == 'update':
         print "Rebundling full scans."
 
@@ -108,7 +109,7 @@ def main():
                         runlist.remove(run)
 
             job_sck.send_json({'type': 'bundle-full_scan', 'run': scan_idx})
-                    
+
 
     else:
         print "Unrecognized argument."
