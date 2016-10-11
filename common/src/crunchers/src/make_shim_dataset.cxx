@@ -39,6 +39,10 @@ usage:
 using namespace std;
 using namespace gm2;
 
+double laser_phi_2_correction(double phi) {
+  return -0.0525 * sin((phi - 32.39)* M_PI / 180.0) - 0.6544;
+}
+
 double laser_machine_offset(int run) {
   if ((run > 3160) && (run < 3178)) {
     return 544.0;
@@ -523,6 +527,7 @@ int main(int argc, char **argv)
     } else {
 
       // Apply the measured laser tracker offset.
+      laser_phi_offset = laser_phi_2_correction(laser.phi_2);
       laser.phi_1 = laser.phi_1 - laser_phi_offset;
       laser.phi_2 = laser.phi_2 - laser_phi_offset;
 
