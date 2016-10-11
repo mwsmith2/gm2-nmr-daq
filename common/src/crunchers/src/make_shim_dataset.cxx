@@ -509,6 +509,7 @@ int main(int argc, char **argv)
         flags.laser_p1 = true;
 
         laser.phi_1 = laser.phi_1 - laser_phi_offset;
+        laser.phi_2 = laser.phi_1 + laser_p2_to_p1_phi_offset;
 
       } else if (laser_point == string("P2")) {
 
@@ -517,11 +518,10 @@ int main(int argc, char **argv)
         laser.r_2 = laser.r_1;
         laser.z_2 = laser.z_1;
         laser.phi_2 = laser.phi_1 - laser_phi_offset;
+        laser.phi_1 = laser.phi_2 - laser_p2_to_p1_phi_offset;
 
         laser.r_1 = 0.0;
         laser.z_1 = 0.0;
-        laser.phi_1 = 0.0;
-
       }
 
     } else {
@@ -534,10 +534,12 @@ int main(int argc, char **argv)
       // Set the appropriate flags.
       if (laser_point == string("P1")) {
         flags.laser_p1 = true;
+        flags.laser_p2 = false;
       }
 
       if (laser_point == string("P2")) {
         flags.laser_p2 = true;
+        flags.laser_p1 = false;
       }
 
       // Swap if wrong point was used.
@@ -545,9 +547,9 @@ int main(int argc, char **argv)
 
         flags.laser_swap = true;
 
-        // Swap the flags as well.
-        flags.laser_p1 = ~flags.laser_p1;
-        flags.laser_p2 = ~flags.laser_p2;
+        // Swap thek flags as well.
+        flags.laser_p1 = !flags.laser_p1;
+        flags.laser_p2 = !flags.laser_p2;
 
         double r_2 = laser.r_2;
         double z_2 = laser.z_2;
