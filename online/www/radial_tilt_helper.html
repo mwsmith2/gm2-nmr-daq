@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script type="text/javascript" src="mhttpd.js"></script>
+
+<head>
+  <title>Tilt Sensor Display</title>
+</head>
+
+<body>
+
+<h1>Azimuthal Tilt</h1>
+<div id="azi-tilt" style="font-size:200px">Default</div>
+
+<h1>Radial Tilt</h1>
+<div id="rad-tilt" style="font-size:200px">Default</div>
+
+<script>
+
+function update_data() {
+
+    var tilt = ODBGet("Equipment/Tilt Sensor/Variables/TILT[*]",
+                      "%i", 0, 3, "TID_DWORD");
+
+    document.getElementById('rad-tilt').innerHTML = tilt[2];
+    document.getElementById('azi-tilt').innerHTML = tilt[1];
+};
+
+setInterval(function() {
+   update_data();
+}, 250);
+
+</script>
+</body>

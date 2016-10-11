@@ -88,6 +88,7 @@ void MIDTFillGraph::BeginOfRun()
 //______________________________________________________________________________
 void MIDTFillGraph::Event()
 {
+  static int event_num = 0;
   if (IsMyGraphActive() && (run_number < 787)) {
 
     laser.midas_time = gAnalyzer->GetActiveDAQ()->GetTimeStamp();
@@ -95,7 +96,6 @@ void MIDTFillGraph::Event()
     int N = gAnalyzer->GetMidasDAQ()->GetLTRKBankEntries();
 
     if (N > 0) {
-
       if (gAnalyzer->GetODB()->GetRunNumber() < 662) {
         laser.r_1 = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(0);
         laser.z_1 = gAnalyzer->GetMidasDAQ()->GetLTRKBankAt(2);
