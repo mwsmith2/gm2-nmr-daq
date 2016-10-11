@@ -306,7 +306,7 @@ INT read_trigger_event(char *pevent, INT off)
 
   } else {
 
-    cm_msg(MDEBUG, "read_trigger_event", "temperature probe not online");
+    // cm_msg(MDEBUG, "read_trigger_event", "temperature probe not online");
     *(pdata++) = -1.0;
   }
 

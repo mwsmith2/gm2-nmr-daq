@@ -1,8 +1,8 @@
-#include "nmr_sequencer.hh"
+#include "fixed_probe_sequencer.hh"
 
 namespace gm2 {
 
-NmrSequencer::NmrSequencer(int num_probes) : daq::EventManagerBase()
+FixedProbeSequencer::FixedProbeSequencer(int num_probes) : daq::EventManagerBase()
 {
   conf_file_ = std::string("config/fe_vme_shimming.json");
   num_probes_ = num_probes;
@@ -10,7 +10,7 @@ NmrSequencer::NmrSequencer(int num_probes) : daq::EventManagerBase()
   Init();
 }
 
-NmrSequencer::NmrSequencer(std::string conf_file, int num_probes) :
+FixedProbeSequencer::FixedProbeSequencer(std::string conf_file, int num_probes) :
   EventManagerBase()
 {
   conf_file_ = conf_file;
@@ -19,8 +19,14 @@ NmrSequencer::NmrSequencer(std::string conf_file, int num_probes) :
   Init();
 }
 
-NmrSequencer::~NmrSequencer()
+FixedProbeSequencer::~FixedProbeSequencer()
 {
+  // Make sure the threads are joined.
+  if (go_time_ == true) {
+    EndOfRun();
+  }
+
+  // Clean up allocations.
   for (auto &val : mux_boards_) {
     delete val;
   }
@@ -28,10 +34,11 @@ NmrSequencer::~NmrSequencer()
   delete nmr_pulser_trg_;
 }
 
-int NmrSequencer::Init()
+int FixedProbeSequencer::Init()
 {
   go_time_ = false;
   thread_live_ = false;
+  got_start_trg_ = false;
 
   sequence_in_progress_ = false;
   builder_has_finished_ = true;
@@ -43,9 +50,12 @@ int NmrSequencer::Init()
   boost::property_tree::ptree conf;
   boost::property_tree::read_json(conf_file_, conf);
   SetLogFile(conf.get<std::string>("logfile", logfile_));
+
+  // Fixed probes run all the time.
+  BeginOfRun();
 }
 
-int NmrSequencer::BeginOfRun()
+int FixedProbeSequencer::BeginOfRun()
 {
   boost::property_tree::ptree conf;
   boost::property_tree::read_json(conf_file_, conf);
@@ -70,23 +80,7 @@ int NmrSequencer::BeginOfRun()
   }
 
   int sis_idx = 0;
-  // for (auto &v : conf.get_child("devices.sis_3302")) {
-
-  //   std::string name(v.first);
-  //   std::string dev_conf_file = std::string(v.second.data());
-
-  //   if (dev_conf_file[0] != '/') {
-  //     dev_conf_file = daq::conf_dir + std::string(v.second.data());
-  //   }
-
-  //   sis_idx_map_[name] = sis_idx++;
-
-  //   LogDebug("loading hw: %s, %s", name.c_str(), dev_conf_file.c_str());
-  //   workers_.PushBack(new daq::WorkerSis3302(name, dev_conf_file));
-  // }
-
-  sis_idx = 0;
-  for (auto &v : conf.get_child("devices.sis_3316")) {
+  for (auto &v : conf.get_child("devices.sis_3302")) {
 
     std::string name(v.first);
     std::string dev_conf_file = std::string(v.second.data());
@@ -98,8 +92,24 @@ int NmrSequencer::BeginOfRun()
     sis_idx_map_[name] = sis_idx++;
 
     LogDebug("loading hw: %s, %s", name.c_str(), dev_conf_file.c_str());
-    workers_.PushBack(new daq::WorkerSis3316(name, dev_conf_file));
+    workers_.PushBack(new daq::WorkerSis3302(name, dev_conf_file));
   }
+
+  sis_idx = 0;
+  // for (auto &v : conf.get_child("devices.sis_3316")) {
+
+  //   std::string name(v.first);
+  //   std::string dev_conf_file = std::string(v.second.data());
+
+  //   if (dev_conf_file[0] != '/') {
+  //     dev_conf_file = daq::conf_dir + std::string(v.second.data());
+  //   }
+
+  //   sis_idx_map_[name] = sis_idx++;
+
+  //   LogDebug("loading hw: %s, %s", name.c_str(), dev_conf_file.c_str());
+  //   workers_.PushBack(new daq::WorkerSis3316(name, dev_conf_file));
+  // }
 
   sis_idx = 0;
   // for (auto &v : conf.get_child("devices.sis_3350")) {
@@ -125,34 +135,22 @@ int NmrSequencer::BeginOfRun()
   switch (bid) {
     case 'a':
       LogDebug("setting NMR pulser trigger on dio board A, port %i", port);
-      nmr_pulser_trg_ = new daq::DioTriggerBoard(0x0,
-                                                 daq::BOARD_A,
-                                                 port,
-                                                 false);
+      nmr_pulser_trg_ = new daq::DioTriggerBoard(0x0, daq::BOARD_A, port, false);
       break;
 
     case 'b':
       LogDebug("setting NMR pulser trigger on dio board B, port %i", port);
-      nmr_pulser_trg_ = new daq::DioTriggerBoard(0x0,
-                                                 daq::BOARD_B,
-                                                 port,
-                                                 false);
+      nmr_pulser_trg_ = new daq::DioTriggerBoard(0x0, daq::BOARD_B, port, false);
       break;
 
     case 'c':
       LogDebug("setting NMR pulser trigger on dio board C, port %i", port);
-      nmr_pulser_trg_ = new daq::DioTriggerBoard(0x0,
-                                                 daq::BOARD_C,
-                                                 port,
-                                                 false);
+      nmr_pulser_trg_ = new daq::DioTriggerBoard(0x0, daq::BOARD_C, port, false);
       break;
 
     default:
       LogDebug("setting NMR pulser trigger on dio board D, port %i", port);
-      nmr_pulser_trg_ = new daq::DioTriggerBoard(0x0,
-                                                 daq::BOARD_D,
-                                                 port,
-                                                 false);
+      nmr_pulser_trg_ = new daq::DioTriggerBoard(0x0, daq::BOARD_D, port, false);
       break;
   }
 
@@ -218,7 +216,7 @@ int NmrSequencer::BeginOfRun()
     int port = mux.second.get<int>("dio_port_num");
 
     mux_idx_map_[mux_name] = bid_map[bid];
-    mux_boards_[mux_idx_map_[mux_name]]->AddMux(mux_name, port);
+    mux_boards_[mux_idx_map_[mux_name]]->AddMux(mux_name, port, false);
 
     std::string wfd_name(mux.second.get<std::string>("wfd_name"));
     int wfd_chan(mux.second.get<int>("wfd_chan"));
@@ -229,23 +227,24 @@ int NmrSequencer::BeginOfRun()
 
   // Start threads
   thread_live_ = true;
-  run_thread_ = std::thread(&NmrSequencer::RunLoop, this);
-  trigger_thread_ = std::thread(&NmrSequencer::TriggerLoop, this);
-  builder_thread_ = std::thread(&NmrSequencer::BuilderLoop, this);
-  starter_thread_ = std::thread(&NmrSequencer::StarterLoop, this);
+  run_thread_ = std::thread(&FixedProbeSequencer::RunLoop, this);
+  trigger_thread_ = std::thread(&FixedProbeSequencer::TriggerLoop, this);
+  builder_thread_ = std::thread(&FixedProbeSequencer::BuilderLoop, this);
+  starter_thread_ = std::thread(&FixedProbeSequencer::StarterLoop, this);
 
   go_time_ = true;
   workers_.StartRun();
 
   // Pop stale events
   while (workers_.AnyWorkersHaveEvent()) {
+    LogDebug("Flushing stale worker events.");
     workers_.FlushEventData();
   }
 
   LogDebug("configuration loaded");
 }
 
-int NmrSequencer::EndOfRun()
+int FixedProbeSequencer::EndOfRun()
 {
   int count = 0;
   do {
@@ -295,12 +294,12 @@ int NmrSequencer::EndOfRun()
   return 0;
 }
 
-int NmrSequencer::ResizeEventData(daq::event_data &data)
+int FixedProbeSequencer::ResizeEventData(daq::event_data &data)
 {
   return 0;
 }
 
-void NmrSequencer::RunLoop()
+void FixedProbeSequencer::RunLoop()
 {
   while (thread_live_) {
 
@@ -352,7 +351,7 @@ void NmrSequencer::RunLoop()
   }
 }
 
-void NmrSequencer::TriggerLoop()
+void FixedProbeSequencer::TriggerLoop()
 {
   while (thread_live_) {
 
@@ -385,11 +384,12 @@ void NmrSequencer::TriggerLoop()
       	  LogDebug("TriggerLoop: muxes are configured for this round");
           usleep(mux_switch_time_);
       	  nmr_pulser_trg_->FireTriggers(nmr_trg_mask_);
+          usleep(10000);
 
-    	   LogDebug("TriggerLoop: muxes configure, triggers fired");
-	       mux_round_configured_ = true;
+          LogDebug("TriggerLoop: muxes configure, triggers fired");
+          mux_round_configured_ = true;
 
-         while (!got_round_data_ && go_time_) {
+          while (!got_round_data_ && go_time_) {
 	    std::this_thread::yield();
 	    usleep(daq::short_sleep);
 	  }
@@ -399,13 +399,13 @@ void NmrSequencer::TriggerLoop()
 	sequence_in_progress_ = false;
 	got_start_trg_ = false;
 
-  LogDebug("TriggerLoop: waiting for builder to finish");
+        LogDebug("TriggerLoop: waiting for builder to finish");
 	while (!builder_has_finished_ && go_time_) {
 	  std::this_thread::yield();
 	  usleep(daq::short_sleep);
 	};
 
-  LogDebug("TriggerLoop: builder finished packing event");
+        LogDebug("TriggerLoop: builder finished packing event");
 
       } // done with trigger sequence
 
@@ -418,7 +418,7 @@ void NmrSequencer::TriggerLoop()
   }
 }
 
-void NmrSequencer::BuilderLoop()
+void FixedProbeSequencer::BuilderLoop()
 {
   using namespace std::chrono;
 
@@ -533,7 +533,7 @@ void NmrSequencer::BuilderLoop()
 
               // Get the timestamp
               bundle.sys_clock[idx] = daq::systime_us();
-              bundle.gps_clock[idx] = 0.0; // todo:
+              bundle.gps_clock[idx] = 0.0; // todo
 
               if (analyze_fids_online_ || (idx == 0)) {
 
@@ -651,7 +651,7 @@ void NmrSequencer::BuilderLoop()
   } // thread_live_
 }
 
-void NmrSequencer::StarterLoop()
+void FixedProbeSequencer::StarterLoop()
 {
   // Set up the zmq socket.
   zmq::socket_t trigger_sck(daq::msg_context, ZMQ_SUB);

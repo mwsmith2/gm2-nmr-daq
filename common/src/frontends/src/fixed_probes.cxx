@@ -30,7 +30,6 @@ using std::string;
 #include "TTree.h"
 
 //--- project includes ------------------------------------------------------//
-#include "sync_client.hh"
 #include "fixed_probe_sequencer.hh"
 #include "frontend_utils.hh"
 
@@ -207,7 +206,13 @@ int load_device_classes()
   std::string conf_file;
 
   // Set up the event mananger.
-  event_manager = new gm2::FixedProbeSequencer(nmr_sequence_conf_file, nprobes);
+  if (event_manager == nullptr) {
+    event_manager = new gm2::FixedProbeSequencer(nmr_sequence_conf_file, nprobes);
+  } else {
+    delete event_manager;
+    event_manager = new gm2::FixedProbeSequencer(nmr_sequence_conf_file, nprobes);
+  }
+
   event_rate_limit = conf.get<double>("event_rate_limit");
 
   return SUCCESS;
@@ -242,6 +247,7 @@ INT frontend_exit()
 {
   run_in_progress = false;
 
+  event_manager->EndOfRun();
   delete event_manager;
 
   cm_msg(MINFO, "exit", "Shim Fixed teardown complete");
@@ -348,7 +354,6 @@ INT begin_of_run(INT run_number, char *error)
   }
 
   // HW part
-  event_manager->BeginOfRun();
   event_rate_limit = conf.get<double>("event_rate_limit");
 
   event_number = 0;
@@ -362,8 +367,6 @@ INT begin_of_run(INT run_number, char *error)
 //--- End of Run ----------------------------------------------------*/
 INT end_of_run(INT run_number, char *error)
 {
-  event_manager->EndOfRun();
-
   // Make sure we write the ROOT data.
   if (run_in_progress && write_root) {
 
@@ -469,7 +472,7 @@ INT interrupt_configure(INT cmd, INT source, PTYPE adr)
 INT read_fixed_probe_event(char *pevent, INT off)
 {
   using namespace daq;
-  static bool triggered;
+  static bool triggered = false;
   static unsigned long long num_events;
   static unsigned long long events_written;
 
@@ -483,6 +486,7 @@ INT read_fixed_probe_event(char *pevent, INT off)
 
   if (!triggered) {
     event_manager->IssueTrigger();
+    cm_msg(MDEBUG, "read_fixed_event", "issued trigger");
     triggered = true;
   }
 
@@ -496,7 +500,10 @@ INT read_fixed_probe_event(char *pevent, INT off)
 
   auto shim_data = event_manager->GetCurrentEvent();
 
+
   if ((shim_data.sys_clock[0] == 0) && (shim_data.sys_clock[nprobes-1] == 0)) {
+    event_manager->PopCurrentEvent();
+    triggered = false;
     return 0;
   }
 
@@ -587,7 +594,7 @@ INT read_fixed_probe_event(char *pevent, INT off)
 
   data_mutex.unlock();
 
-  if (write_root) {
+  if (write_root && run_in_progress) {
     cm_msg(MINFO, "read_fixed_event", "Filling TTree");
     // Now that we have a copy of the latest event, fill the tree.
     pt_shim->Fill();
