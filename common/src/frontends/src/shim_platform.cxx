@@ -533,7 +533,7 @@ INT poll_event(INT source, INT count, BOOL test) {
   // fake calibration
   if (test) {
     for (i = 0; i < count; i++) {
-      usleep(10);
+      usleep(1000);
     }
     return 0;
   }
