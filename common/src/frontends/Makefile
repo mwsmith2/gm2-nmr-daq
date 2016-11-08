@@ -41,6 +41,14 @@ CFLAGS += -Wl,-rpath,/usr/local/lib
 CC = gcc
 CXX = g++
 
+ifdef DEBUG
+	CC += -pg -g
+	CXX += -pg -g
+else
+	CC += -O3
+	CXX += -O3
+endif
+
 #-------------------------------------------------------------------
 # Finally we have the actual make directives.
 
