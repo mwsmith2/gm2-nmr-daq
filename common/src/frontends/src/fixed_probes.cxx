@@ -488,6 +488,7 @@ INT read_fixed_probe_event(char *pevent, INT off)
     event_manager->IssueTrigger();
     cm_msg(MDEBUG, "read_fixed_event", "issued trigger");
     triggered = true;
+    return 0;
   }
 
   if (triggered && !event_manager->HasEvent()) {
@@ -527,7 +528,7 @@ INT read_fixed_probe_event(char *pevent, INT off)
       data.trace[idx][n] = wf[n];
     }
 
-    fid::Fid myfid(tm, wf);
+    fid::Fid myfid(wf, tm);
 
     // Make sure we got an FID signal
     if (myfid.isgood()) {
