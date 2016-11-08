@@ -653,37 +653,9 @@ void FixedProbeSequencer::BuilderLoop()
 
 void FixedProbeSequencer::StarterLoop()
 {
-  // Set up the zmq socket.
-  zmq::socket_t trigger_sck(daq::msg_context, ZMQ_SUB);
-  zmq::message_t msg(64);
-  bool rc = false;
-
-  boost::property_tree::ptree conf;
-  boost::property_tree::read_json(conf_file_, conf);
-
-  // Set up the SUB socket.
-  std::string sck_addr = conf.get<std::string>("master_address");
-  sck_addr += std::string(":");
-  sck_addr += conf.get<std::string>("trigger_port");
-
-  int opt = 1000;
-  trigger_sck.setsockopt(ZMQ_RCVTIMEO, &opt, sizeof(opt));
-  trigger_sck.connect(sck_addr.c_str());
-  trigger_sck.setsockopt(ZMQ_SUBSCRIBE, "", 0);
-
-  LogDebug("StarterLoop: trigger socket connected at %s", sck_addr.c_str());
-
   while (thread_live_) {
 
     while (go_time_ && thread_live_) {
-
-      // Check for zmq socket trigger.
-      rc = trigger_sck.recv(&msg, ZMQ_DONTWAIT);
-
-      if (rc == true) {
-	got_start_trg_ = true;
-	LogDebug("StarterLoop: Got tcp start trigger");
-      }
 
       if (got_software_trg_){
 	got_start_trg_ = true;
